@@ -1,0 +1,213 @@
+---
+/**
+ * Why Cantt: editorial split. Real facts only (fleet size and model count from the catalog,
+ * lowest daily rate, number of services from site.ts), the documents people need and an honest
+ * summary of the rental terms. One image slot: the featured model's CarVisual.
+ */
+import CarVisual from "@/components/CarVisual.astro";
+import Container from "@/components/Container.astro";
+import Icon from "@/components/Icon.astro";
+import SampleFleetNote from "@/components/SampleFleetNote.astro";
+import { formatAddress, formatOpeningHours, primaryPhone, site } from "@/config/site";
+import type { CatalogModel } from "@/lib/catalog-types";
+import { formatNumber, formatPKR } from "@/lib/format";
+import { telUrl } from "@/lib/links";
+import { urls } from "@/lib/urls";
+import type { FleetFacts } from "./home-data";
+
+interface Props {
+  facts: FleetFacts;
+  model: CatalogModel;
+  categoryName?: string;
+}
+
+const { facts, model, categoryName } = Astro.props;
+const modelName = `${model.make} ${model.model}`;
+
+const stats = [
+  { value: formatNumber(facts.units), label: "cars in the fleet" },
+  { value: formatNumber(facts.models), label: "models to choose from" },
+  facts.fromPrice !== null ? { value: formatPKR(facts.fromPrice), label: "lowest daily rate" } : null,
+  { value: formatNumber(site.services.length), label: "ways to rent" },
+].filter((s): s is { value: string; label: string } => s !== null);
+
+const bring = [
+  { icon: "ph:identification-card", text: "With a driver: your CNIC and a number we can reach on WhatsApp." },
+  { icon: "ph:identification-badge", text: "Self drive: your original CNIC (or passport for overseas visitors) and a valid driving licence." },
+  {
+    icon: "ph:shield-check",
+    text:
+      facts.depositFrom !== null
+        ? `Self drive: a refundable security deposit, from ${formatPKR(facts.depositFrom)} depending on the car.`
+        : "Self drive: a refundable security deposit, depending on the car.",
+  },
+];
+
+const terms = [
+  "Fuel, motorway tolls and parking are paid separately unless your quote includes them.",
+  "A daily booking covers standard duty hours. Extra hours are billed at the overtime rate for that car.",
+  "Outstation trips use the outstation rate, plus a night allowance for the driver when you stay over.",
+  "Self drive cars come with a daily km allowance, listed for each car.",
+  "Every price on this site is an estimate until we confirm it on WhatsApp.",
+];
+
+const hours = formatOpeningHours();
+---
+
+<section id="why" class="border-t border-line py-section" aria-labelledby="why-title">
+  <Container class="grid gap-12 lg:grid-cols-12 lg:gap-10">
+    <div class="lg:col-span-7 lg:pr-6">
+      <p class="eyebrow">Why Cantt</p>
+      <h2 id="why-title" class="mt-4 text-display-lg text-fg">Clear terms before you pay a rupee</h2>
+      <p class="text-lede mt-5 max-w-2xl text-muted">
+        Cantt stands for being on time. Clean cars, punctual drivers and a written price before you book, from a team
+        based in Lahore Cantt.
+      </p>
+
+      <dl class="why-stats">
+        {
+          stats.map((s) => (
+            <div class="why-stat">
+              <dt class="text-sm text-muted">{s.label}</dt>
+              <dd class="why-stat__value tabular">{s.value}</dd>
+            </div>
+          ))
+        }
+      </dl>
+
+      <div class="mt-12 grid gap-10 md:grid-cols-2 md:gap-8">
+        <div>
+          <h3 class="text-display-sm text-fg">What to bring</h3>
+          <ul class="mt-5 flex flex-col gap-4">
+            {
+              bring.map((b) => (
+                <li class="flex gap-3 text-muted">
+                  <Icon name={b.icon} size={22} class="mt-0.5 text-accent" />
+                  <span>{b.text}</span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-display-sm text-fg">The small print, upfront</h3>
+          <ul class="why-terms mt-5">
+            {terms.map((t) => <li>{t}</li>)}
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
+        <a href={urls.policies()} class="why-link">Read our rental policies</a>
+        <a href={urls.rates()} class="why-link">Compare all rates</a>
+        <a href={urls.about()} class="why-link">About {site.name}</a>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-5 self-start lg:sticky lg:top-[calc(var(--header-h)+2rem)] lg:col-span-5">
+      <figure class="flex flex-col gap-3">
+        <CarVisual model={model} categoryName={categoryName} sizes="(min-width: 1024px) 40vw, 100vw" />
+        <figcaption class="flex flex-wrap items-baseline justify-between gap-2 text-sm text-muted">
+          <span>
+            Featured: <a href={urls.car(model.slug)} class="font-semibold text-fg underline-offset-4 hover:underline">{modelName}</a>
+          </span>
+          <span class="tabular">from {formatPKR(model.rates.fromPrice)}/day</span>
+        </figcaption>
+      </figure>
+      <SampleFleetNote class="self-start" />
+
+      <address class="why-base not-italic">
+        <p class="font-display text-display-sm text-fg">Our base</p>
+        <p class="flex gap-2.5 text-muted">
+          <Icon name="ph:map-pin" size={20} class="mt-0.5 text-accent" />
+          <span>{formatAddress()}</span>
+        </p>
+        <p class="flex gap-2.5 text-muted">
+          <Icon name="ph:clock" size={20} class="mt-0.5 text-accent" />
+          <span>{hours.join(", ")}</span>
+        </p>
+        <a href={telUrl()} class="flex gap-2.5 font-semibold text-fg hover:text-accent-fg">
+          <Icon name="ph:phone" size={20} class="mt-0.5 text-accent" />
+          <span class="tabular">{primaryPhone.display}</span>
+        </a>
+      </address>
+    </div>
+  </Container>
+</section>
+
+<style>
+  .why-stats {
+    margin-top: 2.5rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+  }
+  @media (width >= 48rem) {
+    .why-stats {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  .why-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1.25rem 1rem;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .why-stat__value {
+    order: -1;
+    font-family: var(--font-display);
+    font-size: clamp(1.375rem, 0.95rem + 1vw, 1.875rem);
+    white-space: nowrap;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    color: var(--text);
+  }
+
+  .why-terms {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    counter-reset: term;
+  }
+  .why-terms li {
+    position: relative;
+    padding-left: 2rem;
+    color: var(--muted);
+    counter-increment: term;
+  }
+  .why-terms li::before {
+    content: counter(term, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 0.1em;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--accent-fg);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .why-link {
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 0.3em;
+    transition: text-decoration-color 0.2s var(--ease-out);
+  }
+  .why-link:hover {
+    text-decoration-color: var(--accent);
+  }
+
+  .why-base {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+</style>

@@ -1,0 +1,750 @@
+{
+  "version": 1,
+  "sample": true,
+  "generatedAt": "2026-10-11T00:00:00.000Z",
+  "currency": "PKR",
+  "categories": [
+    {
+      "slug": "hatchback",
+      "name": "Hatchbacks",
+      "description": "Compact, easy to park and light on fuel. Ideal for city errands and self drive."
+    },
+    {
+      "slug": "sedan",
+      "name": "Sedans",
+      "description": "Comfortable everyday sedans for family trips, airport runs and business."
+    },
+    {
+      "slug": "suv",
+      "name": "SUVs",
+      "description": "Higher seating and more space for families, northern trips and rough roads."
+    },
+    {
+      "slug": "luxury",
+      "name": "Luxury",
+      "description": "Premium cars for VIP movement, protocol duty and special occasions."
+    },
+    {
+      "slug": "wedding",
+      "name": "Wedding cars",
+      "description": "Elegant cars for the couple, ready for mehndi, baraat and walima."
+    },
+    {
+      "slug": "van",
+      "name": "Vans",
+      "description": "Seats for the whole group, for tours, staff transport and wedding guests."
+    },
+    {
+      "slug": "coaster",
+      "name": "Coasters",
+      "description": "Full-size coasters for large groups, tours and events."
+    }
+  ],
+  "models": [
+    {
+      "slug": "suzuki-alto",
+      "make": "Suzuki",
+      "model": "Alto",
+      "variant": "VXL AGS",
+      "category": "hatchback",
+      "yearFrom": 2022,
+      "yearTo": 2025,
+      "seats": 4,
+      "luggage": 1,
+      "transmission": "automatic",
+      "fuel": "petrol",
+      "engineCc": 660,
+      "features": [
+        "Air conditioning",
+        "Automatic gearbox (AGS)",
+        "Power windows",
+        "USB charging"
+      ],
+      "suitableFor": [
+        "self_drive",
+        "monthly"
+      ],
+      "shortDescription": "Easy to park and light on fuel. The simplest way to get around Lahore on your own.",
+      "description": "The Alto is the easy choice for short trips across Lahore. It fits into tight parking on Liberty or Anarkali, and the automatic gearbox makes stop and go traffic painless.\n\nA good pick for self drive and for monthly use when you just need a reliable runabout.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 4500,
+          "outstationDaily": 5500,
+          "monthly": 110000,
+          "overtimeHourly": 400
+        },
+        "selfDrive": {
+          "daily": 3500,
+          "weekly": 22000,
+          "monthly": 75000,
+          "securityDeposit": 25000,
+          "kmPerDay": 200
+        },
+        "driverNightAllowance": 1000,
+        "fromPrice": 3500
+      },
+      "units": 1,
+      "featured": false,
+      "sortOrder": 10,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "suzuki-cultus",
+      "make": "Suzuki",
+      "model": "Cultus",
+      "variant": "VXL AGS",
+      "category": "hatchback",
+      "yearFrom": 2021,
+      "yearTo": 2025,
+      "seats": 5,
+      "luggage": 2,
+      "transmission": "automatic",
+      "fuel": "petrol",
+      "engineCc": 998,
+      "features": [
+        "Air conditioning",
+        "Automatic gearbox (AGS)",
+        "Power steering",
+        "Power windows",
+        "Bluetooth audio"
+      ],
+      "suitableFor": [
+        "self_drive",
+        "monthly",
+        "family"
+      ],
+      "shortDescription": "A roomier hatchback with a proper back seat. Economical for daily use and short trips.",
+      "description": "The Cultus gives you more cabin space than the Alto while keeping running costs low. Four adults travel comfortably on city trips.\n\nPopular for self drive and monthly rentals.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 5000,
+          "outstationDaily": 6000,
+          "monthly": 120000,
+          "overtimeHourly": 450
+        },
+        "selfDrive": {
+          "daily": 4000,
+          "weekly": 25000,
+          "monthly": 85000,
+          "securityDeposit": 30000,
+          "kmPerDay": 200
+        },
+        "driverNightAllowance": 1000,
+        "fromPrice": 4000
+      },
+      "units": 0,
+      "featured": false,
+      "sortOrder": 20,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "honda-city",
+      "make": "Honda",
+      "model": "City",
+      "variant": "1.5 Aspire",
+      "category": "sedan",
+      "yearFrom": 2022,
+      "yearTo": 2025,
+      "seats": 5,
+      "luggage": 3,
+      "transmission": "automatic",
+      "fuel": "petrol",
+      "engineCc": 1497,
+      "features": [
+        "Air conditioning",
+        "Push start",
+        "Reverse camera",
+        "Bluetooth audio",
+        "Airbags"
+      ],
+      "suitableFor": [
+        "self_drive",
+        "airport",
+        "corporate",
+        "monthly",
+        "family"
+      ],
+      "shortDescription": "A comfortable, fuel-efficient sedan for family trips, airport runs and office use.",
+      "description": "The City is a quiet, comfortable sedan with a good boot for airport luggage. It is easy to drive and economical on longer runs.\n\nA dependable choice with or without a driver.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 6000,
+          "outstationDaily": 7000,
+          "monthly": 140000,
+          "overtimeHourly": 500
+        },
+        "selfDrive": {
+          "daily": 4800,
+          "weekly": 30000,
+          "monthly": 100000,
+          "securityDeposit": 40000,
+          "kmPerDay": 250
+        },
+        "driverNightAllowance": 1200,
+        "fromPrice": 4800
+      },
+      "units": 1,
+      "featured": false,
+      "sortOrder": 30,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "toyota-yaris",
+      "make": "Toyota",
+      "model": "Yaris",
+      "variant": "1.3 ATIV CVT",
+      "category": "sedan",
+      "yearFrom": 2021,
+      "yearTo": 2025,
+      "seats": 5,
+      "luggage": 3,
+      "transmission": "automatic",
+      "fuel": "petrol",
+      "engineCc": 1329,
+      "features": [
+        "Air conditioning",
+        "Push start",
+        "Reverse camera",
+        "Bluetooth audio",
+        "Airbags"
+      ],
+      "suitableFor": [
+        "self_drive",
+        "airport",
+        "monthly",
+        "family"
+      ],
+      "shortDescription": "A smooth, easy sedan with a CVT gearbox. Great value for city driving and short trips.",
+      "description": "The Yaris is light, smooth and simple to drive, with enough room for a small family and their bags.\n\nGood value for self drive and monthly rentals.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 6200,
+          "outstationDaily": 7200,
+          "monthly": 142000,
+          "overtimeHourly": 500
+        },
+        "selfDrive": {
+          "daily": 4900,
+          "weekly": 31000,
+          "monthly": 102000,
+          "securityDeposit": 40000,
+          "kmPerDay": 250
+        },
+        "driverNightAllowance": 1200,
+        "fromPrice": 4900
+      },
+      "units": 1,
+      "featured": false,
+      "sortOrder": 40,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "toyota-corolla",
+      "make": "Toyota",
+      "model": "Corolla Altis",
+      "variant": "1.6",
+      "category": "sedan",
+      "yearFrom": 2021,
+      "yearTo": 2025,
+      "seats": 5,
+      "luggage": 3,
+      "transmission": "automatic",
+      "fuel": "petrol",
+      "engineCc": 1598,
+      "features": [
+        "Air conditioning",
+        "Cruise control",
+        "Reverse camera",
+        "Bluetooth audio",
+        "Airbags",
+        "Large boot"
+      ],
+      "suitableFor": [
+        "self_drive",
+        "outstation",
+        "airport",
+        "corporate",
+        "monthly",
+        "family",
+        "wedding"
+      ],
+      "shortDescription": "The trusted all-rounder. Comfortable in the city, steady on the motorway, easy to book.",
+      "description": "The Corolla is the car most people ask for, and for good reason. It is comfortable on Lahore roads, steady on the M-2 and has a boot that takes a family's luggage.\n\nBook it with a driver for airport runs, weddings and outstation trips, or drive it yourself.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 6500,
+          "outstationDaily": 7500,
+          "monthly": 150000,
+          "overtimeHourly": 500
+        },
+        "selfDrive": {
+          "daily": 5000,
+          "weekly": 32000,
+          "monthly": 105000,
+          "securityDeposit": 50000,
+          "kmPerDay": 250
+        },
+        "driverNightAllowance": 1500,
+        "fromPrice": 5000
+      },
+      "units": 2,
+      "featured": true,
+      "sortOrder": 50,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "honda-civic",
+      "make": "Honda",
+      "model": "Civic",
+      "variant": "1.5 RS Turbo",
+      "category": "sedan",
+      "yearFrom": 2022,
+      "yearTo": 2025,
+      "seats": 5,
+      "luggage": 3,
+      "transmission": "automatic",
+      "fuel": "petrol",
+      "engineCc": 1498,
+      "features": [
+        "Climate control",
+        "Push start",
+        "Reverse camera",
+        "Apple CarPlay and Android Auto",
+        "Leather seats",
+        "Cruise control"
+      ],
+      "suitableFor": [
+        "corporate",
+        "wedding",
+        "airport",
+        "self_drive",
+        "outstation"
+      ],
+      "shortDescription": "A sharp executive sedan for business meetings, guests and special days.",
+      "description": "The Civic brings a more premium feel for corporate guests, wedding duty and anyone who wants a little extra comfort.\n\nAvailable with a professional driver or for self drive.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 9500,
+          "outstationDaily": 11000,
+          "monthly": 210000,
+          "overtimeHourly": 700
+        },
+        "selfDrive": {
+          "daily": 8000,
+          "weekly": 50000,
+          "monthly": 170000,
+          "securityDeposit": 75000,
+          "kmPerDay": 250
+        },
+        "driverNightAllowance": 1500,
+        "fromPrice": 8000
+      },
+      "units": 1,
+      "featured": true,
+      "sortOrder": 60,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "honda-br-v",
+      "make": "Honda",
+      "model": "BR-V",
+      "variant": "i-VTEC S",
+      "category": "suv",
+      "yearFrom": 2019,
+      "yearTo": 2023,
+      "seats": 7,
+      "luggage": 2,
+      "transmission": "automatic",
+      "fuel": "petrol",
+      "engineCc": 1497,
+      "features": [
+        "Air conditioning",
+        "Third row seats",
+        "Reverse camera",
+        "Bluetooth audio",
+        "Airbags"
+      ],
+      "suitableFor": [
+        "family",
+        "outstation",
+        "airport",
+        "self_drive"
+      ],
+      "shortDescription": "Seven seats at a sensible price. Ideal for bigger families and airport pickups with relatives.",
+      "description": "The BR-V seats seven, so the whole family travels in one car. Fold the third row and you get space for airport luggage.\n\nA practical choice for family visits and trips out of Lahore.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 8000,
+          "outstationDaily": 9500,
+          "monthly": 180000,
+          "overtimeHourly": 600
+        },
+        "selfDrive": {
+          "daily": 6500,
+          "weekly": 42000,
+          "monthly": 140000,
+          "securityDeposit": 60000,
+          "kmPerDay": 250
+        },
+        "driverNightAllowance": 1500,
+        "fromPrice": 6500
+      },
+      "units": 1,
+      "featured": false,
+      "sortOrder": 70,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "kia-sportage",
+      "make": "Kia",
+      "model": "Sportage",
+      "variant": "AWD",
+      "category": "suv",
+      "yearFrom": 2021,
+      "yearTo": 2025,
+      "seats": 5,
+      "luggage": 4,
+      "transmission": "automatic",
+      "fuel": "petrol",
+      "engineCc": 1999,
+      "features": [
+        "Climate control",
+        "Panoramic sunroof",
+        "Reverse camera",
+        "Push start",
+        "Cruise control",
+        "All wheel drive"
+      ],
+      "suitableFor": [
+        "family",
+        "outstation",
+        "corporate",
+        "self_drive",
+        "wedding"
+      ],
+      "shortDescription": "A refined SUV with all wheel drive. Comfortable in town and confident on northern roads.",
+      "description": "The Sportage rides high and quiet, with room for five and their bags. All wheel drive adds confidence on wet roads and hill routes.\n\nBook it with a driver or drive it yourself.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 11000,
+          "outstationDaily": 13000,
+          "monthly": null,
+          "overtimeHourly": 800
+        },
+        "selfDrive": {
+          "daily": 9500,
+          "weekly": 60000,
+          "monthly": 200000,
+          "securityDeposit": 100000,
+          "kmPerDay": 250
+        },
+        "driverNightAllowance": 1500,
+        "fromPrice": 9500
+      },
+      "units": 0,
+      "featured": true,
+      "sortOrder": 80,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "toyota-fortuner",
+      "make": "Toyota",
+      "model": "Fortuner",
+      "variant": "2.8 Diesel",
+      "category": "suv",
+      "yearFrom": 2021,
+      "yearTo": 2025,
+      "seats": 7,
+      "luggage": 3,
+      "transmission": "automatic",
+      "fuel": "diesel",
+      "engineCc": 2755,
+      "features": [
+        "Climate control",
+        "Four wheel drive",
+        "Third row seats",
+        "Reverse camera",
+        "Cruise control"
+      ],
+      "suitableFor": [
+        "outstation",
+        "family",
+        "corporate",
+        "wedding"
+      ],
+      "shortDescription": "The go-to SUV for northern tours. Strong, comfortable and built for long mountain roads.",
+      "description": "The Fortuner is made for trips to Murree, Naran, Hunza and Skardu. Four wheel drive, high ground clearance and a torquey diesel engine make long climbs easy.\n\nAvailable with an experienced driver who knows the northern routes.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 16000,
+          "outstationDaily": 18000,
+          "monthly": null,
+          "overtimeHourly": 1000
+        },
+        "selfDrive": null,
+        "driverNightAllowance": 1500,
+        "fromPrice": 16000
+      },
+      "units": 1,
+      "featured": true,
+      "sortOrder": 90,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "toyota-prado",
+      "make": "Toyota",
+      "model": "Land Cruiser Prado",
+      "variant": "TX",
+      "category": "luxury",
+      "yearFrom": 2017,
+      "yearTo": 2022,
+      "seats": 7,
+      "luggage": 4,
+      "transmission": "automatic",
+      "fuel": "diesel",
+      "engineCc": 2755,
+      "features": [
+        "Climate control",
+        "Four wheel drive",
+        "Leather seats",
+        "Sunroof",
+        "Reverse camera"
+      ],
+      "suitableFor": [
+        "corporate",
+        "wedding",
+        "outstation",
+        "family"
+      ],
+      "shortDescription": "A premium SUV for VIP movement, protocol duty and comfortable long journeys.",
+      "description": "The Prado combines presence with comfort. It is a favourite for protocol duty, family elders and long trips where comfort matters.\n\nAvailable with a professional driver.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 28000,
+          "outstationDaily": 32000,
+          "monthly": null,
+          "overtimeHourly": 1500
+        },
+        "selfDrive": null,
+        "driverNightAllowance": 2000,
+        "fromPrice": 28000
+      },
+      "units": 1,
+      "featured": false,
+      "sortOrder": 100,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "toyota-land-cruiser",
+      "make": "Toyota",
+      "model": "Land Cruiser",
+      "variant": "V8 ZX",
+      "category": "luxury",
+      "yearFrom": 2016,
+      "yearTo": 2021,
+      "seats": 7,
+      "luggage": 4,
+      "transmission": "automatic",
+      "fuel": "petrol",
+      "engineCc": 4608,
+      "features": [
+        "Climate control",
+        "Four wheel drive",
+        "Leather seats",
+        "Sunroof",
+        "Rear entertainment screens"
+      ],
+      "suitableFor": [
+        "corporate",
+        "wedding"
+      ],
+      "shortDescription": "The flagship. For VIP guests, high-profile events and the biggest days.",
+      "description": "The Land Cruiser is our most premium SUV, for VIP guests, delegations and weddings that call for something special.\n\nAlways booked with a professional driver.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 50000,
+          "outstationDaily": 55000,
+          "monthly": null,
+          "overtimeHourly": 2500
+        },
+        "selfDrive": null,
+        "driverNightAllowance": 2500,
+        "fromPrice": 50000
+      },
+      "units": 0,
+      "featured": false,
+      "sortOrder": 110,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "mercedes-s-class",
+      "make": "Mercedes-Benz",
+      "model": "S-Class",
+      "variant": "S 450",
+      "category": "wedding",
+      "yearFrom": 2018,
+      "yearTo": 2021,
+      "seats": 5,
+      "luggage": 2,
+      "transmission": "automatic",
+      "fuel": "petrol",
+      "engineCc": 2999,
+      "features": [
+        "Climate control",
+        "Leather seats",
+        "Ambient lighting",
+        "Rear seat comfort package",
+        "Wedding decoration on request"
+      ],
+      "suitableFor": [
+        "wedding",
+        "corporate"
+      ],
+      "shortDescription": "An elegant wedding car for the couple, with decoration arranged on request.",
+      "description": "Arrive in style on the big day. The S-Class is our wedding car for mehndi, baraat and walima, with an experienced driver.\n\nDecoration can be arranged on request. Ask us for options when you book.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 45000,
+          "outstationDaily": null,
+          "monthly": null,
+          "overtimeHourly": 5000
+        },
+        "selfDrive": null,
+        "driverNightAllowance": null,
+        "fromPrice": 45000
+      },
+      "units": 1,
+      "featured": true,
+      "sortOrder": 120,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "toyota-hiace",
+      "make": "Toyota",
+      "model": "Hiace",
+      "variant": "Grand Cabin",
+      "category": "van",
+      "yearFrom": 2019,
+      "yearTo": 2025,
+      "seats": 14,
+      "luggage": 8,
+      "transmission": "manual",
+      "fuel": "petrol",
+      "engineCc": 2694,
+      "features": [
+        "Air conditioning",
+        "Reclining seats",
+        "Roof luggage carrier",
+        "Music system"
+      ],
+      "suitableFor": [
+        "outstation",
+        "wedding",
+        "corporate",
+        "family",
+        "airport"
+      ],
+      "shortDescription": "Seats for the whole group. For family tours, staff transport and wedding guests.",
+      "description": "The Hiace Grand Cabin takes a full group and their luggage in one go. It is the usual choice for family tours up north, office teams and wedding guests.\n\nAlways booked with a driver.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 13000,
+          "outstationDaily": 15000,
+          "monthly": null,
+          "overtimeHourly": 800
+        },
+        "selfDrive": null,
+        "driverNightAllowance": 1500,
+        "fromPrice": 13000
+      },
+      "units": 1,
+      "featured": false,
+      "sortOrder": 130,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "slug": "toyota-coaster",
+      "make": "Toyota",
+      "model": "Coaster",
+      "variant": "29 seater",
+      "category": "coaster",
+      "yearFrom": 2015,
+      "yearTo": 2020,
+      "seats": 29,
+      "luggage": null,
+      "transmission": "manual",
+      "fuel": "diesel",
+      "engineCc": 4104,
+      "features": [
+        "Air conditioning",
+        "Reclining seats",
+        "Music system",
+        "Luggage space at the rear"
+      ],
+      "suitableFor": [
+        "outstation",
+        "wedding",
+        "corporate"
+      ],
+      "shortDescription": "A full-size coaster for large groups, school trips, tours and baraat guests.",
+      "description": "The Coaster moves up to 29 passengers in comfort, for tours, events, school trips and wedding guests travelling together.\n\nAlways booked with an experienced driver.",
+      "images": [],
+      "rates": {
+        "withDriver": {
+          "daily": 22000,
+          "outstationDaily": 26000,
+          "monthly": null,
+          "overtimeHourly": 1200
+        },
+        "selfDrive": null,
+        "driverNightAllowance": 2000,
+        "fromPrice": 22000
+      },
+      "units": 0,
+      "featured": false,
+      "sortOrder": 140,
+      "seoTitle": null,
+      "seoDescription": null,
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+---
+/**
+ * Renders JSON-LD safely (escapes "<" so content can never close the script tag).
+ *
+ *   <JsonLd data={breadcrumbSchema(items)} />
+ *   <JsonLd data={[carOfferSchema(model), faqSchema(faqs)]} />   one <script> per object
+ *
+ * In layouts, put page schema in BaseLayout's "jsonld" slot: <JsonLd slot="jsonld" data={...} />
+ */
+import { serializeJsonLd } from "@/lib/jsonld";
+
+type JsonLdObject = Record<string, unknown>;
+
+interface Props {
+  data: JsonLdObject | JsonLdObject[] | null | undefined;
+}
+
+const { data } = Astro.props;
+const items = (Array.isArray(data) ? data : data ? [data] : []).filter(Boolean);
+
+---
+
+{items.map((item) => <script type="application/ld+json" set:html={serializeJsonLd(item)} />)}

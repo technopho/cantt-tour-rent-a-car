@@ -1,0 +1,50 @@
+---
+/**
+ * "On this page" list of in-page anchors for long pages (service guides, policies, FAQ).
+ * Sticky under the header on desktop; the parent decides where it shows.
+ *
+ *   <OnThisPage items={[{ id: "fuel", text: "Fuel" }]} />
+ */
+interface Item {
+  id: string;
+  text: string;
+}
+
+interface Props {
+  items: Item[];
+  title?: string;
+  /** Stick under the header while scrolling. Default true; pass false inside an already sticky wrapper. */
+  sticky?: boolean;
+  class?: string;
+}
+
+const { items, title = "On this page", sticky = true, class: className } = Astro.props;
+---
+
+{
+  items.length > 1 && (
+    <nav
+      aria-label={title}
+      class:list={[
+        // Long lists (the policies index has 15 items) scroll inside the nav on short laptop screens instead of being cut off.
+        sticky && "sticky top-[calc(var(--header-h)+2rem)] max-h-[calc(100dvh-var(--header-h)-4rem)] overflow-y-auto overscroll-contain",
+        className,
+      ]}
+      data-lenis-prevent={sticky ? "" : undefined}
+    >
+      <p class="text-xs font-bold tracking-[0.16em] text-muted uppercase">{title}</p>
+      <ol class="mt-4 flex flex-col border-l border-line">
+        {items.map((item) => (
+          <li>
+            <a
+              href={`#${item.id}`}
+              class="-ml-px block border-l-2 border-transparent py-1.5 pl-4 text-sm leading-snug text-muted transition-colors hover:border-accent hover:text-fg"
+            >
+              {item.text}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}

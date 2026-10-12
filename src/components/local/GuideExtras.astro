@@ -1,0 +1,282 @@
+---
+/**
+ * Live data block after a guide's article body. Every number comes from the catalog
+ * (prices, deposits, km allowances) or site.ts (payments, hours). Never hard-coded.
+ *
+ *   <GuideExtras extra={guideExtra(entry.id)} />
+ */
+import { getCollection } from "astro:content";
+import Button from "@/components/Button.astro";
+import Icon from "@/components/Icon.astro";
+import SampleFleetNote from "@/components/SampleFleetNote.astro";
+import { formatOpeningHours, site } from "@/config/site";
+import { estimateQuote, getCategories, getModels, modelName, type CatalogModel, type QuoteEstimate } from "@/lib/catalog";
+import { formatPKR, formatRate, plural } from "@/lib/format";
+import { whatsappUrl } from "@/lib/links";
+import { urls } from "@/lib/urls";
+import OutstationCars from "./OutstationCars.astro";
+import RouteLinks from "./RouteLinks.astro";
+import type { GuideExtra } from "./guide-extras";
+import { outstationDaily, withDriverOnly } from "./pricing";
+import { routeMeta } from "./route-meta";
+
+interface Props {
+  extra: GuideExtra;
+}
+
+const { extra } = Astro.props;
+const [models, categories] = await Promise.all([getModels(), getCategories()]);
+const catName = (slug: string) => categories.find((c) => c.slug === slug)?.name ?? slug;
+const min = (values: (number | null | undefined)[]) => {
+  const v = values.filter((x): x is number => typeof x === "number" && x > 0);
+  return v.length ? Math.min(...v) : null;
+};
+
+/* cost: starting prices per category + worked examples */
+const categoryRows = categories.map((c) => {
+  const inCat = models.filter((m) => m.category === c.slug);
+  return {
+    slug: c.slug,
+    name: c.name,
+    withDriver: min(inCat.map((m) => m.rates.withDriver?.daily)),
+    outstation: min(inCat.map((m) => outstationDaily(m))),
+    selfDrive: min(inCat.map((m) => m.rates.selfDrive?.daily)),
+    monthly: min(inCat.flatMap((m) => [m.rates.withDriver?.monthly, m.rates.selfDrive?.monthly])),
+  };
+});
+
+const cheapestBy = (list: CatalogModel[], price: (m: CatalogModel) => number | null | undefined) =>
+  [...list].filter((m) => typeof price(m) === "number").sort((a, b) => (price(a) as number) - (price(b) as number))[0];
+
+interface Example {
+  title: string;
+  note: string;
+  model: CatalogModel;
+  estimate: QuoteEstimate;
+}
+const examples: Example[] = [];
+if (extra.kind === "cost") {
+  const sedans = models.filter((m) => m.category === "sedan");
+  const pool = sedans.length ? sedans : models;
+  const cityCar = cheapestBy(pool, (m) => m.rates.withDriver?.daily);
+  if (cityCar)
+    examples.push({ title: "A city day with a driver", note: "Errands, meetings or a family function inside Lahore.", model: cityCar, estimate: estimateQuote(cityCar, { serviceType: "with_driver", tripType: "within_city", days: 1 }) });
+  const suvs = models.filter((m) => m.category === "suv" && m.rates.withDriver);
+  const tripCar = cheapestBy(suvs.length ? suvs : withDriverOnly(models), (m) => outstationDaily(m));
+  if (tripCar)
+    examples.push({ title: "Three days in Murree", note: "Outstation, two nights away, with a driver.", model: tripCar, estimate: estimateQuote(tripCar, { serviceType: "with_driver", tripType: "outstation", days: 3, nights: 2 }) });
+  const sdCar = cheapestBy(pool, (m) => m.rates.selfDrive?.daily);
+  if (sdCar)
+    examples.push({ title: "Two weeks of self drive", note: "Weekly rates apply where the car has them.", model: sdCar, estimate: estimateQuote(sdCar, { serviceType: "self_drive", tripType: "within_city", days: 14 }) });
+  const monthCar = cheapestBy(pool, (m) => m.rates.withDriver?.monthly);
+  if (monthCar)
+    examples.push({ title: "A month with a driver", note: "For long stays, project work or while your car is away.", model: monthCar, estimate: estimateQuote(monthCar, { serviceType: "with_driver", tripType: "monthly", days: 30 }) });
+}
+
+/* compare + documents: models with both rates / self drive models */
+const bothRates = models.filter((m) => m.rates.withDriver && m.rates.selfDrive).slice(0, 8);
+const selfDriveModels = models.filter((m) => m.rates.selfDrive).slice(0, 10);
+const deposits = selfDriveModels.map((m) => m.rates.selfDrive?.securityDeposit).filter((d): d is number => typeof d === "number");
+
+/* north: SUVs, 4x4s and vans that suit outstation trips + northern routes */
+const northModels =
+  extra.kind === "north"
+    ? withDriverOnly(models.filter((m) => ["suv", "luxury", "van", "coaster"].includes(m.category) && m.suitableFor.includes("outstation"))).slice(0, 5)
+    : [];
+const northRoutes = extra.kind === "north" ? (await getCollection("routes")).filter((r) => routeMeta(r.data.slug).region === "north") : [];
+
+const hours = formatOpeningHours();
+const lineText = (e: QuoteEstimate) => e.lines.map((l) => `${plural(l.quantity, l.unit)} x ${formatPKR(l.rate)}`).join(" + ");
+---
+
+<section aria-labelledby={extra.id} class="guide-extras mt-16 border-t border-line pt-12">
+  <h2 id={extra.id} class="scroll-mt-[calc(var(--header-h)+1.5rem)] text-display-md text-fg">{extra.title}</h2>
+
+  {
+    extra.kind === "cost" && (
+      <>
+        <p class="mt-4 max-w-2xl text-muted">
+          Starting prices by car type, taken straight from our current fleet rates. They change when our rates change, so this page is always up to date.
+        </p>
+        <div class="mt-8 overflow-x-auto rounded-card border border-line" tabindex="0" role="region" aria-label="Starting prices by car type">
+          <table class="w-full min-w-[40rem] text-left text-sm tabular">
+            <thead class="bg-surface">
+              <tr>
+                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Car type</th>
+                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">With driver, city day</th>
+                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Outstation day</th>
+                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Self drive day</th>
+                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Monthly</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categoryRows.map((r) => (
+                <tr class="border-t border-line">
+                  <th scope="row" class="px-4 py-3.5 font-semibold">
+                    <a href={urls.category(r.slug)} class="text-fg underline-offset-4 hover:text-accent-fg hover:underline">
+                      {r.name}
+                    </a>
+                  </th>
+                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{r.withDriver ? `from ${formatRate(r.withDriver)}` : "Not offered"}</td>
+                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{r.outstation ? `from ${formatRate(r.outstation)}` : "Not offered"}</td>
+                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{r.selfDrive ? `from ${formatRate(r.selfDrive)}` : "With driver only"}</td>
+                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{r.monthly ? `from ${formatRate(r.monthly, "month")}` : "On request"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {examples.length > 0 && (
+          <>
+            <h3 class="mt-12 text-display-sm text-fg">Worked examples at today's rates</h3>
+            <ul class="mt-6 grid gap-4 sm:grid-cols-2">
+              {examples.map((ex) => (
+                <li class="flex flex-col gap-3 rounded-card border border-line bg-surface p-5">
+                  <p class="font-semibold text-fg">{ex.title}</p>
+                  <p class="text-sm text-muted">
+                    {ex.note} Example car: <a href={urls.car(ex.model.slug)} class="font-semibold text-accent-fg underline underline-offset-2">{modelName(ex.model)}</a>.
+                  </p>
+                  {ex.estimate.ok && (
+                    <>
+                      <p class="text-xs text-muted tabular">{lineText(ex.estimate)}</p>
+                      <p class="mt-auto flex items-baseline justify-between gap-3 border-t border-line pt-3">
+                        <span class="text-sm text-muted">Estimate</span>
+                        <span class="font-display text-xl font-semibold tracking-[-0.03em] text-fg tabular">{formatPKR(ex.estimate.total)}</span>
+                      </p>
+                      <p class="text-xs text-muted">{ex.estimate.serviceType === "self_drive" ? "Plus fuel. Refundable deposit not included." : "Plus fuel, tolls and parking."}</p>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p class="mt-4 text-xs text-muted">Estimates only. Our team confirms the final price on WhatsApp before you book.</p>
+          </>
+        )}
+      </>
+    )
+  }
+
+  {
+    (extra.kind === "compare" || extra.kind === "documents") && (
+      <>
+        <p class="mt-4 max-w-2xl text-muted">
+          {extra.kind === "compare"
+            ? "The same cars, priced both ways, straight from our current fleet rates."
+            : deposits.length
+              ? `Self drive deposits currently range from ${formatPKR(Math.min(...deposits))} to ${formatPKR(Math.max(...deposits))}, depending on the car. All deposits are refundable as per your agreement.`
+              : "Self drive deposits depend on the car and are confirmed in your quote."}
+        </p>
+        <div class="mt-8 overflow-x-auto rounded-card border border-line" tabindex="0" role="region" aria-label={`${extra.title}, scrollable table`}>
+          <table class="w-full min-w-[36rem] text-left text-sm tabular">
+            <thead class="bg-surface">
+              <tr>
+                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Car</th>
+                {extra.kind === "compare" && (
+                  <th scope="col" class="px-4 py-3.5 font-semibold text-fg">
+                    With driver
+                  </th>
+                )}
+                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Self drive</th>
+                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Deposit</th>
+                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Km per day</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(extra.kind === "compare" ? bothRates : selfDriveModels).map((m) => (
+                <tr class="border-t border-line">
+                  <th scope="row" class="px-4 py-3.5 font-semibold">
+                    <a href={urls.car(m.slug)} class="text-fg underline-offset-4 hover:text-accent-fg hover:underline">
+                      {modelName(m)}
+                    </a>
+                    <span class="block text-xs font-normal text-muted">{catName(m.category)}</span>
+                  </th>
+                  {extra.kind === "compare" && <td class="px-4 py-3.5 whitespace-nowrap text-muted">{m.rates.withDriver ? formatRate(m.rates.withDriver.daily) : "Not offered"}</td>}
+                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{m.rates.selfDrive ? formatRate(m.rates.selfDrive.daily) : "Not offered"}</td>
+                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{m.rates.selfDrive?.securityDeposit ? formatPKR(m.rates.selfDrive.securityDeposit) : "On request"}</td>
+                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{m.rates.selfDrive?.kmPerDay ? `${m.rates.selfDrive.kmPerDay} km` : "On request"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-4 text-xs text-muted">
+          Daily rates. Fuel is extra on both options; tolls, parking, driver overtime and outstation night allowances apply to driver bookings. See all prices on our{" "}
+          <a href={urls.rates()} class="font-semibold text-accent-fg underline underline-offset-2">rates page</a>.
+        </p>
+      </>
+    )
+  }
+
+  {
+    extra.kind === "north" && (
+      <>
+        <p class="mt-4 max-w-2xl text-muted">The SUVs, 4x4s and vans we recommend for mountain roads, with live outstation rates and driver night allowances.</p>
+        {northModels.length > 0 && <OutstationCars models={northModels} categories={categories} class="mt-8" />}
+        <h3 class="mt-12 text-display-sm text-fg">Route guides for the north</h3>
+        <RouteLinks routes={northRoutes} limit={6} class="mt-6" />
+      </>
+    )
+  }
+
+  {
+    extra.kind === "overseas" && (
+      <div class="mt-8 grid gap-4 md:grid-cols-2" data-fab-hide>
+        <div class="rounded-card border border-line bg-surface p-5">
+          <p class="flex items-center gap-2 font-semibold text-fg">
+            <Icon name="ph:wallet" size={20} class="text-accent" />
+            Payment methods we accept
+          </p>
+          <ul class="mt-4 flex flex-wrap gap-2">
+            {site.paymentAccepted.map((p) => (
+              <li class="rounded-full border border-line px-3 py-1.5 text-sm text-fg">{p}</li>
+            ))}
+          </ul>
+        </div>
+        <div class="rounded-card border border-line bg-surface p-5">
+          <p class="flex items-center gap-2 font-semibold text-fg">
+            <Icon name="ph:clock" size={20} class="text-accent" />
+            Office hours (Pakistan time)
+          </p>
+          <ul class="mt-4 flex flex-col gap-1 text-sm text-muted">
+            {hours.map((h) => (
+              <li>{h}</li>
+            ))}
+          </ul>
+          <p class="mt-3 text-xs text-muted">WhatsApp works across time zones: send your details whenever it suits you.</p>
+        </div>
+        <div class="flex flex-col gap-4 rounded-card border border-line bg-surface p-5 md:col-span-2 md:flex-row md:items-center md:justify-between">
+          <p class="flex items-start gap-2 text-fg">
+            <Icon name="ph:airplane-landing" size={20} class="mt-0.5 shrink-0 text-accent" />
+            <span>
+              <span class="font-semibold">Landing at Allama Iqbal International Airport?</span>
+              <span class="block text-sm text-muted">Send your flight number and dates, and we plan the pickup.</span>
+            </span>
+          </p>
+          <div class="flex flex-wrap gap-3">
+            <Button
+              href={whatsappUrl("Assalam o Alaikum! I am flying into Lahore and need a car. My flight number is: ")}
+              variant="secondary"
+              icon="simple-icons:whatsapp"
+              iconClass="text-whatsapp"
+              external
+            >
+              {site.cta.whatsapp.label}
+            </Button>
+            <Button href={urls.service("lahore-airport-car-rental")} variant="ghost" iconRight="ph:arrow-right">
+              Airport pick and drop
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  {(extra.kind === "cost" || extra.kind === "compare" || extra.kind === "documents" || extra.kind === "north") && <SampleFleetNote class="mt-6" />}
+</section>
+
+<style>
+  .guide-extras :global(table) {
+    border-collapse: collapse;
+  }
+</style>

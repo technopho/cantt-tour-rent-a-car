@@ -1,0 +1,51 @@
+---
+/**
+ * Floating "WhatsApp us" button (rendered by BaseLayout). Respects safe areas, hides itself
+ * whenever an element with [data-fab-hide] is on screen (the footer CTA, the quote form...).
+ * Add data-fab-hide to any block that already offers WhatsApp so the two never compete.
+ */
+import { site } from "@/config/site";
+import { whatsappUrl } from "@/lib/links";
+import Icon from "./Icon.astro";
+
+interface Props {
+  /** Prefilled message. Defaults to site.whatsappMessage. */
+  message?: string;
+}
+
+const { message = site.whatsappMessage } = Astro.props;
+---
+
+<a
+  href={whatsappUrl(message)}
+  target="_blank"
+  rel="noopener noreferrer"
+  aria-label={site.cta.whatsapp.label}
+  data-whatsapp-fab
+  data-hidden="false"
+  class="whatsapp-fab fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 inline-flex h-14 items-center gap-2.5 rounded-full border border-line bg-surface-2/90 pr-5 pl-4 font-semibold text-fg shadow-lift backdrop-blur-md transition-[translate,opacity,background-color] duration-300 ease-(--ease-out) hover:bg-surface-2 active:scale-[0.97] data-[hidden=true]:pointer-events-none data-[hidden=true]:translate-y-[calc(100%+2rem)] data-[hidden=true]:opacity-0 max-sm:w-14 max-sm:justify-center max-sm:px-0 lg:right-[max(1.5rem,env(safe-area-inset-right))] lg:bottom-[max(1.5rem,env(safe-area-inset-bottom))]"
+>
+  <Icon name="simple-icons:whatsapp" size={24} class="text-whatsapp" />
+  <span class="max-sm:sr-only">{site.cta.whatsapp.label}</span>
+</a>
+
+<script>
+  const fab = document.querySelector<HTMLElement>("[data-whatsapp-fab]");
+  const blockers = document.querySelectorAll("[data-fab-hide]");
+  if (fab && blockers.length && "IntersectionObserver" in window) {
+    const visible = new Set<Element>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) visible.add(entry.target);
+          else visible.delete(entry.target);
+        }
+        const hidden = visible.size > 0;
+        fab.dataset.hidden = String(hidden);
+        fab.toggleAttribute("inert", hidden);
+      },
+      { threshold: 0.15 },
+    );
+    blockers.forEach((el) => io.observe(el));
+  }
+</script>

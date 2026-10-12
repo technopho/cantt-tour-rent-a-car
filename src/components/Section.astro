@@ -1,0 +1,74 @@
+---
+/**
+ * Vertical section with consistent rhythm, optionally wrapped in a Container.
+ *
+ *   <Section id="fleet" labelledby="fleet-title">
+ *     <SectionHeading id="fleet-title" title="The fleet" />
+ *     ...
+ *   </Section>
+ *
+ * tone="surface" gives a subtle raised band (same theme, not a flip). Prefer the default.
+ */
+import type { HTMLAttributes } from "astro/types";
+import Container from "./Container.astro";
+
+type Spacing = "none" | "sm" | "md" | "lg";
+
+interface Props extends HTMLAttributes<"section"> {
+  as?: "section" | "div" | "aside" | "article";
+  id?: string;
+  /** id of the heading that names this section (adds aria-labelledby). */
+  labelledby?: string;
+  spacing?: Spacing;
+  tone?: "default" | "surface";
+  /** Wrap children in <Container>. Default true. */
+  container?: boolean;
+  width?: "default" | "narrow" | "prose" | "wide";
+  /** Draw a hairline divider at the top. */
+  divider?: boolean;
+  class?: string;
+  containerClass?: string;
+}
+
+const {
+  as: Tag = "section",
+  labelledby,
+  spacing = "md",
+  tone = "default",
+  container = true,
+  width = "default",
+  divider = false,
+  class: className,
+  containerClass,
+  ...rest
+} = Astro.props;
+
+const spacings: Record<Spacing, string> = {
+  none: "",
+  sm: "py-[calc(var(--section-space)*0.55)]",
+  md: "py-section",
+  lg: "py-[calc(var(--section-space)*1.3)]",
+};
+---
+
+<Tag
+  class:list={[
+    "relative",
+    spacings[spacing],
+    tone === "surface" && "bg-surface",
+    divider && "border-t border-line",
+    className,
+  ]}
+  aria-labelledby={labelledby}
+  {...rest}
+>
+  {
+    container ? (
+      <Container width={width} class={containerClass}>
+        <slot />
+      </Container>
+    ) : (
+      <slot />
+    )
+  }
+</Tag>

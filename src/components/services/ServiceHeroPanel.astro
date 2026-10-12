@@ -1,0 +1,97 @@
+---
+/**
+ * Hero "instrument panel" for service pages (PageLayout aside slot): headline price from the
+ * catalog, how the service is offered, how many models fit it, base and confirmation channel.
+ */
+import { site } from "@/config/site";
+import { formatPKR, type PriceUnit } from "@/lib/format";
+
+interface Props {
+  amount: number | null;
+  unit: PriceUnit;
+  note: string;
+  modeLabel: string;
+  modelCount: number;
+  /** Anchor of the cars grid on the same page. */
+  carsHref?: string;
+}
+
+const { amount, unit, note, modeLabel, modelCount, carsHref = "#cars" } = Astro.props;
+const unitWords: Record<PriceUnit, string> = {
+  day: "per day",
+  week: "per week",
+  month: "per month",
+  hour: "per hour",
+  night: "per night",
+  trip: "per trip",
+};
+---
+
+<div class="hero-panel relative isolate overflow-hidden rounded-card border border-line bg-surface/85 p-6 shadow-soft backdrop-blur-sm sm:p-7">
+  <div
+    class="pointer-events-none absolute -right-16 -bottom-24 -z-10 size-72 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--accent)_26%,transparent),transparent)]"
+    aria-hidden="true"
+  >
+  </div>
+
+  {
+    typeof amount === "number" ? (
+      <>
+        <p class="text-sm font-medium text-muted">Current rates start at</p>
+        <p class="mt-2 flex flex-wrap items-baseline gap-x-1.5 tabular-nums">
+          <data value={amount} class="font-display text-display-md font-semibold text-fg">
+            {formatPKR(amount)}
+          </data>
+          <span class="text-base text-muted" aria-hidden="true">/{unit}</span>
+          <span class="sr-only">{unitWords[unit]}</span>
+        </p>
+        <p class="mt-1 text-sm text-muted">{note}</p>
+      </>
+    ) : (
+      <>
+        <p class="text-sm font-medium text-muted">Rates</p>
+        <p class="mt-2 font-display text-display-sm text-fg">Price on request</p>
+      </>
+    )
+  }
+
+  <div class="road-rule my-6" aria-hidden="true"></div>
+
+  <dl class="grid grid-cols-2 gap-x-6 gap-y-5 text-sm">
+    <div>
+      <dt class="text-muted">Service</dt>
+      <dd class="mt-1 font-semibold text-fg">{modeLabel}</dd>
+    </div>
+    <div>
+      <dt class="text-muted">Cars in this range</dt>
+      <dd class="mt-1 font-semibold text-fg">
+        <a href={carsHref} class="underline decoration-line-strong underline-offset-4 transition-colors hover:text-accent-fg">
+          {modelCount} {modelCount === 1 ? "model" : "models"}
+        </a>
+      </dd>
+    </div>
+    <div>
+      <dt class="text-muted">Base</dt>
+      <dd class="mt-1 font-semibold text-fg">{site.address.area}, {site.address.city}</dd>
+    </div>
+    <div>
+      <dt class="text-muted">Confirmation</dt>
+      <dd class="mt-1 font-semibold text-fg">On WhatsApp</dd>
+    </div>
+  </dl>
+
+  <p class="mt-6 text-xs leading-relaxed text-muted">
+    From our current rate list. The team confirms the final price before you book.
+  </p>
+</div>
+
+<style>
+  /* Dashed road marking between the price and the facts. */
+  .road-rule {
+    height: 2px;
+    background: repeating-linear-gradient(90deg, var(--line-strong) 0 14px, transparent 14px 26px);
+    opacity: 0.45;
+    -webkit-mask-image: linear-gradient(90deg, black 70%, transparent);
+    mask-image: linear-gradient(90deg, black 70%, transparent);
+  }
+</style>

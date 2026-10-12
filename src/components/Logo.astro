@@ -1,0 +1,59 @@
+---
+/**
+ * Brand wordmark built with type: a "C" mark with a tail-light streak, "Cantt" in Unbounded and
+ * a stacked "Rent a Car" label.
+ *
+ *   <Logo />                     link to home (default)
+ *   <Logo size="lg" href={null} />  plain, not a link
+ */
+import { site } from "@/config/site";
+
+interface Props {
+  href?: string | null;
+  size?: "sm" | "md" | "lg";
+  class?: string;
+}
+
+const { href = "/", size = "md", class: className } = Astro.props;
+
+const s = {
+  sm: { mark: 28, word: "text-[1.0625rem]", sub: "text-[0.5625rem]", gap: "gap-2" },
+  md: { mark: 32, word: "text-[1.25rem]", sub: "text-[0.625rem]", gap: "gap-2.5" },
+  lg: { mark: 40, word: "text-[1.625rem]", sub: "text-[0.75rem]", gap: "gap-3" },
+}[size];
+
+const Tag = href ? "a" : "span";
+---
+
+<Tag
+  href={href ?? undefined}
+  class:list={["group/logo inline-flex items-center text-fg", s.gap, className]}
+  aria-label={href ? `${site.name}, home` : undefined}
+>
+  <svg
+    width={s.mark}
+    height={s.mark}
+    viewBox="0 0 32 32"
+    aria-hidden="true"
+    focusable="false"
+    class="shrink-0 transition-transform duration-500 ease-(--ease-out) group-hover/logo:-rotate-6"
+  >
+    <rect x="0.5" y="0.5" width="31" height="31" rx="9" fill="var(--surface-2)" stroke="var(--line)"></rect>
+    <path d="M21.66 10.34A8 8 0 1 0 21.66 21.66" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"
+    ></path>
+    <rect
+      x="17.6"
+      y="14.4"
+      width="9.4"
+      height="3.2"
+      rx="1.6"
+      fill="var(--accent)"
+      class="origin-[17.6px_16px] transition-transform duration-500 ease-(--ease-out) group-hover/logo:scale-x-110"></rect>
+  </svg>
+  <span class="flex items-center gap-2 leading-none" aria-hidden={href ? "true" : undefined}>
+    <span class:list={["font-display font-bold tracking-[-0.045em]", s.word]}>Cantt</span>{" "}
+    <span class:list={["flex flex-col font-bold uppercase leading-[1.05] tracking-[0.2em] text-muted", s.sub]}>
+      <span>Rent</span>{" "}<span>a Car</span>
+    </span>
+  </span>
+</Tag>

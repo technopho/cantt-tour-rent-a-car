@@ -1,0 +1,52 @@
+---
+/**
+ * Highlights strip directly under a page hero: a hairline-divided row (not cards), like the spec
+ * line on a car brochure. 1 column on phones, 2 on tablets, up to 4 on desktop.
+ *
+ *   <SpecStrip items={[{ title, text, icon }]} label="Service highlights" />
+ */
+import Container from "@/components/Container.astro";
+import Icon from "@/components/Icon.astro";
+
+interface Item {
+  title: string;
+  text: string;
+  icon?: string;
+}
+
+interface Props {
+  items: Item[];
+  label: string;
+}
+
+const { items, label } = Astro.props;
+const lgN = items.length >= 4 ? 4 : items.length === 3 ? 3 : 2;
+const lgCols = { 2: "lg:grid-cols-2", 3: "lg:grid-cols-3", 4: "lg:grid-cols-4" }[lgN];
+/** First column hugs the container edge: 1 column below 768px, 2 on tablets, lgN on desktop. */
+const padFor = (i: number) => [
+  "md:px-6",
+  i % 2 === 0 && "md:pl-0",
+  i % lgN === 0 ? "lg:pl-0" : i % 2 === 0 && "lg:pl-6",
+];
+---
+
+{
+  items.length > 0 && (
+    <section aria-labelledby="spec-strip-title" class="border-b border-line">
+      <Container>
+        <h2 id="spec-strip-title" class="sr-only">{label}</h2>
+        <ul class:list={["grid gap-px bg-line md:grid-cols-2", lgCols]}>
+          {items.map((item, i) => (
+            <li class:list={["flex gap-4 bg-bg py-7 lg:py-9", padFor(i)]} data-reveal="fade" data-reveal-delay={i ? String(Math.min(i, 3)) : undefined}>
+              <Icon name={item.icon ?? "ph:check-circle"} size={24} class="mt-0.5 text-accent" />
+              <div>
+                <h3 class="font-sans text-base font-bold tracking-normal text-fg">{item.title}</h3>
+                <p class="mt-1.5 text-sm leading-relaxed text-muted">{item.text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Container>
+    </section>
+  )
+}

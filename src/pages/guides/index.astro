@@ -1,0 +1,98 @@
+---
+/**
+ * Guides hub (/guides/): editorial index of the car rental guides (newest update first),
+ * with reading time and last updated date. ItemList JSON-LD + BreadcrumbList (PageLayout).
+ */
+import { getCollection } from "astro:content";
+import Icon from "@/components/Icon.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import Section from "@/components/Section.astro";
+import RouteLinks from "@/components/local/RouteLinks.astro";
+import { guideReadMinutes } from "@/components/local/guide-extras";
+import { itemListSchema } from "@/components/local/schema";
+import PageLayout from "@/layouts/PageLayout.astro";
+import { formatDate, isoDate } from "@/lib/format";
+import { urls } from "@/lib/urls";
+
+const PREFERRED = [
+  "cost-to-rent-a-car-in-lahore",
+  "documents-to-rent-a-car-in-pakistan",
+  "self-drive-vs-car-with-driver-lahore",
+  "lahore-to-northern-areas-road-trip-guide",
+  "renting-a-car-in-lahore-overseas-pakistanis",
+];
+
+const guides = (await getCollection("guides", ({ data }) => !data.draft)).sort((a, b) => {
+  const pa = PREFERRED.indexOf(a.id);
+  const pb = PREFERRED.indexOf(b.id);
+  if (pa !== pb) return (pa === -1 ? 99 : pa) - (pb === -1 ? 99 : pb);
+  return b.data.updatedAt.getTime() - a.data.updatedAt.getTime();
+});
+const readMinutes = guideReadMinutes;
+const routes = await getCollection("routes");
+const [lead, ...rest] = guides;
+---
+
+<PageLayout
+  title="Car Rental Guides for Lahore and Pakistan"
+  description="Guides to renting a car in Lahore: what it costs, documents you need, self drive vs driver, northern road trips and tips for overseas visitors."
+  h1="Car rental guides for Lahore"
+  intro="Straight answers to the questions people ask before renting a car in Lahore. No jargon, no fine print, updated for 2026."
+  crumbs={[{ label: "Guides" }]}
+>
+  <JsonLd slot="jsonld" data={itemListSchema("Car rental guides for Lahore", guides.map((g) => ({ name: g.data.title, url: urls.guide(g.id) })))} />
+
+  <Section id="guides" aria-label="All guides">
+    {
+      lead && (
+        <a href={urls.guide(lead.id)} class="guide-lead group relative isolate grid overflow-hidden rounded-card border border-line bg-surface p-6 sm:p-10 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-end md:gap-12" data-reveal>
+          <span class="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60%_80%_at_100%_100%,color-mix(in_oklab,var(--accent)_16%,transparent),transparent_70%)]" aria-hidden="true" />
+          <span class="flex flex-col gap-5">
+            <span class="font-display text-sm font-semibold text-accent-fg tabular">01</span>
+            <span class="font-display text-display-lg text-fg">{lead.data.title}</span>
+          </span>
+          <span class="mt-6 flex flex-col gap-5 md:mt-0">
+            <span class="text-lede text-muted">{lead.data.excerpt}</span>
+            <span class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+              <span>
+                Updated <time datetime={isoDate(lead.data.updatedAt)}>{formatDate(lead.data.updatedAt)}</time>
+              </span>
+              <span>{readMinutes(lead.body)} min read</span>
+              <span class="ml-auto grid size-11 place-items-center rounded-full bg-accent-fill text-accent-ink transition-transform duration-300 group-hover:translate-x-1">
+                <Icon name="ph:arrow-right" size={18} />
+              </span>
+            </span>
+          </span>
+        </a>
+      )
+    }
+
+    <ol class="mt-10 border-t border-line">
+      {
+        rest.map((g, i) => (
+          <li class="border-b border-line" data-reveal="fade">
+            <a href={urls.guide(g.id)} class="group grid gap-x-8 gap-y-3 py-8 md:grid-cols-[4rem_minmax(0,1.2fr)_minmax(0,1fr)_auto] md:items-center">
+              <span class="font-display text-sm font-semibold text-muted tabular transition-colors group-hover:text-accent-fg">{String(i + 2).padStart(2, "0")}</span>
+              <span class="font-display text-display-md text-fg transition-transform duration-300 ease-(--ease-out) group-hover:translate-x-1">{g.data.title}</span>
+              <span class="flex flex-col gap-2">
+                <span class="text-sm leading-relaxed text-muted">{g.data.excerpt}</span>
+                <span class="text-xs text-muted">
+                  Updated <time datetime={isoDate(g.data.updatedAt)}>{formatDate(g.data.updatedAt)}</time>, {readMinutes(g.body)} min read
+                </span>
+              </span>
+              <span class="hidden size-11 place-items-center rounded-full border border-line text-muted transition-[color,background-color,border-color] duration-300 group-hover:border-transparent group-hover:bg-accent-fill group-hover:text-accent-ink md:grid">
+                <Icon name="ph:arrow-right" size={18} />
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </Section>
+
+  <Section id="routes" labelledby="routes-title" divider spacing="sm">
+    <h2 id="routes-title" class="text-display-md text-fg">Road trip guides from Lahore</h2>
+    <p class="mt-3 max-w-2xl text-muted">Every outstation route has its own guide with drive times, stops, seasons and the right car.</p>
+    <RouteLinks routes={routes} limit={6} class="mt-8" />
+  </Section>
+</PageLayout>

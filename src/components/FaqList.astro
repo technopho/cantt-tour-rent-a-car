@@ -1,0 +1,84 @@
+---
+/**
+ * FAQ accordion with native <details>/<summary> (works without JS, keyboard accessible).
+ * Optional FAQPage JSON-LD (use at most once per page).
+ *
+ * FAQPage policy: only where the FAQ is the main or a major element of the page, i.e. /faq/, the
+ * home page and the 8 service pages. Every other FAQ is visible only (no `schema`). Google asks for a
+ * repeated Q&A to be marked up on one page only, so a question already marked up on one of those
+ * pages must not be marked up again (faq.astro leaves such items out of its FAQPage).
+ *
+ *   <FaqList faqs={entry.data.faqs} schema />
+ *   <FaqList faqs={faqs} exclusive />          only one item open at a time (details[name])
+ *
+ * Answers are plain text; blank lines become paragraphs.
+ */
+import { faqSchema, type FaqItem } from "@/lib/schema";
+import Icon from "./Icon.astro";
+import JsonLd from "./JsonLd.astro";
+
+interface Props {
+  faqs: FaqItem[];
+  /** Emit FAQPage JSON-LD. Default false. */
+  schema?: boolean;
+  /** Only one answer open at a time. */
+  exclusive?: boolean;
+  /** Open the first item initially. */
+  openFirst?: boolean;
+  id?: string;
+  class?: string;
+}
+
+const { faqs, schema = false, exclusive = false, openFirst = false, id, class: className } = Astro.props;
+// Deterministic group name (stable builds): explicit id, else a hash of the questions.
+const hash = (text: string) => [...text].reduce((h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0, 7).toString(36).replace("-", "n");
+const group = exclusive ? `faq-${id ?? hash(faqs.map((f) => f.q).join("|"))}` : undefined;
+const paragraphs = (text: string) => text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+---
+
+{
+  faqs.length > 0 && (
+    <div id={id} class:list={["border-t border-line", className]}>
+      {faqs.map((faq, i) => (
+        <details name={group} open={openFirst && i === 0} class="faq-item group border-b border-line">
+          <summary class="flex cursor-pointer list-none items-start justify-between gap-6 py-5 text-left text-[1.0625rem] font-semibold text-fg transition-colors hover:text-accent-fg [&::-webkit-details-marker]:hidden">
+            <span>{faq.q}</span>
+            <span
+              class="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border border-line text-muted transition-[transform,background-color,color,border-color] duration-300 ease-(--ease-out) group-open:rotate-45 group-open:border-transparent group-open:bg-accent-soft group-open:text-accent-fg"
+              aria-hidden="true"
+            >
+              <Icon name="ph:plus" size={14} />
+            </span>
+          </summary>
+          <div class="flex max-w-3xl flex-col gap-3 pr-12 pb-6 leading-relaxed text-muted">
+            {paragraphs(faq.a).map((p) => (
+              <p>{p}</p>
+            ))}
+          </div>
+        </details>
+      ))}
+    </div>
+  )
+}
+
+{schema && faqs.length > 0 && <JsonLd data={faqSchema(faqs)} />}
+
+<style>
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (interpolate-size: allow-keywords) {
+      .faq-item {
+        interpolate-size: allow-keywords;
+      }
+      .faq-item::details-content {
+        block-size: 0;
+        overflow-y: clip;
+        transition:
+          block-size 0.35s var(--ease-out),
+          content-visibility 0.35s allow-discrete;
+      }
+      .faq-item[open]::details-content {
+        block-size: auto;
+      }
+    }
+  }
+</style>

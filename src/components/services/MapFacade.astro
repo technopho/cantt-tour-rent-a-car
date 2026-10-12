@@ -1,0 +1,159 @@
+---
+/**
+ * Click-to-load Google Map. Renders an image-free, not-to-scale diagram of Lahore around Cantt
+ * (pure SVG + CSS, no third-party request). The official Google Maps embed iframe (no API key)
+ * is only created after the visitor presses "Load Google Map", so no Google cookies or scripts
+ * load on page view. "Open in Google Maps" always works without JS.
+ */
+import Icon from "@/components/Icon.astro";
+import { site } from "@/config/site";
+import { mapsUrl } from "@/lib/links";
+
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+const embedSrc = `https://www.google.com/maps?q=${site.geo.lat},${site.geo.lng}&z=15&output=embed`;
+const title = `Map: ${site.name}, ${site.address.area}, ${site.address.city}`;
+---
+
+<div
+  class:list={[
+    "map-facade relative isolate flex w-full flex-col overflow-hidden rounded-card border border-line bg-surface sm:block sm:aspect-[4/3]",
+    className,
+  ]}
+  data-map-facade
+  data-src={embedSrc}
+  data-title={title}
+>
+  <!-- Diagram stage: its own 4:3 box on phones, fills the facade from 640px -->
+  <div class="map-stage relative aspect-[4/3] w-full sm:absolute sm:inset-0 sm:aspect-auto">
+    <svg
+      class="map-art absolute inset-0 size-full"
+      viewBox="0 0 400 300"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <pattern id="map-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <path d="M20 0H0V20" fill="none" stroke="var(--line)" stroke-width="1"></path>
+        </pattern>
+        <radialGradient id="map-glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.32"></stop>
+          <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"></stop>
+        </radialGradient>
+      </defs>
+      <rect width="400" height="300" fill="url(#map-grid)"></rect>
+      <!-- Ring Road (east and south) -->
+      <path d="M60 30 C 180 0, 360 20, 372 140 S 300 300, 150 290" fill="none" stroke="var(--line-strong)" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round" opacity="0.6"></path>
+      <!-- Canal -->
+      <path d="M330 20 C 260 80, 210 110, 170 170 S 90 260, 40 300" fill="none" stroke="var(--muted)" stroke-width="2.5" opacity="0.45"></path>
+      <!-- Main roads -->
+      <path d="M200 150 L 318 128" stroke="var(--text)" stroke-width="2" opacity="0.35"></path>
+      <path d="M200 150 L 288 222" stroke="var(--text)" stroke-width="2" opacity="0.35"></path>
+      <path d="M200 150 L 118 192" stroke="var(--text)" stroke-width="2" opacity="0.35"></path>
+      <path d="M200 150 L 112 72" stroke="var(--text)" stroke-width="2" opacity="0.35"></path>
+      <!-- Places -->
+      <g fill="var(--muted)" font-family="var(--font-sans)" font-size="10" font-weight="600">
+        <circle cx="318" cy="128" r="4" fill="var(--text)" opacity="0.7"></circle>
+        <text x="300" y="116">Airport (LHE)</text>
+        <circle cx="288" cy="222" r="4" fill="var(--text)" opacity="0.7"></circle>
+        <text x="296" y="226">DHA</text>
+        <circle cx="118" cy="192" r="4" fill="var(--text)" opacity="0.7"></circle>
+        <text x="74" y="210">Gulberg</text>
+        <circle cx="112" cy="72" r="4" fill="var(--text)" opacity="0.7"></circle>
+        <text x="62" y="60">Railway Station</text>
+        <text x="300" y="44" opacity="0.8">Ring Road</text>
+        <text x="58" y="282" opacity="0.8">Canal</text>
+      </g>
+      <circle cx="200" cy="150" r="60" fill="url(#map-glow)"></circle>
+    </svg>
+
+    <div class="map-pin pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full text-accent" aria-hidden="true">
+      <span class="map-pin__pulse absolute bottom-0 left-1/2 size-6 -translate-x-1/2 translate-y-1/2 rounded-full bg-accent/40"></span>
+      <Icon name="ph:map-pin" size={40} class="relative drop-shadow-[0_6px_14px_rgb(0_0_0/0.4)]" />
+    </div>
+    <p class="pointer-events-none absolute top-[calc(50%+0.75rem)] left-1/2 -translate-x-1/2 rounded-badge border border-line bg-bg/70 px-2.5 py-1 text-xs font-bold whitespace-nowrap text-fg backdrop-blur-sm">
+      {site.address.area}
+    </p>
+  </div>
+
+  <!-- Controls: a bar under the diagram on phones (so nothing covers the pin), overlaid from 640px -->
+  <div class="relative flex flex-wrap items-center gap-2.5 border-t border-line p-4 sm:absolute sm:inset-x-0 sm:bottom-0 sm:border-t-0 sm:bg-linear-to-t sm:from-bg sm:via-bg/85 sm:to-transparent sm:p-5 sm:pt-14">
+    <button
+      type="button"
+      data-map-load
+      class="inline-flex h-11 items-center gap-2 rounded-full bg-accent-fill px-5 text-[0.9375rem] font-semibold text-accent-ink transition-[background-color,transform] duration-200 hover:bg-accent-fill-hover active:scale-[0.97]"
+    >
+      <Icon name="ph:map-trifold" size={18} />
+      Load Google Map
+    </button>
+    <a
+      href={mapsUrl()}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-surface-2/70 px-5 text-[0.9375rem] font-semibold text-fg backdrop-blur-sm transition-colors hover:border-line-strong"
+    >
+      Open in Google Maps
+      <Icon name="ph:arrow-square-out" size={16} />
+    </a>
+    <p class="w-full text-xs text-muted">Diagram not to scale. The map loads from Google only when you press the button.</p>
+  </div>
+</div>
+
+<style>
+  @media (prefers-reduced-motion: no-preference) {
+    .map-pin__pulse {
+      animation: map-pulse 2.4s var(--ease-out) infinite;
+    }
+  }
+  @keyframes map-pulse {
+    from {
+      opacity: 0.9;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 0;
+      transform: scale(2.6);
+    }
+  }
+  /* Once loaded the iframe is the only child: give the facade its own height on every width. */
+  .map-facade[data-loaded="true"] {
+    display: block;
+    aspect-ratio: 4 / 3;
+  }
+  @media (width < 40rem) {
+    .map-facade[data-loaded="true"] {
+      aspect-ratio: 4 / 5;
+    }
+  }
+  .map-facade iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+</style>
+
+<script>
+  function loadMap(facade: HTMLElement) {
+    const src = facade.dataset.src;
+    if (!src || facade.dataset.loaded) return;
+    const iframe = document.createElement("iframe");
+    iframe.src = src;
+    iframe.title = facade.dataset.title ?? "Map";
+    iframe.loading = "lazy";
+    iframe.referrerPolicy = "no-referrer-when-downgrade";
+    iframe.allowFullscreen = true;
+    facade.replaceChildren(iframe);
+    facade.dataset.loaded = "true";
+    iframe.focus();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-map-facade]").forEach((facade) => {
+    facade.querySelector("[data-map-load]")?.addEventListener("click", () => loadMap(facade), { once: true });
+  });
+</script>

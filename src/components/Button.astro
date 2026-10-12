@@ -1,0 +1,105 @@
+---
+/**
+ * Pill button / link with a tactile press state.
+ *
+ *   <Button href="/quote/">Get a quote</Button>                                  primary link
+ *   <Button href={whatsappUrl()} variant="secondary" icon="simple-icons:whatsapp" external>WhatsApp us</Button>
+ *   <Button href={telUrl()} variant="ghost" icon="ph:phone">Call now</Button>
+ *   <Button type="submit" size="lg" iconRight="ph:arrow-right">Send request</Button>
+ *   <Button href={telUrl()} iconOnly icon="ph:phone" label="Call now" variant="secondary" />
+ *
+ * Labels: one label per intent across the site: "Get a quote", "WhatsApp us", "Call now".
+ * Extra attributes (data-*, aria-*, id, ...) pass through to the <a>/<button>.
+ */
+import type { HTMLAttributes } from "astro/types";
+import Icon from "./Icon.astro";
+
+type Variant = "primary" | "secondary" | "ghost";
+type Size = "sm" | "md" | "lg";
+
+interface Props extends Omit<HTMLAttributes<"a"> & HTMLAttributes<"button">, "type"> {
+  href?: string;
+  type?: "button" | "submit" | "reset";
+  variant?: Variant;
+  size?: Size;
+  /** Leading icon name (Icon.astro). */
+  icon?: string;
+  /** Trailing icon name; nudges right on hover. */
+  iconRight?: string;
+  /** Colour class for the leading icon, e.g. "text-whatsapp". */
+  iconClass?: string;
+  /** Opens in a new tab with rel="noopener noreferrer". */
+  external?: boolean;
+  /** Round icon-only button. Requires `label`. */
+  iconOnly?: boolean;
+  /** Accessible name (required for iconOnly). */
+  label?: string;
+  fullWidth?: boolean;
+  disabled?: boolean;
+  class?: string;
+}
+
+const {
+  href,
+  type = "button",
+  variant = "primary",
+  size = "md",
+  icon,
+  iconRight,
+  iconClass,
+  external = false,
+  iconOnly = false,
+  label,
+  fullWidth = false,
+  disabled = false,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const base =
+  "group/btn relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold leading-none tracking-[-0.005em] transition-[transform,background-color,border-color,color,box-shadow] duration-200 ease-(--ease-out) active:scale-[0.97] active:duration-75 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50";
+
+const variants: Record<Variant, string> = {
+  primary:
+    "bg-accent-fill text-accent-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.2),0_10px_28px_-14px_color-mix(in_oklab,var(--accent)_70%,transparent)] hover:bg-accent-fill-hover",
+  secondary: "border border-line bg-surface-2/70 text-fg backdrop-blur-sm hover:border-line-strong hover:bg-surface-2",
+  ghost: "text-fg hover:bg-surface-2",
+};
+
+const sizes: Record<Size, string> = iconOnly
+  ? { sm: "size-9", md: "size-11", lg: "size-13" }
+  : { sm: "h-9 px-4 text-sm", md: "h-11 px-5 text-[0.9375rem]", lg: "h-13 px-7 text-base" };
+
+const iconSizes: Record<Size, number> = { sm: 16, md: 18, lg: 20 };
+
+const classes = [base, variants[variant], sizes[size], fullWidth && "w-full", className];
+const externalAttrs = external ? { target: "_blank", rel: "noopener noreferrer" } : {};
+---
+
+{
+  href && !disabled ? (
+    <a href={href} class:list={classes} aria-label={label} {...externalAttrs} {...rest}>
+      {icon && <Icon name={icon} size={iconSizes[size]} class={iconClass} />}
+      {!iconOnly && <slot />}
+      {iconRight && (
+        <Icon
+          name={iconRight}
+          size={iconSizes[size]}
+          class="transition-transform duration-200 ease-(--ease-out) group-hover/btn:translate-x-0.5"
+        />
+      )}
+    </a>
+  ) : (
+    <button type={type} class:list={classes} aria-label={label} disabled={disabled} {...rest}>
+      {icon && <Icon name={icon} size={iconSizes[size]} class={iconClass} />}
+      {!iconOnly && <slot />}
+      {iconRight && (
+        <Icon
+          name={iconRight}
+          size={iconSizes[size]}
+          class="transition-transform duration-200 ease-(--ease-out) group-hover/btn:translate-x-0.5"
+        />
+      )}
+    </button>
+  )
+}

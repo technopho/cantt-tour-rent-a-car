@@ -1,0 +1,31 @@
+---
+/**
+ * Trip composer band, directly under the hero. The composer island is owned by the quote
+ * engineer (src/components/quote/TripComposer.svelte); this band only frames it and passes the
+ * slim catalog list built at build time with toComposerModels().
+ */
+import Container from "@/components/Container.astro";
+import TripComposer from "@/components/quote/TripComposer.svelte";
+import type { ComposerModel } from "@/components/quote/types";
+
+interface Props {
+  models: ComposerModel[];
+}
+
+const { models } = Astro.props;
+---
+
+<section id="plan" class="relative border-b border-line pt-6 pb-[calc(var(--section-space)*0.55)] lg:pt-4" aria-labelledby="plan-title">
+  <Container class="grid gap-6 lg:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] lg:items-start lg:gap-12">
+    <div class="flex flex-col gap-3 lg:pt-6">
+      <h2 id="plan-title" class="text-display-md text-fg">Plan the trip in one line</h2>
+      <p class="text-muted">
+        Choose the car, the dates and where we pick you up. You see an estimate from our current rates straight away,
+        and our team confirms the final price on WhatsApp.
+      </p>
+    </div>
+    <div class="min-w-0">
+      <TripComposer client:visible models={models} compact />
+    </div>
+  </Container>
+</section>

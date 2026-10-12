@@ -1,0 +1,326 @@
+---
+/**
+ * /faq/: categorised questions (booking, documents, payments, self drive, outstation, airport,
+ * weddings, cancellations, challans, damage). One FAQPage JSON-LD for the whole page; the
+ * per-category FaqLists render without schema so there is never more than one FAQPage block.
+ * Items with `markedUpOn` repeat a Q&A that a service page already marks up, so they stay visible
+ * here but are left out of this page's FAQPage (Google: mark up a repeated Q&A on one page only).
+ * Policy values come from src/components/services/terms.ts, payment methods from site.ts.
+ */
+import FaqList from "@/components/FaqList.astro";
+import Icon from "@/components/Icon.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import Section from "@/components/Section.astro";
+import Button from "@/components/Button.astro";
+import { TERMS } from "@/components/services/terms";
+import { primaryPhone, site } from "@/config/site";
+import PageLayout from "@/layouts/PageLayout.astro";
+import { telUrl, whatsappUrl } from "@/lib/links";
+import { faqSchema, type FaqItem } from "@/lib/schema";
+import { urls } from "@/lib/urls";
+
+/** "A, B, C and D" */
+function listJoin(items: readonly string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+/** Mid-sentence casing for site.paymentAccepted: "Bank transfer" -> "bank transfer", brand names stay as written. */
+const PAYMENT_BRANDS = /jazzcash|easypaisa|raast|sadapay|nayapay|visa|mastercard|unionpay/i;
+const paymentWord = (method: string) => (PAYMENT_BRANDS.test(method) ? method : method.charAt(0).toLowerCase() + method.slice(1));
+
+interface PageFaq extends FaqItem {
+  /** URL of the page whose FAQPage already marks up this Q&A; it is then left out of ours. */
+  markedUpOn?: string;
+}
+
+interface Category {
+  id: string;
+  title: string;
+  icon: string;
+  faqs: PageFaq[];
+  more?: { label: string; href: string };
+}
+
+const categories: Category[] = [
+  {
+    id: "booking",
+    title: "Booking and quotes",
+    icon: "ph:chat-circle-text",
+    faqs: [
+      {
+        q: "How do I book a car in Lahore with you?",
+        a: "Send us the car, your dates, the pickup point and whether you want a driver, using Get a quote on this site or on WhatsApp. We confirm availability and the final price on WhatsApp. The booking is confirmed once you accept the quote and pay any advance we ask for.",
+      },
+      {
+        q: "Is the price on the website the final price?",
+        a: "The prices on this site come from our current rate list, and the quote form shows an estimate. The final price depends on your dates, hours, kilometres and route, and our team confirms it on WhatsApp before you book. Nothing is charged online.",
+      },
+      {
+        q: "How far in advance should I book?",
+        a: "For everyday city bookings, a day or two ahead is usually enough. For weddings, Eid, December and long outstation trips, book one to four weeks ahead, because the most popular cars go first.",
+      },
+      {
+        q: "Can I book a car for visiting relatives?",
+        a: "Yes. Book in your name with your CNIC and share the passenger's name and number. For self drive, the person driving must show their own CNIC and licence at handover.",
+      },
+    ],
+    more: { label: "How renting with a driver works", href: urls.service("rent-a-car-with-driver-lahore") },
+  },
+  {
+    id: "documents",
+    title: "Documents",
+    icon: "ph:identification-card",
+    faqs: [
+      {
+        q: "What documents do I need for a car with driver?",
+        a: "Your CNIC, or a passport for overseas visitors and foreign nationals, and a phone number we can reach on WhatsApp. That is all.",
+      },
+      {
+        q: "What documents do I need for a self drive car?",
+        markedUpOn: urls.service("self-drive-car-rental-lahore"),
+        a: `Your original CNIC and a valid driving licence. Overseas Pakistanis can use a NICOP or passport. Depending on the car and the duration, we may ask for a recent utility bill or a local reference. The minimum age for self drive is ${TERMS.selfDriveMinAge}.`,
+      },
+      {
+        q: "Can foreigners rent a car in Lahore?",
+        a: "Yes. With a driver, a passport is enough. For self drive, bring your passport with a valid visa, your home licence and an international driving permit. Many foreign visitors choose a car with driver, which avoids licence questions and Lahore parking.",
+      },
+    ],
+    more: { label: "Self drive requirements in full", href: urls.service("self-drive-car-rental-lahore") },
+  },
+  {
+    id: "payments",
+    title: "Payments and deposits",
+    icon: "ph:wallet",
+    faqs: [
+      {
+        q: "How can I pay?",
+        a: `We accept ${listJoin(site.paymentAccepted.map(paymentWord))}. Our team shares payment details on WhatsApp from the number on this website; please check it matches before you send money.`,
+      },
+      {
+        q: "Do I need to pay an advance?",
+        a: "For most bookings, yes. An advance holds the car for your dates and the balance is paid at pickup or handover. Weddings, peak dates and long rentals usually need a bigger advance.",
+      },
+      {
+        q: "How does the security deposit work?",
+        a: `Self drive rentals need a refundable security deposit, shown for each car on its page. We collect it at handover and refund it within ${TERMS.depositRefundDays} days of return, after the car check and the Safe City e-challan check. Any deductions are listed in writing with proof.`,
+      },
+      {
+        q: "Do you give receipts and company invoices?",
+        a: "Yes. You get a receipt for every payment. Companies get invoices in their name with their NTN and billing address.",
+      },
+    ],
+  },
+  {
+    id: "self-drive",
+    title: "Self drive rules",
+    icon: "ph:key",
+    faqs: [
+      {
+        q: "How many kilometres can I drive per day?",
+        a: "Each self drive car has a daily kilometre allowance, shown on its page and written in your agreement. Extra kilometres are charged at the per km rate in the agreement.",
+      },
+      {
+        q: "What is the fuel policy?",
+        markedUpOn: urls.service("self-drive-car-rental-lahore"),
+        a: `For self drive, the rule is ${TERMS.fuelSelfDrive}. Missing fuel is charged at the current pump price. With a driver, fuel is ${TERMS.fuelWithDriver}.`,
+      },
+      {
+        q: "Can someone else drive the car?",
+        a: "Only drivers named on the agreement. You can add an extra driver at handover with their own CNIC and licence.",
+      },
+      {
+        q: "What happens if I return the car late?",
+        a: `Tell us as soon as you know. There is a ${TERMS.lateGraceMinutes} minute grace period. After that, late time is charged per hour, and a return more than ${TERMS.lateFullDayAfterHours} hours late is charged as an extra day. If another customer is waiting for the car, extensions may not be possible.`,
+      },
+    ],
+    more: { label: "Self drive car rental in Lahore", href: urls.service("self-drive-car-rental-lahore") },
+  },
+  {
+    id: "outstation",
+    title: "Outstation trips",
+    icon: "ph:road-horizon",
+    faqs: [
+      {
+        q: "Can I take the car outside Lahore?",
+        a: `With a driver, yes: anywhere in Pakistan the roads allow, at the outstation rate. Self drive cars can leave Lahore ${TERMS.selfDriveOutstation}.`,
+      },
+      {
+        q: "How are outstation trips priced?",
+        a: "Each car has an outstation daily rate. If the driver stays overnight, a driver night allowance applies per night. Fuel and motorway tolls are extra unless your quote includes them.",
+      },
+      {
+        q: "Do you go to Naran, Hunza and Skardu?",
+        a: "Yes, with a driver. Naran, Hunza, Skardu, Murree and Swat are regular requests in season. We plan around road conditions and the Babusar Pass season, and suggest an SUV, a van or a coaster depending on the group.",
+      },
+    ],
+    more: { label: "Outstation routes from Lahore", href: urls.routes() },
+  },
+  {
+    id: "airport",
+    title: "Airport transfers",
+    icon: "ph:airplane-tilt",
+    faqs: [
+      {
+        q: "Do you pick up from Lahore airport at night?",
+        a: "Yes, with advance booking. Send the flight number and we track the actual landing time, so the driver is there when you come out of arrivals.",
+      },
+      {
+        q: "How long will the driver wait at the airport?",
+        a: `Free waiting is ${TERMS.airportFreeWaitMinutes} minutes from the actual landing time, enough for immigration and baggage on most flights. After that, waiting is billed per hour.`,
+      },
+    ],
+    more: { label: "Lahore airport pick and drop", href: urls.service("lahore-airport-car-rental") },
+  },
+  {
+    id: "weddings",
+    title: "Weddings and events",
+    icon: "ph:confetti",
+    faqs: [
+      {
+        q: "Do you provide decorated wedding cars?",
+        markedUpOn: urls.service("wedding-car-rental-lahore"),
+        a: "Yes, on request. Fresh flower or ribbon decoration is arranged with a decorator, priced separately and agreed with you before the day.",
+      },
+      {
+        q: "Can we book several cars for a baraat?",
+        markedUpOn: urls.service("wedding-car-rental-lahore"),
+        a: "Yes. We plan the convoy: the couple's car, guest cars and vans, the pickup order and timings. Matching colours depend on what is free on your date, so book early.",
+      },
+    ],
+    more: { label: "Wedding car rental in Lahore", href: urls.service("wedding-car-rental-lahore") },
+  },
+  {
+    id: "cancellations",
+    title: "Cancellations and changes",
+    icon: "ph:calendar-x",
+    faqs: [
+      {
+        q: "Can I cancel or change my booking?",
+        a: `Date changes are free when the car is available on the new date. Cancel at least ${TERMS.freeCancelHours} hours before pickup and the advance is refunded. Cancellations inside ${TERMS.freeCancelHours} hours may lose the advance.`,
+      },
+      {
+        q: "Is the cancellation policy different for weddings?",
+        markedUpOn: urls.service("wedding-car-rental-lahore"),
+        a: `Yes. Wedding and peak date bookings are held for you and turned away to others, so the advance may be non refundable inside ${TERMS.weddingCancelDays} days of the function. Moving the date is usually possible if the cars are free.`,
+      },
+    ],
+    more: { label: "Full cancellation terms", href: `${urls.policies()}#cancellations` },
+  },
+  {
+    id: "challans",
+    title: "Traffic challans and fines",
+    icon: "ph:traffic-signal",
+    faqs: [
+      {
+        q: "Who pays traffic challans?",
+        a: "With a driver, challans caused by our driver are our responsibility. With self drive, the renter pays every ticket and Safe City e-challan dated during the rental. E-challans can arrive days later, so we check the record before refunding the deposit and share a copy of any challan we deduct.",
+      },
+      {
+        q: "What if the traffic police or Motorway Police stop me?",
+        a: "Be polite and show your licence and the car's papers, which are in the glovebox. Tickets issued on the spot are paid by the person driving. Call us straight away if there is any question about the car's documents.",
+      },
+    ],
+    more: { label: "Challans and fines in our policies", href: `${urls.policies()}#traffic-challans` },
+  },
+  {
+    id: "damage",
+    title: "Insurance, damage and breakdowns",
+    icon: "ph:shield-check",
+    faqs: [
+      {
+        q: "Are your cars insured?",
+        a: "Insurance cover varies by car and is explained in your rental agreement. Insurance does not remove a self drive renter's responsibility: damage during the rental is handled under the damage terms in the agreement, and smaller repairs are settled from the deposit.",
+      },
+      {
+        q: "What should I do after an accident?",
+        a: "Make sure everyone is safe. Call Rescue 1122 for injuries and the police on 15, or the Motorway Police on 130 on a motorway. Then call us before moving the car if it is safe to wait. Take photos of the scene and the other vehicle, and do not agree to roadside repairs.",
+      },
+      {
+        q: "What if the car breaks down?",
+        a: "Call or WhatsApp us. With a driver, we send a replacement car where possible so your day continues. With self drive, please do not have the car repaired yourself: we arrange the repair or a replacement.",
+      },
+    ],
+    more: { label: "Damage and accident terms", href: `${urls.policies()}#damage-and-accidents` },
+  },
+];
+
+const allFaqs = categories.flatMap((c) => c.faqs);
+const schemaFaqs = allFaqs.filter((f) => !f.markedUpOn).map(({ q, a }) => ({ q, a }));
+---
+
+<PageLayout
+  title="Car Rental FAQ Lahore: Booking, Deposits, Challans"
+  description={`${allFaqs.length} answers about renting a car in Lahore: booking, documents, payments, deposits, self drive rules, airport pickups, weddings and challans.`}
+  h1="Renting a car in Lahore: FAQ"
+  intro="Straight answers on booking, documents, payments, deposits, self drive rules and challans. Cannot find yours? Ask on WhatsApp."
+  crumbs={[{ label: "FAQ" }]}
+>
+  <JsonLd slot="jsonld" data={faqSchema(schemaFaqs)} />
+
+  <Section id="questions" spacing="sm">
+    <div class="grid gap-10 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-20">
+      <nav aria-label="FAQ topics" class="lg:sticky lg:top-[calc(var(--header-h)+2rem)] lg:self-start">
+        <p class="text-xs font-bold tracking-[0.16em] text-muted uppercase">Topics</p>
+        <ul class="mt-4 flex flex-wrap gap-2 lg:flex-col lg:gap-0 lg:border-l lg:border-line">
+          {
+            categories.map((c) => (
+              <li>
+                <a
+                  href={`#${c.id}`}
+                  class="inline-flex items-center gap-2 rounded-full border border-line px-3.5 py-2 text-sm text-muted transition-colors hover:border-line-strong hover:text-fg lg:-ml-px lg:flex lg:rounded-none lg:border-0 lg:border-l-2 lg:border-transparent lg:py-1.5 lg:pl-4 lg:hover:border-accent"
+                >
+                  {c.title}{" "}
+                  <span class="text-xs tabular-nums opacity-70">{c.faqs.length}<span class="sr-only"> questions</span></span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <div class="mt-10 hidden rounded-card border border-line bg-surface p-5 lg:block" data-fab-hide>
+          <p class="font-display text-display-sm text-fg">Still stuck?</p>
+          <p class="mt-2 text-sm text-muted">A real person replies on WhatsApp.</p>
+          <Button href={whatsappUrl("Assalam o Alaikum! I have a question about renting a car.")} size="sm" variant="secondary" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external class="mt-4">
+            {site.cta.whatsapp.label}
+          </Button>
+        </div>
+      </nav>
+
+      <div class="flex flex-col gap-16">
+        {
+          categories.map((c) => (
+            <section id={c.id} aria-labelledby={`${c.id}-title`} class="scroll-mt-[calc(var(--header-h)+1.5rem)]">
+              <h2 id={`${c.id}-title`} class="flex items-center gap-3 text-display-md text-fg">
+                <span class="grid size-10 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
+                  <Icon name={c.icon} size={20} />
+                </span>
+                {c.title}
+              </h2>
+              <FaqList faqs={c.faqs} id={`faq-${c.id}`} class="mt-6" />
+              {c.more && (
+                <p class="mt-5 text-sm">
+                  <a href={c.more.href} class="inline-flex items-center gap-1.5 font-semibold text-accent-fg underline underline-offset-4">
+                    {c.more.label}
+                    <Icon name="ph:arrow-right" size={14} />
+                  </a>
+                </p>
+              )}
+            </section>
+          ))
+        }
+      </div>
+    </div>
+  </Section>
+
+  <Section id="ask" labelledby="ask-title" divider spacing="sm">
+    <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+      <div>
+        <h2 id="ask-title" class="text-display-md text-fg">Did not find your answer?</h2>
+        <p class="mt-3 max-w-xl text-muted">
+          Call us on <a href={telUrl()} class="font-semibold text-fg tabular-nums underline underline-offset-4">{primaryPhone.display}</a> or read
+          our <a href={urls.policies()} class="font-semibold text-accent-fg underline underline-offset-4">rental policies</a>, where every term is written out in full.
+        </p>
+      </div>
+    </div>
+  </Section>
+</PageLayout>

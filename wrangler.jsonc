@@ -1,0 +1,57 @@
+// Cloudflare Worker for the public website (canttrentacar.com).
+// Static pages are served from Workers Static Assets for free. The Worker script only runs for
+// /api/* (POST /api/quote/, enforced by assets.run_worker_first), so it stays far below the
+// free-tier request limit.
+//
+// The Astro adapter generates the final deploy config from this file during `astro build` and points
+// .wrangler/deploy/config.json at it, so `wrangler deploy` picks it up automatically:
+//   dist/client/wrangler.json  while every route is prerendered (assets-only, no Worker script)
+//   dist/server/wrangler.json  once an on-demand route exists (main: entry.mjs + ASSETS binding)
+// Verified: neither variant gets a SESSION KV namespace (session: false) or an IMAGES binding
+// (imageService "compile" only adds IMAGES for `astro dev`).
+//
+// Secrets (never commit, set with `npx wrangler secret put <NAME>`; local values in .dev.vars):
+//   INTERNAL_API_KEY      shared key sent as X-Internal-Key to the control panel
+//   TURNSTILE_SECRET_KEY  Cloudflare Turnstile secret for verifying quote form tokens
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cantt-website",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-09-15",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "binding": "ASSETS",
+    // Folder URLs (/cars/) map to cars/index.html, matching trailingSlash "always".
+    "html_handling": "auto-trailing-slash",
+    // Static routing: only /api/* (POST /api/quote/) invokes the Worker script. Without this array,
+    // any request with no matching file and no `Sec-Fetch-Mode: navigate` header (curl, scanners,
+    // crawlers, /favicon.ico, /wp-login.php, /.env ...) would run the Worker and use the free-tier
+    // 100k requests/day shared with the control panel. With it, the asset layer answers every other
+    // unmatched URL itself with 404.html (status 404, see not_found_handling), free of charge.
+    // Same pattern as control-panel/wrangler.jsonc. The adapter copies it into dist/server/wrangler.json.
+    "run_worker_first": ["/api/*"],
+    // Unknown URLs get the designed 404 page (dist/client/404.html) with status 404.
+    "not_found_handling": "404-page"
+  },
+
+  "observability": {
+    "enabled": true
+  },
+
+  "vars": {
+    // Public site URL (canonical domain). Change when the real domain is live.
+    "SITE_URL": "https://canttrentacar.com",
+    // Fallback used only when the CONTROL_PANEL service binding is absent (local dev).
+    "CONTROL_PANEL_URL": "http://localhost:5173"
+    // The Turnstile SITE key is a build-time variable (PUBLIC_TURNSTILE_SITE_KEY in the Workers Builds
+    // environment, see DEPLOYMENT.md step 7); only the secret lives here as a Worker secret.
+  }
+
+  // Service binding to the control panel Worker (quote requests go Worker to Worker, no public hop).
+  // Enable AFTER "cantt-control-panel" has been deployed at least once:
+  // `wrangler deploy` fails if the target Worker does not exist yet.
+  // "services": [
+  //   { "binding": "CONTROL_PANEL", "service": "cantt-control-panel" }
+  // ]
+}

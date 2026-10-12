@@ -1,0 +1,373 @@
+---
+/**
+ * /rates/: "Rent a car rates in Lahore (<year>)". Every model's rates from the catalog, grouped by
+ * category: cards on phones and tablets, two clean tables (with driver / self drive) on desktop.
+ * Notes on inclusions, outstation rules, deposits and payment, last updated from catalog.generatedAt.
+ */
+import Button from "@/components/Button.astro";
+import FaqList from "@/components/FaqList.astro";
+import Icon from "@/components/Icon.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import SampleFleetNote from "@/components/SampleFleetNote.astro";
+import Section from "@/components/Section.astro";
+import SectionHeading from "@/components/SectionHeading.astro";
+import CategoryIndex from "@/components/fleet/CategoryIndex.astro";
+import RateCards from "@/components/fleet/RateCards.astro";
+import RatesTable from "@/components/fleet/RatesTable.astro";
+import { CITY_DAY_HOURS, carName, fitText, highest, lowest, paymentMethodsText } from "@/components/fleet/fleet-data";
+import { webPageSchema } from "@/components/fleet/fleet-schema";
+import { TERMS } from "@/components/services/terms";
+import { site } from "@/config/site";
+import PageLayout from "@/layouts/PageLayout.astro";
+import { getCategories, getModels, loadCatalog, type CatalogModel } from "@/lib/catalog";
+import { formatDate, formatNumber, formatPKR, isoDate } from "@/lib/format";
+import type { FaqItem } from "@/lib/schema";
+import { whatsappUrl } from "@/lib/links";
+import { urls } from "@/lib/urls";
+
+const [catalog, models, categories] = await Promise.all([loadCatalog(), getModels(), getCategories()]);
+
+const generated = new Date(catalog.generatedAt);
+const validDate = !Number.isNaN(generated.getTime());
+const year = new Intl.DateTimeFormat("en-GB", { year: "numeric", timeZone: site.timeZone }).format(validDate ? generated : new Date());
+const updatedLabel = validDate ? formatDate(generated) : null;
+
+const groups = categories
+  .map((category) => ({ category, models: models.filter((m) => m.category === category.slug) }))
+  .filter((g) => g.models.length > 0);
+const driverGroups = groups
+  .map((g) => ({ ...g, models: g.models.filter((m) => m.rates.withDriver) }))
+  .filter((g) => g.models.length > 0);
+const selfGroups = groups
+  .map((g) => ({ ...g, models: g.models.filter((m) => m.rates.selfDrive) }))
+  .filter((g) => g.models.length > 0);
+
+/** Model with the lowest value of a rate, plus that value. */
+function cheapestBy(pick: (m: CatalogModel) => number | null | undefined): { model: CatalogModel; value: number } | null {
+  let best: { model: CatalogModel; value: number } | null = null;
+  for (const model of models) {
+    const value = pick(model);
+    if (typeof value === "number" && value > 0 && (!best || value < best.value)) best = { model, value };
+  }
+  return best;
+}
+
+const cheapest = cheapestBy((m) => m.rates.fromPrice);
+const wdMin = cheapestBy((m) => m.rates.withDriver?.daily);
+const sdMin = cheapestBy((m) => m.rates.selfDrive?.daily);
+const wdMonthlyMin = cheapestBy((m) => m.rates.withDriver?.monthly);
+const sdMonthlyMin = cheapestBy((m) => m.rates.selfDrive?.monthly);
+const monthlyMin = [wdMonthlyMin, sdMonthlyMin].filter((x) => x !== null).sort((a, b) => a.value - b.value)[0] ?? null;
+const outstationMin = lowest(models, (m) => m.rates.withDriver?.outstationDaily);
+const overtimeMin = lowest(models, (m) => m.rates.withDriver?.overtimeHourly);
+const nightMin = lowest(models, (m) => (m.rates.withDriver ? m.rates.driverNightAllowance : null));
+const nightMax = highest(models, (m) => (m.rates.withDriver ? m.rates.driverNightAllowance : null));
+const depositMin = lowest(models, (m) => m.rates.selfDrive?.securityDeposit);
+const depositMax = highest(models, (m) => m.rates.selfDrive?.securityDeposit);
+const weeklyMin = lowest(models, (m) => m.rates.selfDrive?.weekly);
+const kmMin = lowest(models, (m) => m.rates.selfDrive?.kmPerDay);
+const kmMax = highest(models, (m) => m.rates.selfDrive?.kmPerDay);
+const popular =
+  models.find((m) => m.featured && m.category === "sedan" && m.rates.withDriver) ?? models.find((m) => m.featured && m.rates.withDriver) ?? null;
+
+const range = (min: number | null, max: number | null, fmt: (n: number) => string = formatPKR) =>
+  min === null ? null : max !== null && max !== min ? `${fmt(min)} to ${fmt(max)}` : fmt(min);
+
+const title = fitText([`Rent a Car Rates in Lahore ${year}: Daily, Weekly, Monthly`, `Rent a Car Rates in Lahore ${year}`], 60);
+const description = fitText(
+  [
+    wdMin && sdMin
+      ? `Rent a car rates in Lahore for ${year}: with driver from ${formatPKR(wdMin.value)} per ${CITY_DAY_HOURS} hour day, self drive from ${formatPKR(sdMin.value)}. Weekly, monthly and deposits.`
+      : "",
+    `Rent a car rates in Lahore for ${year}. Daily, weekly and monthly prices for every car, with driver or self drive.`,
+  ].filter(Boolean),
+  155,
+);
+const everyCarHasDriver = models.every((m) => m.rates.withDriver);
+const everyCarSelfDrive = models.every((m) => m.rates.selfDrive);
+const h1 = `Rent a car rates in Lahore (${year})`;
+
+const glance = [
+  wdMin && { label: "With driver", value: formatPKR(wdMin.value), note: `${CITY_DAY_HOURS} hour day, ${carName(wdMin.model)}`, icon: "ph:steering-wheel" },
+  sdMin && { label: "Self drive", value: formatPKR(sdMin.value), note: `per day, ${carName(sdMin.model)}`, icon: "ph:key" },
+  monthlyMin && { label: "Monthly", value: formatPKR(monthlyMin.value), note: `per month, ${carName(monthlyMin.model)}`, icon: "ph:calendar-check" },
+  outstationMin && { label: "Outstation", value: formatPKR(outstationMin), note: "per day with driver", icon: "ph:mountains" },
+].filter((g): g is { label: string; value: string; note: string; icon: string } => Boolean(g));
+
+const rules = [
+  {
+    id: "included",
+    icon: "ph:clock",
+    title: `A city day is ${CITY_DAY_HOURS} hours`,
+    text: `With a driver, the daily rate covers the car and driver for up to ${CITY_DAY_HOURS} hours within Lahore, for example ${TERMS.cityDayWindow}.${
+      overtimeMin ? ` Extra hours are billed at the overtime rate of each car, from ${formatPKR(overtimeMin)} per hour.` : ""
+    } Pickup can be from your home, office, hotel or the airport.`,
+  },
+  {
+    id: "extras",
+    icon: "ph:gas-pump",
+    title: "Fuel, tolls and parking are extra",
+    text: "No rate includes fuel. Motorway tolls on the M-2, M-3 and M-11 and parking fees are also paid separately. Your quote lists everything that is extra before you confirm, so there are no surprises on the day.",
+  },
+  {
+    id: "outstation",
+    icon: "ph:mountains",
+    title: "Outstation trips",
+    text: `Trips outside Lahore use the outstation daily rate${outstationMin ? `, from ${formatPKR(outstationMin)}` : ""}. When the driver stays overnight, a night allowance${
+      nightMin ? ` of ${range(nightMin, nightMax)} per night` : ""
+    } is added. One way drops are quoted on WhatsApp, because the car and driver still have to come back to Lahore. For Naran, Hunza and Skardu we recommend an SUV.`,
+    link: { href: urls.routes(), label: "Outstation routes from Lahore" },
+  },
+  {
+    id: "deposit",
+    icon: "ph:shield-check",
+    title: "Self drive deposit and documents",
+    text: `Self drive needs a refundable security deposit${depositMin ? ` of ${range(depositMin, depositMax)} depending on the car` : ""}, collected at handover and returned after the car is checked on return. Bring your CNIC (or passport if visiting from abroad) and a valid driving licence.${
+      kmMin ? ` Each self drive day includes ${range(kmMin, kmMax, (n) => `${formatNumber(n)} km`)}.` : ""
+    }`,
+    link: { href: urls.service("self-drive-car-rental-lahore"), label: "Self drive car rental in Lahore" },
+  },
+  {
+    id: "longer",
+    icon: "ph:calendar-check",
+    title: "Weekly and monthly rates",
+    text: `Longer bookings cost less per day.${weeklyMin ? ` Weekly self drive rates start at ${formatPKR(weeklyMin)}.` : ""}${
+      monthlyMin ? ` Monthly rates start at ${formatPKR(monthlyMin.value)}.` : ""
+    } Monthly rentals suit office use, long family visits and overseas Pakistanis staying for the season.`,
+    link: { href: urls.service("monthly-car-rental-lahore"), label: "Monthly car rental in Lahore" },
+  },
+  {
+    id: "payment",
+    icon: "ph:wallet",
+    title: "Paying for your rental",
+    text: "We confirm the total and how to pay on WhatsApp before you book. Nothing is paid on this website.",
+    chips: [...site.paymentAccepted],
+  },
+];
+
+const faqs: FaqItem[] = [
+  cheapest && {
+    q: "How much does it cost to rent a car in Lahore per day?",
+    a: `Our lowest rate is ${formatPKR(cheapest.value)} per day for the ${carName(cheapest.model)}${
+      cheapest.model.rates.selfDrive?.daily === cheapest.value ? " on self drive" : ""
+    }.${wdMin ? ` With a driver, a ${CITY_DAY_HOURS} hour city day starts at ${formatPKR(wdMin.value)} (${carName(wdMin.model)}).` : ""}${
+      popular?.rates.withDriver
+        ? ` A popular car like the ${carName(popular)} is ${formatPKR(popular.rates.withDriver.daily)} with a driver${
+            popular.rates.selfDrive ? ` or ${formatPKR(popular.rates.selfDrive.daily)} for self drive` : ""
+          }.`
+        : ""
+    } Fuel, tolls and parking are extra.`,
+  },
+  {
+    q: "Are these rates with a driver or without?",
+    a: `${
+      everyCarHasDriver
+        ? "Both. Every car shows its with driver rate, and cars that can be self driven also show a self drive rate."
+        : everyCarSelfDrive
+          ? "Both. Every car shows its self drive rate, and cars that come with a driver also show a with driver rate."
+          : "Both. Each car shows the rates for the service it is offered with: with a driver, self drive, or both."
+    } With a driver, the rate covers the car and driver for a ${CITY_DAY_HOURS} hour city day within Lahore.`,
+  },
+  {
+    q: "Is fuel included in the rent?",
+    a: `Not in the rates listed here. Fuel, motorway tolls and parking are paid separately. With a driver, fuel is ${TERMS.fuelWithDriver}; for self drive, the fuel rule is ${TERMS.fuelSelfDrive}. Your quote lists everything that is extra before you confirm.`,
+  },
+  monthlyMin && {
+    q: "What is the monthly rent of a car in Lahore?",
+    a: `Monthly rates start at ${[
+      sdMonthlyMin ? `${formatPKR(sdMonthlyMin.value)} for self drive (${carName(sdMonthlyMin.model)})` : null,
+      wdMonthlyMin ? `${formatPKR(wdMonthlyMin.value)} with a driver (${carName(wdMonthlyMin.model)})` : null,
+    ]
+      .filter(Boolean)
+      .join(" and ")}. Monthly rates for every car are in the tables above.`,
+  },
+  outstationMin && {
+    q: "Do you charge more for outstation trips?",
+    a: `Yes. Trips outside Lahore use the outstation daily rate, from ${formatPKR(outstationMin)} with a driver.${
+      nightMin ? ` When the driver stays overnight, a night allowance of ${range(nightMin, nightMax)} per night is added.` : ""
+    } Tolls are paid separately.`,
+  },
+  depositMin && {
+    q: "How much is the security deposit for self drive?",
+    a: `It depends on the car: ${range(depositMin, depositMax)}. The deposit is refundable. It is collected at handover and returned after the car is checked on return.`,
+  },
+  {
+    q: "How do I pay?",
+    a: `We accept ${paymentMethodsText()}. We confirm the total and how to pay on WhatsApp before you book. Nothing is paid on this website.`,
+  },
+].filter((f): f is FaqItem => Boolean(f));
+
+const pageSchema = webPageSchema({ name: h1, description, url: urls.rates(), dateModified: catalog.generatedAt });
+const jump = [
+  { href: "#rates", label: "Rates by car" },
+  { href: "#included", label: "What is included" },
+  { href: "#outstation", label: "Outstation" },
+  { href: "#deposit", label: "Self drive deposit" },
+  { href: "#faq", label: "Questions" },
+];
+---
+
+<PageLayout
+  title={title}
+  description={description}
+  h1={h1}
+  intro="Daily, weekly and monthly prices for every car we rent, with a driver or self drive. Taken straight from our booking system."
+  crumbs={[{ label: "Rates" }]}
+>
+  <JsonLd slot="jsonld" data={pageSchema} />
+
+  <div slot="actions" class="flex flex-wrap gap-3" data-fab-hide>
+    <Button href={site.cta.quote.href} size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+    <Button href={whatsappUrl()} variant="secondary" size="lg" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
+      {site.cta.whatsapp.label}
+    </Button>
+  </div>
+
+  <Fragment slot="aside">
+    <div class="rounded-card border border-line bg-surface/80 p-5 backdrop-blur-md md:p-6">
+      <div class="flex items-center justify-between gap-4">
+        <p class="text-sm font-semibold text-fg">Lowest rates</p>
+        {
+          updatedLabel && (
+            <p class="text-xs text-muted">
+              Updated <time datetime={isoDate(generated)}>{updatedLabel}</time>
+            </p>
+          )
+        }
+      </div>
+      <dl class="mt-5 grid grid-cols-2 gap-x-6 gap-y-5">
+        {
+          glance.map((g) => (
+            <div class="flex flex-col gap-1">
+              <dt class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] text-muted">
+                <Icon name={g.icon} size={14} class="text-accent" />
+                {g.label}
+              </dt>
+              <dd class="tabular font-display text-[1.375rem] leading-tight font-semibold tracking-[-0.03em] text-fg">
+                {g.value}{" "}
+                <span class="block font-sans text-xs font-medium tracking-normal text-muted">{g.note}</span>
+              </dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+  </Fragment>
+
+  <Section id="rates" labelledby="rates-title" spacing="sm">
+    <nav aria-label="On this page" class="-mx-1 overflow-x-auto px-1 pb-2 scrollbar-none">
+      <ul class="flex w-max gap-2">
+        {
+          jump.map((j) => (
+            <li>
+              <a
+                href={j.href}
+                class="inline-flex h-9 items-center rounded-full border border-line px-4 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-fg"
+              >
+                {j.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <SectionHeading id="rates-title" title="Rates for every car" class="mt-10">
+      <p class="text-lede max-w-2xl text-muted">
+        Prices in Pakistani rupees, straight from our booking system{updatedLabel && <>, last updated <time datetime={isoDate(generated)}>{updatedLabel}</time></>}.
+        Open a car for photos, specs and a quote.
+      </p>
+    </SectionHeading>
+
+    <div class="mt-10 hidden flex-col gap-14 lg:flex">
+      {
+        driverGroups.length > 0 && (
+          <div>
+            <h3 id="with-driver" class="flex items-center gap-3 text-display-sm text-fg">
+              <span class="grid size-10 place-items-center rounded-full bg-accent-soft text-accent" aria-hidden="true">
+                <Icon name="ph:steering-wheel" size={20} />
+              </span>
+              With driver
+            </h3>
+            <p class="mt-3 max-w-3xl text-muted">
+              A city day is up to {CITY_DAY_HOURS} hours within Lahore. Outstation days apply outside Lahore, and the night allowance is added for each night
+              the driver stays away.
+            </p>
+            <RatesTable mode="driver" groups={driverGroups} caption="Rent a car with driver rates in Lahore" class="mt-6" />
+          </div>
+        )
+      }
+      {
+        selfGroups.length > 0 && (
+          <div>
+            <h3 id="self-drive" class="flex items-center gap-3 text-display-sm text-fg">
+              <span class="grid size-10 place-items-center rounded-full bg-accent-soft text-accent" aria-hidden="true">
+                <Icon name="ph:key" size={20} />
+              </span>
+              Self drive
+            </h3>
+            <p class="mt-3 max-w-3xl text-muted">
+              Prices per 24 hours. The deposit is refundable and the kilometres shown are included in each day.
+            </p>
+            <RatesTable mode="self" groups={selfGroups} caption="Self drive car rental rates in Lahore" class="mt-6" />
+          </div>
+        )
+      }
+    </div>
+
+    <RateCards groups={groups} class="mt-10 lg:hidden" />
+    <SampleFleetNote class="mt-8" />
+  </Section>
+
+  <Section id="rules" labelledby="rules-title" divider>
+    <div class="grid gap-10 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] md:gap-16">
+      <div class="md:sticky md:top-[calc(var(--header-h)+2rem)] md:self-start">
+        <h2 id="rules-title" class="text-display-lg text-fg">What the rates include</h2>
+        <p class="text-lede mt-5 text-muted">The short version of how pricing works. The full terms are on our policies page.</p>
+        <a href={urls.policies()} class="mt-5 inline-flex items-center gap-1.5 font-semibold text-accent-fg underline-offset-4 hover:underline">
+          Rental policies
+          <Icon name="ph:arrow-right" size={15} />
+        </a>
+      </div>
+      <ul class="border-t border-line">
+        {
+          rules.map((r) => (
+            <li id={r.id} class="scroll-mt-[calc(var(--header-h)+1.5rem)] border-b border-line py-7" data-reveal="fade">
+              <h3 class="flex items-center gap-3 text-display-sm text-fg">
+                <Icon name={r.icon} size={22} class="shrink-0 text-accent" />
+                {r.title}
+              </h3>
+              <p class="mt-3 leading-relaxed text-muted">{r.text}</p>
+              {r.chips && (
+                <ul class="mt-4 flex flex-wrap gap-2" aria-label="Payment methods">
+                  {r.chips.map((c) => (
+                    <li class="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-fg">
+                      <Icon name="ph:check" size={14} class="text-accent" />
+                      {c}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {r.link && (
+                <a href={r.link.href} class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-fg underline-offset-4 hover:underline">
+                  {r.link.label}
+                  <Icon name="ph:arrow-right" size={15} />
+                </a>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </Section>
+
+  <Section id="types" labelledby="types-title" divider>
+    <SectionHeading id="types-title" title="Browse cars by type" size="md" />
+    <CategoryIndex categories={categories} models={models} size="sm" class="mt-8" />
+  </Section>
+
+  <Section id="faq" labelledby="faq-title" width="narrow" divider>
+    <SectionHeading id="faq-title" title="Rent a car rates: common questions" size="md" />
+    <FaqList faqs={faqs} exclusive id="faq-rates" class="mt-8" />
+  </Section>
+</PageLayout>

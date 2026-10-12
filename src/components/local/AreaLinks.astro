@@ -1,0 +1,42 @@
+---
+/**
+ * Links to other area pages with descriptive anchors ("Rent a car in Gulberg").
+ *
+ *   <AreaLinks slugs={["gulberg", "model-town"]} areas={allAreaEntries} />
+ */
+import Icon from "@/components/Icon.astro";
+import { urls } from "@/lib/urls";
+
+interface AreaLike {
+  id: string;
+  data: { areaName: string; h1: string; distances: { to: string; minutes: number }[] };
+}
+
+interface Props {
+  slugs: string[];
+  areas: AreaLike[];
+  class?: string;
+}
+
+const { slugs, areas, class: className } = Astro.props;
+const items = slugs.map((s) => areas.find((a) => a.id === s)).filter((a): a is AreaLike => Boolean(a));
+const airport = (a: AreaLike) => a.data.distances.find((d) => /airport/i.test(d.to))?.minutes;
+---
+
+{
+  items.length > 0 && (
+    <ul class:list={["grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-2", className]}>
+      {items.map((a) => (
+        <li class="bg-bg">
+          <a href={urls.area(a.id)} class="group flex h-full items-center justify-between gap-4 p-5 transition-colors duration-300 hover:bg-surface">
+            <span class="flex flex-col gap-1">
+              <span class="font-semibold text-fg">{a.data.h1}</span>
+              {typeof airport(a) === "number" && <span class="text-xs text-muted tabular">Airport in about {airport(a)} min</span>}
+            </span>
+            <Icon name="ph:arrow-right" size={18} class="shrink-0 text-muted transition-[color,transform] duration-300 group-hover:translate-x-1 group-hover:text-accent" />
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}

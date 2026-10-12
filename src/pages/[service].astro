@@ -1,0 +1,264 @@
+---
+/**
+ * Service landing pages at root URLs (DESIGN.md): /rent-a-car-with-driver-lahore/,
+ * /self-drive-car-rental-lahore/, /monthly-car-rental-lahore/, /lahore-airport-car-rental/,
+ * /wedding-car-rental-lahore/, /corporate-car-rental-lahore/, /luxury-car-rental-lahore/,
+ * /van-coaster-rental-lahore/.
+ *
+ * Paths come only from the services collection (slug is a z.enum of the eight URLs), so this
+ * dynamic route can never shadow another root page. Copy: src/content/services/<slug>.md.
+ * Structured extras (model filters, rate columns, journey, documents): src/components/services/service-data.ts.
+ * Prices: catalog only.
+ */
+import { getCollection, render, type CollectionEntry } from "astro:content";
+import Button from "@/components/Button.astro";
+import CarCard from "@/components/CarCard.astro";
+import FaqList from "@/components/FaqList.astro";
+import Icon from "@/components/Icon.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import Prose from "@/components/Prose.astro";
+import SampleFleetNote from "@/components/SampleFleetNote.astro";
+import Section from "@/components/Section.astro";
+import SectionHeading from "@/components/SectionHeading.astro";
+import TripComposer from "@/components/quote/TripComposer.svelte";
+import AreaRouteLinks from "@/components/services/AreaRouteLinks.astro";
+import GroupGuide from "@/components/services/GroupGuide.astro";
+import GuideLinks from "@/components/services/GuideLinks.astro";
+import OnThisPage from "@/components/services/OnThisPage.astro";
+import RatesTable from "@/components/services/RatesTable.astro";
+import RelatedServices from "@/components/services/RelatedServices.astro";
+import ServiceHeroPanel from "@/components/services/ServiceHeroPanel.astro";
+import ServiceIncluded from "@/components/services/ServiceIncluded.astro";
+import ServiceJourney from "@/components/services/ServiceJourney.astro";
+import SpecStrip from "@/components/services/SpecStrip.astro";
+import { cardModelFor, getServiceExtra, modelsForService } from "@/components/services/service-data";
+import { fillTerms } from "@/components/services/terms";
+import { formatOpeningHours, getService, primaryPhone, site } from "@/config/site";
+import PageLayout from "@/layouts/PageLayout.astro";
+import { ESTIMATE_DISCLAIMER, getCatalogMeta, getCategories, getModels } from "@/lib/catalog";
+import { toComposerModels } from "@/lib/composer";
+import { formatDate } from "@/lib/format";
+import { telUrl, whatsappUrl } from "@/lib/links";
+import { serviceSchema } from "@/lib/schema";
+import { urls } from "@/lib/urls";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("services");
+  return entries.map((entry) => ({ params: { service: entry.data.slug }, props: { entry } }));
+}
+
+interface Props {
+  entry: CollectionEntry<"services">;
+}
+
+const { entry } = Astro.props;
+const d = entry.data;
+const extra = getServiceExtra(d.slug);
+const summary = getService(d.slug);
+const { Content, headings } = await render(entry);
+
+const [allModels, categories, catalogMeta] = await Promise.all([getModels(), getCategories({ includeEmpty: true }), getCatalogMeta()]);
+const fitting = modelsForService(allModels, extra, d.recommendedModels);
+const featured = fitting.slice(0, extra.limit);
+const shortRange = featured.length <= 2;
+const heroPrice = extra.heroPrice(fitting);
+const categoryName = (slug: string) => categories.find((c) => c.slug === slug)?.name;
+
+const metaTitle = fillTerms(d.metaTitle);
+const metaDescription = fillTerms(d.metaDescription);
+const intro = fillTerms(d.intro);
+const highlights = d.highlights.map((h) => ({ ...h, title: fillTerms(h.title), text: fillTerms(h.text) }));
+const inclusions = d.inclusions.map(fillTerms);
+const exclusions = d.exclusions.map(fillTerms);
+const faqs = d.faqs.map((f) => ({ q: fillTerms(f.q), a: fillTerms(f.a) }));
+const toc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, text: h.text }));
+
+const composerModels = toComposerModels(allModels, categories);
+const wantsSelf = extra.composer.serviceType === "self_drive";
+const dailyFor = (m: (typeof fitting)[number]) => (wantsSelf ? m.rates.selfDrive?.daily : m.rates.withDriver?.daily);
+const offered = fitting.filter((m) => typeof dailyFor(m) === "number");
+// Composer default: the content's first pinned model, else the cheapest fitting car, so the first
+// estimate a visitor sees is a realistic starting point (the grid itself may be sorted high to low).
+const defaultModel =
+  d.recommendedModels.map((slug) => offered.find((m) => m.slug === slug)).find(Boolean) ??
+  [...offered].sort((a, b) => (dailyFor(a) ?? 0) - (dailyFor(b) ?? 0))[0];
+
+const serviceName = summary?.name ?? extra.label;
+const jsonLd = serviceSchema({
+  name: `${serviceName} in Lahore`,
+  description: metaDescription,
+  url: urls.service(d.slug),
+  serviceType: extra.schemaServiceType,
+  lowPrice: extra.schemaLowPrice(fitting),
+});
+---
+
+<PageLayout
+  title={metaTitle}
+  description={metaDescription}
+  h1={d.h1}
+  intro={intro}
+  crumbs={[{ label: extra.label }]}
+  whatsappMessage={extra.whatsappMessage}
+  modifiedTime={d.updatedAt}
+>
+  <JsonLd slot="jsonld" data={jsonLd} />
+
+  <div slot="actions" class="grid w-full gap-3 sm:flex sm:w-auto sm:flex-wrap" data-fab-hide>
+    <Button href="#plan" size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+    <Button
+      href={whatsappUrl(extra.whatsappMessage)}
+      variant="secondary"
+      size="lg"
+      icon="simple-icons:whatsapp"
+      iconClass="text-whatsapp"
+      external
+    >
+      {site.cta.whatsapp.label}
+    </Button>
+    <Button href={telUrl()} variant="ghost" size="lg" icon="ph:phone">{site.cta.call.label}</Button>
+  </div>
+
+  <ServiceHeroPanel
+    slot="aside"
+    amount={heroPrice.amount}
+    unit={heroPrice.unit}
+    note={heroPrice.note}
+    modeLabel={extra.modeLabel}
+    modelCount={fitting.length}
+  />
+
+  <SpecStrip items={highlights} label={`Why book ${serviceName.toLowerCase()} with us`} />
+
+  <!-- Cars for this service, live from the catalog -->
+  <Section id="cars" labelledby="cars-title">
+    <SectionHeading id="cars-title" title={extra.cars.title} intro={extra.cars.intro}>
+      <Button slot="actions" href={urls.cars()} variant="secondary" iconRight="ph:arrow-right">See the full fleet</Button>
+    </SectionHeading>
+    {/* A short range (1 or 2 models, e.g. a Hiace and a Coaster) gets wide cards with both rates instead of a sparse 3 column grid. */}
+    <ul class:list={["mt-12 grid", shortRange ? "gap-6" : "gap-x-6 gap-y-12 md:grid-cols-2 lg:grid-cols-3"]}>
+      {
+        featured.map((model, i) => (
+          <li data-reveal data-reveal-delay={i % 3 ? String(i % 3) : undefined}>
+            <CarCard model={cardModelFor(model, d.serviceType)} categoryName={categoryName(model.category)} variant={shortRange ? "wide" : "default"} />
+          </li>
+        ))
+      }
+    </ul>
+    <SampleFleetNote class="mt-10" />
+  </Section>
+
+  <!-- Long-form guide (markdown body) with an on-page index -->
+  <Section as="div" id="guide" divider>
+    <div class="grid gap-12 lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-20">
+      <Prose class="[&>:first-child]:mt-0">
+        <Content />
+      </Prose>
+      <aside class="hidden lg:block" aria-label="Page tools">
+        <div class="sticky top-[calc(var(--header-h)+2rem)] flex flex-col gap-10">
+          <OnThisPage items={toc} sticky={false} />
+          <div class="rounded-card border border-line bg-surface p-5">
+            <p class="font-display text-display-sm text-fg">Know your dates?</p>
+            <p class="mt-2 text-sm text-muted">Get an estimate in under a minute. We confirm on WhatsApp.</p>
+            <Button href="#plan" size="sm" class="mt-4" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </Section>
+
+  <ServiceJourney id="journey" eyebrow="How it works" title={extra.journey.title} intro={extra.journey.intro} stops={extra.journey.stops} />
+
+  {
+    extra.groupGuide && (
+      <Section id="seats" labelledby="seats-title" divider>
+        <GroupGuide models={allModels} headingId="seats-title" />
+      </Section>
+    )
+  }
+
+  <!-- Rates from the catalog -->
+  <Section id="rates" labelledby="rates-title" divider>
+    <SectionHeading id="rates-title" title={extra.rates.title} intro={extra.rates.intro} />
+    <div class="mt-10">
+      <RatesTable models={fitting} columns={extra.rates.columns} categories={categories} caption={extra.rates.title} id="rates-table" />
+    </div>
+    <p class="mt-5 flex max-w-3xl gap-2.5 text-sm leading-relaxed text-muted">
+      <Icon name="ph:info" size={18} class="mt-0.5 text-accent" />
+      <span>
+        Prices in Pakistani rupees from our rate list of <time datetime={catalogMeta.generatedAt}>{formatDate(catalogMeta.generatedAt)}</time>.{" "}
+        {ESTIMATE_DISCLAIMER} Every car is on our <a href={urls.rates()} class="font-semibold text-accent-fg underline underline-offset-4">full rate list</a>, and the terms are on our <a href={urls.policies()} class="font-semibold text-accent-fg underline underline-offset-4">rental policies</a> page.
+      </span>
+    </p>
+  </Section>
+
+  <Section id="included" labelledby="included-title" divider>
+    <ServiceIncluded
+      inclusions={inclusions}
+      exclusions={exclusions}
+      documents={extra.documents}
+      headingId="included-title"
+      title="What the price covers"
+    />
+  </Section>
+
+  <!-- Quote composer -->
+  <Section id="plan" labelledby="plan-title" tone="surface">
+    <div class="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start lg:gap-16">
+      <div>
+        <h2 id="plan-title" class="text-display-lg text-fg">Plan your trip</h2>
+        <p class="text-lede mt-5 max-w-lg text-muted">
+          Pick the car and the dates to see an estimate from our current rates. We reply on WhatsApp with the confirmed price and the driver or handover details.
+        </p>
+        <ul class="mt-8 flex flex-col gap-4 text-[0.9375rem] text-muted">
+          <li class="flex gap-3">
+            <Icon name="ph:clock" size={20} class="mt-0.5 text-accent" />
+            <span>Office hours: {formatOpeningHours().join("; ")}. WhatsApp messages are welcome any time.</span>
+          </li>
+          <li class="flex gap-3">
+            <Icon name="ph:phone" size={20} class="mt-0.5 text-accent" />
+            <span>
+              Prefer to talk? <a href={telUrl()} class="font-semibold text-fg underline underline-offset-4 tabular-nums">{primaryPhone.display}</a>
+            </span>
+          </li>
+          <li class="flex gap-3">
+            <Icon name="ph:shield-check" size={20} class="mt-0.5 text-accent" />
+            <span>No payment online. Nothing is booked until you confirm on WhatsApp.</span>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <TripComposer
+          client:visible
+          models={composerModels}
+          defaultModelSlug={defaultModel?.slug}
+          defaultServiceType={extra.composer.serviceType}
+          defaultTripType={extra.composer.tripType}
+        />
+      </div>
+    </div>
+  </Section>
+
+  <Section id="areas" labelledby="areas-title">
+    <AreaRouteLinks areas={extra.areas} routes={extra.routes} headingId="areas-title" />
+  </Section>
+
+  {
+    faqs.length > 0 && (
+      <Section id="faq" labelledby="faq-title" width="narrow" divider>
+        <SectionHeading id="faq-title" title={`${extra.label}: your questions`} />
+        <FaqList faqs={faqs} schema exclusive id={`faq-${d.slug}`} class="mt-10" />
+        <p class="mt-8 text-sm text-muted">
+          More answers on deposits, payments, challans and cancellations in our <a href={urls.faq()} class="font-semibold text-accent-fg underline underline-offset-4">full FAQ</a>.
+        </p>
+      </Section>
+    )
+  }
+
+  <Section id="related" labelledby="related-title" divider>
+    <RelatedServices slugs={extra.related} headingId="related-title" />
+    <div class="mt-16 max-w-3xl md:mt-20">
+      <GuideLinks slugs={extra.guides} headingId="guides-title" />
+    </div>
+  </Section>
+</PageLayout>

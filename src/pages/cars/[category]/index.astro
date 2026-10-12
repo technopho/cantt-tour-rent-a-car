@@ -1,0 +1,247 @@
+---
+/**
+ * /cars/<category>/ (e.g. /cars/suv/): one page per catalog category that has models.
+ * Shares the /cars/<slug>/ URL space with model pages; getStaticPaths in both routes asserts that
+ * no model slug equals a category slug (assertNoFleetSlugCollisions).
+ */
+import type { GetStaticPaths } from "astro";
+import Button from "@/components/Button.astro";
+import CarCard from "@/components/CarCard.astro";
+import FaqList from "@/components/FaqList.astro";
+import Icon from "@/components/Icon.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import PriceTag from "@/components/PriceTag.astro";
+import SampleFleetNote from "@/components/SampleFleetNote.astro";
+import Section from "@/components/Section.astro";
+import SectionHeading from "@/components/SectionHeading.astro";
+import RateCards from "@/components/fleet/RateCards.astro";
+import RatesTable from "@/components/fleet/RatesTable.astro";
+import { categoryContent, categoryLinkText } from "@/components/fleet/category-copy";
+import { CITY_DAY_HOURS, assertNoFleetSlugCollisions, carName, goesOutstation, lowest, seatRange, singularName, softLower } from "@/components/fleet/fleet-data";
+import { itemListSchema } from "@/components/fleet/fleet-schema";
+import { getRoute, getService, site } from "@/config/site";
+import PageLayout from "@/layouts/PageLayout.astro";
+import { getCategories, getModels, type CatalogCategory } from "@/lib/catalog";
+import { whatsappUrl } from "@/lib/links";
+import { urls } from "@/lib/urls";
+
+export const getStaticPaths = (async () => {
+  const [models, categories, allCategories] = await Promise.all([getModels(), getCategories(), getCategories({ includeEmpty: true })]);
+  assertNoFleetSlugCollisions(models, allCategories);
+  return categories.map((category) => ({ params: { category: category.slug }, props: { category } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  category: CatalogCategory;
+}
+
+const { category } = Astro.props;
+const [allModels, categories] = await Promise.all([getModels(), getCategories()]);
+const models = allModels.filter((m) => m.category === category.slug);
+const content = categoryContent(category, models, allModels);
+
+const nounLower = softLower(content.noun);
+
+const from = lowest(models, (m) => m.rates.fromPrice);
+const hasDriver = models.some((m) => m.rates.withDriver);
+const hasSelf = models.some((m) => m.rates.selfDrive);
+const facts = [
+  { icon: "ph:car-profile", label: "Models", value: String(models.length) },
+  { icon: "ph:users", label: "Seats", value: seatRange(models) ?? "" },
+  { icon: "ph:steering-wheel", label: "Service", value: hasDriver && hasSelf ? "Driver or self drive" : hasDriver ? "With driver" : "Self drive" },
+  { icon: "ph:mountains", label: "Outstation", value: models.some(goesOutstation) ? "Available" : "Within Lahore" },
+];
+
+const services = content.services.map((slug) => getService(slug)).filter((s) => s !== undefined);
+const routes = content.routes.map((slug) => getRoute(slug)).filter((r) => r !== undefined);
+const compare = content.compare
+  .map((slug) => categories.find((c) => c.slug === slug))
+  .filter((c): c is CatalogCategory => c !== undefined && c.slug !== category.slug);
+const otherTypes = categories.filter((c) => c.slug !== category.slug && !compare.some((x) => x.slug === c.slug));
+
+const whatsappMessage = `Assalam o Alaikum! I'm looking for one of your ${nounLower} in Lahore.`;
+const listSchema = itemListSchema({
+  name: content.h1,
+  url: urls.category(category.slug),
+  items: models.map((m) => ({ name: carName(m), url: urls.car(m.slug) })),
+});
+const fewModels = models.length <= 2;
+---
+
+<PageLayout
+  title={content.metaTitle}
+  description={content.metaDescription}
+  h1={content.h1}
+  intro={content.intro}
+  crumbs={[{ label: "Fleet", href: urls.cars() }, { label: category.name }]}
+  whatsappMessage={whatsappMessage}
+>
+  <JsonLd slot="jsonld" data={listSchema} />
+
+  <div slot="actions" class="flex flex-wrap gap-3" data-fab-hide>
+    <Button href={site.cta.quote.href} size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+    <Button href={whatsappUrl(whatsappMessage)} variant="secondary" size="lg" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
+      {site.cta.whatsapp.label}
+    </Button>
+  </div>
+
+  <Fragment slot="aside">
+    <div class="rounded-card border border-line bg-surface/80 p-5 backdrop-blur-md md:p-6">
+      <PriceTag amount={from} size="xl" />
+      <p class="mt-1 text-sm text-muted">Lowest daily rate for {nounLower}</p>
+      <dl class="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-line pt-5">
+        {
+          facts.map((f) => (
+            <div>
+              <dt class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] text-muted">
+                <Icon name={f.icon} size={14} class="text-accent" />
+                {f.label}
+              </dt>
+              <dd class="mt-1 font-semibold text-fg">{f.value}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+  </Fragment>
+
+  <Section id="models" labelledby="models-title" spacing="sm">
+    <SectionHeading id="models-title" size="md" title={`Our ${nounLower}`} intro={category.description || undefined} />
+    {
+      fewModels ? (
+        <ul class="mt-10 flex flex-col gap-5">
+          {models.map((model, i) => (
+            <li data-reveal data-reveal-delay={i ? "1" : undefined}>
+              <CarCard model={model} categoryName={category.name} variant="wide" headingLevel="h3" />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+          {models.map((model, i) => (
+            <li data-reveal data-reveal-delay={i % 3 ? String(i % 3) : undefined}>
+              <CarCard model={model} categoryName={category.name} headingLevel="h3" />
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    <SampleFleetNote class="mt-8" />
+  </Section>
+
+  <Section id="guide" labelledby="guide-title" divider>
+    <div class="grid gap-8 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-16">
+      <div class="md:sticky md:top-[calc(var(--header-h)+2rem)] md:self-start">
+        <h2 id="guide-title" class="text-display-lg text-fg">{content.guideTitle}</h2>
+      </div>
+      <div class="flex flex-col gap-5 text-[1.0625rem] leading-relaxed text-muted">
+        {content.guide.map((p) => <p data-reveal="fade">{p}</p>)}
+        {
+          compare.length > 0 && (
+            <div class="mt-4 border-t border-line pt-6">
+              <p class="text-sm font-semibold text-fg">Compare with</p>
+              <ul class="mt-3 flex flex-wrap gap-2">
+                {compare.map((c) => (
+                  <li>
+                    <a
+                      href={urls.category(c.slug)}
+                      class="inline-flex h-10 items-center gap-2 rounded-full border border-line px-4 text-sm font-medium text-fg transition-colors hover:bg-surface"
+                    >
+                      {categoryLinkText(c)}
+                      <Icon name="ph:arrow-right" size={14} class="text-muted" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+      </div>
+    </div>
+  </Section>
+
+  <Section id="rates" labelledby="rates-title" divider>
+    <SectionHeading id="rates-title" title={`${singularName(content.noun)} rates in Lahore`}>
+      <p class="text-lede max-w-2xl text-muted">
+        Daily rates for each car, straight from our booking system. With a driver, a city day is up to {CITY_DAY_HOURS} hours within Lahore. Open a
+        car for overtime, monthly and night stay details.
+      </p>
+      <Button slot="actions" href={urls.rates()} variant="secondary" iconRight="ph:arrow-right">All rates</Button>
+    </SectionHeading>
+    <RatesTable mode="summary" groups={[{ category, models }]} caption={`${singularName(content.noun)} rates in Lahore`} hideGroupHeaders class="mt-10 max-lg:hidden" />
+    <RateCards groups={[{ category, models }]} hideGroupHeaders class="mt-8 lg:hidden" />
+  </Section>
+
+  <Section id="plan" labelledby="plan-title" divider>
+    <SectionHeading id="plan-title" title="Plan your trip" intro={`Services and routes people often book with our ${nounLower}.`} />
+    <div class:list={["mt-10 grid gap-10", routes.length > 0 && "lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16"]}>
+      <ul class="border-t border-line">
+        {
+          services.map((s) => (
+            <li class="border-b border-line">
+              <a href={urls.service(s.slug)} class="group flex items-start gap-4 py-5">
+                <span class="grid size-10 shrink-0 place-items-center rounded-full bg-accent-soft text-accent" aria-hidden="true">
+                  <Icon name={s.icon} size={20} />
+                </span>
+                <span class="flex min-w-0 flex-1 flex-col gap-1">
+                  <span class="font-semibold text-fg transition-colors group-hover:text-accent-fg">{s.name} in Lahore</span>{" "}
+                  <span class="text-sm text-muted">{s.description}</span>
+                </span>
+                <Icon name="ph:arrow-right" size={18} class="mt-1 shrink-0 text-muted transition-transform duration-300 group-hover:translate-x-1" />
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      {
+        routes.length > 0 && (
+          <div>
+            <h3 class="font-sans text-sm font-bold uppercase tracking-[0.14em] text-muted">Popular routes</h3>
+            <ul class="mt-4 flex flex-col gap-2">
+              {routes.map((r) => (
+                <li>
+                  <a
+                    href={urls.route(r.slug)}
+                    class="group flex items-center justify-between gap-4 rounded-card border border-line bg-surface px-4 py-3.5 transition-colors hover:bg-surface-2"
+                  >
+                    <span class="flex items-center gap-3 font-semibold text-fg">
+                      <Icon name="ph:path" size={18} class="text-accent" />
+                      Lahore to {r.city} by car
+                    </span>
+                    <Icon name="ph:arrow-up-right" size={16} class="text-muted group-hover:text-accent" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      }
+    </div>
+  </Section>
+
+  <Section id="faq" labelledby="faq-title" width="narrow" divider>
+    <SectionHeading id="faq-title" title={`${content.noun} on rent: common questions`} size="md" />
+    <FaqList faqs={content.faqs} exclusive id={`faq-${category.slug}`} class="mt-8" />
+    {
+      otherTypes.length > 0 && (
+        <nav aria-label="Other car types" class="mt-12">
+          <p class="text-sm font-semibold text-fg">Other car types</p>
+          <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            {otherTypes.map((c) => (
+              <li>
+                <a href={urls.category(c.slug)} class="text-muted underline decoration-line underline-offset-4 transition-colors hover:text-fg">
+                  {categoryLinkText(c)}
+                </a>
+              </li>
+            ))}
+            <li>
+              <a href={urls.cars()} class="text-muted underline decoration-line underline-offset-4 transition-colors hover:text-fg">
+                All cars for rent in Lahore
+              </a>
+            </li>
+          </ul>
+        </nav>
+      )
+    }
+  </Section>
+</PageLayout>

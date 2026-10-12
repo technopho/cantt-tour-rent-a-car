@@ -1,0 +1,160 @@
+---
+/**
+ * Guide page (/guides/<slug>/): evergreen article with a table of contents, a live data block
+ * from the catalog / site.ts, related links and Article JSON-LD (organisation as author).
+ */
+import { getCollection, render } from "astro:content";
+import Button from "@/components/Button.astro";
+import Icon from "@/components/Icon.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import Prose from "@/components/Prose.astro";
+import Section from "@/components/Section.astro";
+import GuideExtras from "@/components/local/GuideExtras.astro";
+import GuideToc from "@/components/local/GuideToc.astro";
+import { GUIDE_LINKS, guideExtra, guideReadMinutes, guideWordCount } from "@/components/local/guide-extras";
+import { articleSchema } from "@/components/local/schema";
+import { site } from "@/config/site";
+import PageLayout from "@/layouts/PageLayout.astro";
+import { formatDate, isoDate } from "@/lib/format";
+import { whatsappUrl } from "@/lib/links";
+import { urls } from "@/lib/urls";
+
+export async function getStaticPaths() {
+  const guides = await getCollection("guides", ({ data }) => !data.draft);
+  return guides.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content, headings } = await render(entry);
+
+const words = guideWordCount(entry.body);
+const minutes = guideReadMinutes(entry.body);
+const extra = guideExtra(entry.id);
+const h2s = headings.filter((h) => h.depth === 2);
+const toc = [...h2s.map((h) => ({ slug: h.slug, text: h.text })), ...(extra ? [{ slug: extra.id, text: extra.title }] : [])];
+const links = GUIDE_LINKS[entry.id] ?? [];
+const others = (await getCollection("guides", ({ data: d }) => !d.draft)).filter((g) => g.id !== entry.id);
+const path = urls.guide(entry.id);
+const shortTitle = data.title.replace(/\?$/, "").split(":")[0];
+---
+
+<PageLayout
+  title={data.metaTitle}
+  description={data.metaDescription}
+  h1={data.title}
+  intro={data.excerpt}
+  crumbs={[{ label: "Guides", href: urls.guides() }, { label: shortTitle }]}
+  type="article"
+  publishedTime={data.publishedAt}
+  modifiedTime={data.updatedAt}
+>
+  <JsonLd
+    slot="jsonld"
+    data={articleSchema({
+      headline: data.title,
+      description: data.metaDescription,
+      url: path,
+      datePublished: data.publishedAt,
+      dateModified: data.updatedAt,
+      wordCount: words,
+      sections: h2s.map((h) => h.text),
+    })}
+  />
+
+  <Fragment slot="actions">
+    <ul class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+      <li class="flex items-center gap-1.5">
+        <Icon name="ph:calendar-check" size={16} class="text-accent" />
+        Updated <time datetime={isoDate(data.updatedAt)}>{formatDate(data.updatedAt)}</time>
+      </li>
+      <li class="flex items-center gap-1.5">
+        <Icon name="ph:clock" size={16} class="text-accent" />
+        {minutes} min read
+      </li>
+      <li class="flex items-center gap-1.5">
+        <Icon name="ph:pen-nib" size={16} class="text-accent" />
+        By the {site.name} team
+      </li>
+    </ul>
+  </Fragment>
+
+  <Section id="article" aria-label={data.title} spacing="md">
+    <div class="grid gap-10 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-16 xl:grid-cols-[16rem_minmax(0,44rem)_minmax(0,1fr)]">
+      <div class="lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:self-start">
+        <GuideToc items={toc} />
+      </div>
+
+      <article class="guide-body min-w-0">
+        <Prose>
+          <Content />
+        </Prose>
+
+        {extra && <GuideExtras extra={extra} />}
+
+        <div class="mt-16 flex flex-col gap-6 rounded-card border border-line bg-surface p-6 sm:p-8" data-fab-hide>
+          <p class="font-display text-display-sm text-fg">Need a car in Lahore?</p>
+          <p class="text-muted">Tell us the car, your dates and where to pick you up. We reply on WhatsApp with a clear price.</p>
+          <div class="flex flex-wrap gap-3">
+            <Button href={urls.quote()} iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+            <Button href={whatsappUrl()} variant="secondary" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
+              {site.cta.whatsapp.label}
+            </Button>
+          </div>
+        </div>
+
+        {
+          links.length > 0 && (
+            <nav aria-labelledby="related-title" class="mt-12">
+              <h2 id="related-title" class="font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">
+                Related pages
+              </h2>
+              <ul class="mt-4 grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-3">
+                {links.map((l) => (
+                  <li class="bg-bg">
+                    <a href={l.href} class="group flex h-full items-center justify-between gap-3 p-4 text-sm font-semibold text-fg transition-colors hover:bg-surface">
+                      {l.label}
+                      <Icon name="ph:arrow-right" size={16} class="shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )
+        }
+      </article>
+    </div>
+  </Section>
+
+  {
+    others.length > 0 && (
+      <Section id="more-guides" labelledby="more-guides-title" divider spacing="sm">
+        <h2 id="more-guides-title" class="text-display-md text-fg">
+          More guides
+        </h2>
+        <ul class="mt-8 border-t border-line">
+          {others.map((g) => (
+            <li class="border-b border-line">
+              <a href={urls.guide(g.id)} class="group flex items-center justify-between gap-6 py-5">
+                <span class="flex flex-col gap-1">
+                  <span class="font-display text-display-sm text-fg transition-colors group-hover:text-accent-fg">{g.data.title}</span>
+                  <span class="text-sm text-muted">{g.data.excerpt}</span>
+                </span>
+                <Icon name="ph:arrow-right" size={18} class="shrink-0 text-muted transition-transform group-hover:translate-x-1" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </Section>
+    )
+  }
+</PageLayout>
+
+<style>
+  /* Wide markdown tables scroll inside the article (html/body clip horizontal overflow). */
+  .guide-body :global(.prose-site table) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+</style>

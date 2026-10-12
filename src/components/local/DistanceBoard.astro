@@ -1,0 +1,90 @@
+---
+/**
+ * "Departures board" of approximate drive times from an area (area page hero aside).
+ * Data comes from the area content (distances: to, km, minutes). Bars show minutes relative to
+ * the longest trip. CSS-only load animation (transform/opacity), static under reduced motion.
+ *
+ *   <DistanceBoard from="DHA Lahore" distances={entry.data.distances} />
+ */
+import Icon from "@/components/Icon.astro";
+import { formatKm } from "@/lib/format";
+import { iconForLabel } from "./geo";
+
+interface Props {
+  from: string;
+  distances: { to: string; km: number; minutes: number }[];
+  class?: string;
+}
+
+const { from, distances, class: className } = Astro.props;
+const max = Math.max(...distances.map((d) => d.minutes), 1);
+const minutesLabel = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60}` : ""}` : String(m));
+const minutesUnit = (m: number) => (m >= 60 ? (m % 60 ? "min" : "") : "min");
+---
+
+{
+  distances.length > 0 && (
+    <section class:list={["board rounded-card border border-line bg-surface/80 shadow-soft backdrop-blur-sm", className]} aria-labelledby="board-title">
+      <header class="flex items-baseline justify-between gap-4 border-b border-line px-5 py-4">
+        <h2 id="board-title" class="font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">
+          From {from}
+        </h2>
+        <span class="text-xs text-muted">Approx., normal traffic</span>
+      </header>
+      <ol class="divide-y divide-line">
+        {distances.map((d, i) => (
+          <li class="board-row relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3.5 px-5 py-3.5" style={`--i:${i};--p:${(d.minutes / max).toFixed(3)}`}>
+            <span class="grid size-9 place-items-center rounded-full bg-surface-2 text-accent">
+              <Icon name={iconForLabel(d.to)} size={18} />
+            </span>
+            <span class="min-w-0">
+              <span class="block text-sm leading-snug font-semibold text-fg">{d.to}</span>
+              <span class="tabular block text-xs text-muted">about {formatKm(d.km)}</span>
+            </span>
+            <span class="board-time text-right font-display text-lg font-semibold tracking-[-0.03em] text-fg tabular">
+              <span class="board-flip inline-block">{minutesLabel(d.minutes)}</span>
+              <span class="ml-0.5 font-sans text-xs font-medium tracking-normal text-muted">{minutesUnit(d.minutes)}</span>
+            </span>
+            <span class="board-bar pointer-events-none absolute bottom-0 left-5 h-px w-[calc(100%-2.5rem)] origin-left bg-accent" aria-hidden="true" />
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+<style>
+  .board-bar {
+    transform: scaleX(var(--p));
+    opacity: 0.55;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .board-bar {
+      animation: board-bar 1.1s var(--ease-out) both;
+      animation-delay: calc(var(--i) * 90ms + 250ms);
+    }
+    .board-flip {
+      animation: board-flip 0.7s var(--ease-out) both;
+      animation-delay: calc(var(--i) * 90ms + 150ms);
+      transform-origin: 50% 0%;
+    }
+  }
+  @keyframes board-bar {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(var(--p));
+    }
+  }
+  @keyframes board-flip {
+    from {
+      opacity: 0;
+      transform: perspective(240px) rotateX(-80deg);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

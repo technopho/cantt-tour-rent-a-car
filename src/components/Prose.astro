@@ -1,0 +1,24 @@
+---
+/**
+ * Typography wrapper for markdown bodies (content collections, catalog descriptions).
+ *
+ *   ---
+ *   const { Content } = await render(entry);
+ *   ---
+ *   <Prose><Content /></Prose>
+ *   <Prose html={markdownToHtml} />     (only for trusted, build-time HTML)
+ *
+ * Styles live in global.css (.prose-site): display-font headings, accent list markers,
+ * accent-fg underlined links, tabular tables. Max width 44rem for comfortable line length.
+ */
+interface Props {
+  as?: "div" | "article" | "section";
+  /** Trusted HTML string to render instead of the slot. */
+  html?: string;
+  class?: string;
+}
+
+const { as: Tag = "div", html, class: className } = Astro.props;
+---
+
+{html ? <Tag class:list={["prose-site", className]} set:html={html} /> : <Tag class:list={["prose-site", className]}><slot /></Tag>}

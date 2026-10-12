@@ -1,0 +1,189 @@
+---
+/**
+ * Neighbourhood index: a big typographic list of the Lahore areas in site.ts. On desktop,
+ * hovering or focusing an area reveals its one-line pickup note (space is reserved, so nothing
+ * shifts); on touch screens the notes are always visible. Every row links to /areas/<slug>/.
+ */
+import Container from "@/components/Container.astro";
+import Icon from "@/components/Icon.astro";
+import { site } from "@/config/site";
+import { urls } from "@/lib/urls";
+import { areaNote } from "./home-data";
+
+const areas = site.areasServed.map((area) => ({ ...area, note: areaNote(area) }));
+---
+
+<section id="areas" class="py-section" aria-labelledby="areas-title">
+  <Container class="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.7fr)] lg:gap-16">
+    <div class="flex flex-col gap-5 self-start lg:sticky lg:top-[calc(var(--header-h)+2.5rem)]">
+      <h2 id="areas-title" class="text-display-lg text-fg">Pickups across Lahore</h2>
+      <p class="text-lede text-muted">
+        From Cantt to Bahria Town, our drivers know the gates, the shortcuts and where to park. Pick your area for drive
+        times and pickup points.
+      </p>
+      <a
+        href={urls.areas()}
+        class="group inline-flex items-center gap-2 self-start font-semibold text-fg underline decoration-line-strong decoration-1 underline-offset-[0.3em] transition-colors hover:decoration-accent"
+      >
+        All areas we serve
+        <Icon name="ph:arrow-right" size={18} class="transition-transform duration-300 group-hover:translate-x-1" />
+      </a>
+    </div>
+
+    <ol class="area-list">
+      {
+        areas.map((area, i) => (
+          <li>
+            <a href={urls.area(area.slug)} class="area-row group">
+              <span class="area-idx tabular" aria-hidden="true">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span class="area-main">
+                <span class="area-name">{area.name}</span>
+                <span class="area-note">{area.note}</span>
+              </span>
+              <span class="area-arrow" aria-hidden="true">
+                <Icon name="ph:arrow-up-right" size={22} />
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </Container>
+</section>
+
+<style>
+  .area-list {
+    border-top: 1px solid var(--line);
+  }
+
+  .area-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding-block: 1.1rem;
+    border-bottom: 1px solid var(--line);
+    outline: none;
+  }
+  .area-row::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent), transparent 80%);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.6s var(--ease-out);
+  }
+  .area-row:hover::before,
+  .area-row:focus-visible::before {
+    transform: scaleX(1);
+  }
+  .area-row:focus-visible .area-name {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+
+  .area-idx {
+    align-self: start;
+    padding-top: 0.6em;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .area-main {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .area-name {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 1.1rem + 2.8vw, 3.5rem);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    color: var(--text);
+    transition:
+      color 0.3s var(--ease-out),
+      transform 0.5s var(--ease-out);
+  }
+  .area-note {
+    font-size: 0.9375rem;
+    color: var(--muted);
+  }
+
+  .area-arrow {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    border-radius: 9999px;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    transition:
+      background-color 0.3s var(--ease-out),
+      border-color 0.3s var(--ease-out),
+      color 0.3s var(--ease-out),
+      transform 0.3s var(--ease-out);
+  }
+  .area-row:hover .area-arrow,
+  .area-row:focus-visible .area-arrow {
+    background: var(--accent-fill);
+    border-color: transparent;
+    color: var(--accent-ink);
+    transform: rotate(45deg);
+  }
+  .area-row:hover .area-name,
+  .area-row:focus-visible .area-name {
+    color: var(--accent);
+  }
+
+  /* Desktop with a mouse: notes reveal on hover / focus. Space stays reserved, nothing shifts. */
+  @media (hover: hover) and (pointer: fine) {
+    .area-row {
+      grid-template-columns: 3rem minmax(0, 1fr) auto;
+      gap: 1rem;
+      padding-block: 1.35rem;
+    }
+    .area-note {
+      opacity: 0;
+      transform: translateY(-0.4rem);
+      transition:
+        opacity 0.35s var(--ease-out),
+        transform 0.45s var(--ease-out);
+    }
+    .area-row:hover .area-note,
+    .area-row:focus-visible .area-note {
+      opacity: 1;
+      transform: none;
+    }
+    .area-row:hover .area-name,
+    .area-row:focus-visible .area-name {
+      transform: translateX(0.5rem);
+    }
+    .area-row:hover .area-note,
+    .area-row:focus-visible .area-note {
+      transition-delay: 0.05s;
+    }
+    /* Notes also show while the list is not being explored (first row as a hint). */
+    .area-list:not(:hover):not(:focus-within) li:first-child .area-note {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .area-row:hover .area-name,
+    .area-row:focus-visible .area-name {
+      transform: none;
+    }
+  }
+</style>

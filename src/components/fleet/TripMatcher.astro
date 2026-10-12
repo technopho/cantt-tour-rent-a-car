@@ -1,0 +1,155 @@
+---
+/**
+ * "Which car for which trip": rows of Lahore trip types, each with practical advice and up to three
+ * matching models picked from the catalog (suitableFor tags, seats, four wheel drive).
+ * Rows without a matching model are skipped. Times are approximate.
+ *
+ *   <TripMatcher models={models} headingLevel="h3" />
+ */
+import Icon from "@/components/Icon.astro";
+import { TERMS } from "@/components/services/terms";
+import type { CatalogModel } from "@/lib/catalog-types";
+import { formatPKR } from "@/lib/format";
+import { urls } from "@/lib/urls";
+import { availabilityLabel, carName, goesOutstation, hasFourWheelDrive } from "./fleet-data";
+
+interface Props {
+  models: CatalogModel[];
+  headingLevel?: "h2" | "h3";
+  class?: string;
+}
+
+const { models, headingLevel: Heading = "h3", class: className } = Astro.props;
+
+const byPrice = (a: CatalogModel, b: CatalogModel) => a.rates.fromPrice - b.rates.fromPrice;
+const has = (tag: string) => (m: CatalogModel) => m.suitableFor.includes(tag);
+
+const weddingCars = [
+  ...models.filter((m) => m.category === "wedding"),
+  ...models.filter((m) => m.category !== "wedding" && has("wedding")(m)).sort((a, b) => b.rates.fromPrice - a.rates.fromPrice),
+];
+const northern = models
+  .filter((m) => goesOutstation(m) && (hasFourWheelDrive(m) || m.category === "suv"))
+  .sort((a, b) => Number(hasFourWheelDrive(b)) - Number(hasFourWheelDrive(a)) || byPrice(a, b));
+// Motorway runs: sedans first (the copy recommends one), outstation-tagged cars before the rest; hatchbacks only as a fallback.
+const motorwayBy = (category: string) =>
+  models
+    .filter((m) => m.category === category && goesOutstation(m))
+    .sort((a, b) => Number(has("outstation")(b)) - Number(has("outstation")(a)) || byPrice(a, b));
+const motorway = [...motorwayBy("sedan"), ...motorwayBy("hatchback")];
+const motorwayCar = motorwayBy("sedan").length > 0 ? "A sedan" : "A comfortable car";
+const monthly = models.filter((m) => has("monthly")(m) || m.rates.selfDrive?.monthly || m.rates.withDriver?.monthly).sort(byPrice);
+const monthlyIsCheaper = monthly.slice(0, 3).every((m) => {
+  const sd = m.rates.selfDrive;
+  const wd = m.rates.withDriver;
+  return (sd?.monthly ? sd.monthly < sd.daily * 30 : true) && (wd?.monthly ? wd.monthly < wd.daily * 30 : true);
+});
+const groups = models.filter((m) => m.seats >= 7).sort((a, b) => b.seats - a.seats || byPrice(a, b));
+
+const rows = [
+  {
+    id: "airport",
+    icon: "ph:airplane-tilt",
+    title: "Airport pick and drop",
+    text: "Allama Iqbal International Airport (LHE) is about 15 minutes from Lahore Cantt, 40 to 50 minutes from Johar Town and closer to an hour from Bahria Town in normal traffic. For two or three suitcases a sedan is enough. When the whole family comes to receive someone, pick a 7 seater or a van.",
+    picks: models.filter(has("airport")).sort(byPrice),
+    link: { href: urls.service("lahore-airport-car-rental"), label: "Airport pick and drop in Lahore" },
+  },
+  {
+    id: "wedding",
+    icon: "ph:sparkle",
+    title: "Weddings and functions",
+    text: `One car for the couple, matching sedans for close family and a van or coaster for baraat guests. Book early for ${TERMS.weddingPeakDays} functions in the ${TERMS.weddingSeason} wedding season, when Lahore's marquees are busiest.`,
+    picks: weddingCars,
+    link: { href: urls.service("wedding-car-rental-lahore"), label: "Wedding car rental in Lahore" },
+  },
+  {
+    id: "north",
+    icon: "ph:mountains",
+    title: "Murree, Naran, Hunza and Skardu",
+    text: "Murree is about 6 hours from Lahore. Naran is a long day, and Hunza or Skardu take two. Ground clearance, four wheel drive and a driver who knows the Karakoram Highway matter more here than the daily rate.",
+    picks: northern,
+    link: { href: urls.routes(), label: "Outstation routes from Lahore" },
+  },
+  {
+    id: "motorway",
+    icon: "ph:road-horizon",
+    title: "Islamabad, Sialkot and Multan by motorway",
+    text: `The M-2 to Islamabad (about 375 km), the M-11 to Sialkot and the M-3 towards Multan are smooth, fenced motorways. ${motorwayCar} makes the run easy for four people and their bags.`,
+    picks: motorway,
+    link: { href: urls.route("lahore-to-islamabad"), label: "Lahore to Islamabad by car" },
+  },
+  {
+    id: "monthly",
+    icon: "ph:calendar-check",
+    title: "A month or longer",
+    text: `For office commutes, a long stay in Lahore or a family visit from abroad.${
+      monthlyIsCheaper ? " A monthly rate costs less per day than booking day by day." : ""
+    }`,
+    picks: monthly,
+    link: { href: urls.service("monthly-car-rental-lahore"), label: "Monthly car rental in Lahore" },
+  },
+  {
+    id: "groups",
+    icon: "ph:users-three",
+    title: "Big families and groups",
+    text: "Seven seaters take a big family in one car. For 10 or more people, a van or coaster keeps everyone together, with one driver and one set of motorway tolls.",
+    picks: groups,
+    link: { href: urls.service("van-coaster-rental-lahore"), label: "Van and coaster rental in Lahore" },
+  },
+]
+  .map((row) => ({ ...row, picks: row.picks.slice(0, 3) }))
+  .filter((row) => row.picks.length > 0);
+---
+
+<ol class:list={["border-t border-line", className]}>
+  {
+    rows.map((row) => (
+      <li class="grid gap-6 border-b border-line py-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-12 md:py-10" data-reveal>
+        <div class="flex gap-4 md:gap-5">
+          <span class="grid size-11 shrink-0 place-items-center rounded-full bg-accent-soft text-accent" aria-hidden="true">
+            <Icon name={row.icon} size={22} />
+          </span>
+          <div class="min-w-0">
+            <Heading class="text-display-sm text-fg">{row.title}</Heading>
+            <p class="mt-3 max-w-xl leading-relaxed text-muted">{row.text}</p>
+            <a
+              href={row.link.href}
+              class="group/link mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-fg underline-offset-4 hover:underline"
+            >
+              {row.link.label}
+              <Icon name="ph:arrow-right" size={15} class="transition-transform duration-300 group-hover/link:translate-x-0.5" />
+            </a>
+          </div>
+        </div>
+        <ul class="flex flex-col gap-2 self-center" aria-label={`Recommended cars: ${row.title}`}>
+          {row.picks.map((m) => (
+            <li>
+              <a
+                href={urls.car(m.slug)}
+                class="group/car flex items-center justify-between gap-4 rounded-card border border-line bg-surface px-4 py-3.5 transition-[border-color,background-color,transform] duration-300 ease-(--ease-out) hover:border-[color-mix(in_oklab,var(--text)_18%,transparent)] hover:bg-surface-2 active:scale-[0.99]"
+              >
+                <span class="flex min-w-0 flex-col">
+                  <span class="font-semibold text-fg">{carName(m)}</span>{" "}
+                  <span class="text-xs text-muted">
+                    {m.seats} seats · {availabilityLabel(m)}
+                  </span>
+                </span>{" "}
+                <span class="flex shrink-0 items-center gap-3">
+                  <span class="tabular text-sm text-muted max-[380px]:hidden">
+                    from <strong class="font-display font-semibold tracking-[-0.02em] text-fg">{formatPKR(m.rates.fromPrice)}</strong>/day
+                  </span>
+                  <Icon
+                    name="ph:arrow-up-right"
+                    size={16}
+                    class="text-muted transition-[color,transform] duration-300 group-hover/car:-translate-y-px group-hover/car:translate-x-px group-hover/car:text-accent"
+                  />
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </li>
+    ))
+  }
+</ol>

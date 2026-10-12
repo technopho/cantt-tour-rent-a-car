@@ -1,0 +1,194 @@
+---
+/**
+ * Areas hub (/areas/): the neighbourhood index (typographic list + stylised map), a drive-time
+ * matrix built from the area content, other neighbourhoods we cover, quote and FAQs.
+ */
+import { getCollection } from "astro:content";
+import Button from "@/components/Button.astro";
+import FaqList from "@/components/FaqList.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import Section from "@/components/Section.astro";
+import SectionHeading from "@/components/SectionHeading.astro";
+import AreaIndex, { type AreaIndexItem } from "@/components/local/AreaIndex.astro";
+import QuoteBand from "@/components/local/QuoteBand.astro";
+import { AREA_META } from "@/components/local/area-meta";
+import { poiForLabel, type PoiKey } from "@/components/local/geo";
+import { itemListSchema } from "@/components/local/schema";
+import { TERMS } from "@/components/services/terms";
+import { site } from "@/config/site";
+import PageLayout from "@/layouts/PageLayout.astro";
+import { whatsappUrl } from "@/lib/links";
+import { urls } from "@/lib/urls";
+
+const entries = await getCollection("areas");
+// Order follows site.areasServed (head office first); any extra entries go last.
+const order = site.areasServed.map((a) => a.slug);
+const areas = [...entries].sort((a, b) => {
+  const ia = order.indexOf(a.id);
+  const ib = order.indexOf(b.id);
+  return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+});
+
+const minutesTo = (entry: (typeof areas)[number], key: PoiKey) => {
+  const d = entry.data.distances.find((x) => poiForLabel(x.to)?.key === key || (key === "ravi" && poiForLabel(x.to)?.key === "thokar"));
+  return d ? { minutes: d.minutes, km: d.km, via: d.to } : null;
+};
+
+const items: AreaIndexItem[] = areas.map((entry) => {
+  const meta = AREA_META.find((m) => m.slug === entry.id);
+  return {
+    slug: entry.id,
+    name: entry.data.areaName,
+    note: meta?.note ?? entry.data.intro,
+    tag: meta?.tag,
+    airportMinutes: minutesTo(entry, "airport")?.minutes ?? null,
+  };
+});
+
+const columns: { key: PoiKey; label: string }[] = [
+  { key: "airport", label: "Airport (LHE)" },
+  { key: "railway", label: "Railway Station" },
+  { key: "kalma", label: "Kalma Chowk" },
+  { key: "ravi", label: "M-2 entry" },
+  { key: "wagah", label: "Wagah Border" },
+];
+
+const otherAreas = [
+  "Garden Town",
+  "Faisal Town",
+  "Township",
+  "Allama Iqbal Town",
+  "Valencia",
+  "Shadman",
+  "Samanabad",
+  "Mughalpura",
+  "Harbanspura",
+  "Walled City (Androon Shehr)",
+  "Lake City",
+  "Raiwind Road",
+];
+
+const faqs = [
+  {
+    q: "Do you pick up outside these eight areas?",
+    a: "Yes. These areas have their own pages because we work there most, but we pick up anywhere in Lahore, from the Walled City to Raiwind Road. Tell us your neighbourhood and the nearest landmark when you ask for a quote.",
+  },
+  {
+    q: "Can the car pick me up in one area and drop me in another?",
+    a: `Yes. A booking with a driver can start in one part of Lahore and end in another, with as many stops as you need within the duty hours. Self drive cars are handed over and returned ${TERMS.selfDriveHandover}.`,
+  },
+  {
+    q: "How far ahead should I book?",
+    a: "For everyday trips, a day ahead is usually enough. For airport runs before 6 am, weddings on winter weekends, Eid and long weekends, book as early as you can because cars run out first on those dates.",
+  },
+  {
+    q: "Are the drive times on these pages exact?",
+    a: "No. They are approximate times in normal traffic, based on the usual route. Lahore traffic changes with school times, office hours, weather and events, so we always build in a margin for airport runs.",
+  },
+  {
+    q: "Which area is quickest for the airport?",
+    a: "Askari 10 and DHA Phase 8 are right next to Allama Iqbal International Airport, followed by Lahore Cantt. From Bahria Town and Wapda Town, the airport is on the opposite side of the city.",
+  },
+];
+---
+
+<PageLayout
+  title="Areas We Serve in Lahore: Car Rental by Neighbourhood"
+  description="Rent a car in Lahore Cantt, DHA, Gulberg, Johar Town, Model Town, Bahria Town, Askari or Wapda Town. Pickup points, drive times and local tips."
+  h1="Areas we serve in Lahore"
+  intro="From our head office in Lahore Cantt to Bahria Town on the far side of the city. Pick your area to see pickup points, drive times and the cars locals book."
+  crumbs={[{ label: "Areas we serve" }]}
+>
+  <JsonLd slot="jsonld" data={itemListSchema("Areas we serve in Lahore", areas.map((a) => ({ name: a.data.h1, url: urls.area(a.id) })))} />
+
+  <Fragment slot="actions">
+    <Button href="#quote" size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+    <Button href={whatsappUrl()} variant="secondary" size="lg" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
+      {site.cta.whatsapp.label}
+    </Button>
+  </Fragment>
+
+  <Section id="areas" aria-label="Lahore neighbourhoods we serve">
+    <AreaIndex items={items} />
+  </Section>
+
+  <Section id="drive-times" labelledby="drive-times-title" divider>
+    <SectionHeading
+      id="drive-times-title"
+      title="Drive times from each area"
+      intro="Approximate minutes in normal traffic, with distances in kilometres. Add a margin at school and office peaks, in fog and on event days."
+    />
+    <div class="mt-10 overflow-x-auto rounded-card border border-line" tabindex="0" role="region" aria-label="Drive times from each area, scrollable table">
+      <table class="w-full min-w-[46rem] border-collapse text-left text-sm">
+        <thead class="bg-surface">
+          <tr>
+            <th scope="col" class="px-5 py-4 font-semibold text-fg">Area</th>
+            {
+              columns.map((c) => (
+                <th scope="col" class="px-5 py-4 font-semibold text-fg">
+                  {c.label}
+                </th>
+              ))
+            }
+          </tr>
+        </thead>
+        <tbody>
+          {
+            areas.map((entry) => (
+              <tr class="border-t border-line transition-colors hover:bg-surface/60">
+                <th scope="row" class="px-5 py-4 font-semibold">
+                  <a href={urls.area(entry.id)} class="text-fg underline-offset-4 hover:text-accent-fg hover:underline">
+                    {entry.data.areaName}
+                  </a>
+                </th>
+                {columns.map((c) => {
+                  const d = minutesTo(entry, c.key);
+                  return (
+                    <td class="px-5 py-4 text-muted tabular">
+                      {d ? (
+                        <>
+                          <span class="font-semibold text-fg">{d.minutes} min</span>
+                          <span class="block text-xs">
+                            {d.km} km{c.key === "ravi" ? (/thokar/i.test(d.via) ? ", Thokar" : ", Ravi toll plaza") : ""}
+                          </span>
+                        </>
+                      ) : (
+                        <span aria-label="not listed">-</span>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </Section>
+
+  <Section id="elsewhere" labelledby="elsewhere-title" divider>
+    <div class="grid gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:gap-16">
+      <SectionHeading
+        id="elsewhere-title"
+        title="Not on the list? We still come to you."
+        intro="The eight areas above have their own pages because we work there most. We pick up across Lahore, including these neighbourhoods."
+        size="md"
+      />
+      <div class="flex flex-col gap-6">
+        <ul class="flex flex-wrap gap-2.5" aria-label="Other Lahore neighbourhoods we cover">
+          {otherAreas.map((name) => <li class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-fg">{name}</li>)}
+        </ul>
+        <p class="text-sm text-muted">
+          Going further? Our <a href={urls.routes()} class="font-semibold text-accent-fg underline underline-offset-2">outstation routes</a> cover Islamabad, Murree, the northern areas, Sialkot, Faisalabad, Multan and more.
+        </p>
+      </div>
+    </div>
+  </Section>
+
+  <QuoteBand title="Tell us where to pick you up" intro="Choose a car and your dates, and add your area. We confirm the price and pickup time on WhatsApp." />
+
+  <Section id="faq" labelledby="faq-title" width="narrow" divider>
+    <SectionHeading id="faq-title" title="Pickups across Lahore: questions" size="md" />
+    <FaqList faqs={faqs} exclusive id="areas-faq" class="mt-10" />
+  </Section>
+</PageLayout>

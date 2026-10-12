@@ -1,0 +1,383 @@
+---
+/**
+ * Transit-style mini map of our outstation routes from Lahore (routes hub only).
+ * Schematic, not geographic. Lines draw outwards from Lahore when the map scrolls into view
+ * (each straight segment scales from its start point with a non-scaling stroke: transform and
+ * opacity only). Static without JS and under reduced motion.
+ *
+ * Station links duplicate the accessible list next to the map, so the SVG is aria-hidden and its
+ * links are out of the tab order (pointer convenience only).
+ */
+import { formatDriveTime, formatKm } from "@/lib/format";
+import { urls } from "@/lib/urls";
+
+interface RouteInfo {
+  slug: string;
+  distanceKm: number;
+  driveHours: number;
+}
+
+interface Props {
+  routes: RouteInfo[];
+  class?: string;
+}
+
+const { routes, class: className } = Astro.props;
+
+type Pt = [number, number];
+type Side = "left" | "right";
+
+interface LineDef {
+  id: string;
+  points: Pt[];
+  /** Line this one starts from (its length is added to the draw delay). */
+  parent?: string;
+  dashed?: boolean;
+  accent?: boolean;
+}
+
+const HUB: Pt = [380, 470];
+const ISB: Pt = [380, 320];
+const CHILAS: Pt = [380, 120];
+
+const LINES: LineDef[] = [
+  { id: "m2", points: [HUB, ISB], accent: true },
+  { id: "murree", parent: "m2", points: [ISB, [420, 280], [500, 280]] },
+  { id: "swat", parent: "m2", points: [ISB, [320, 260], [220, 260]] },
+  { id: "naran", parent: "m2", points: [ISB, [380, 200]] },
+  { id: "babusar", parent: "naran", points: [[380, 200], CHILAS], dashed: true },
+  { id: "hunza", parent: "babusar", points: [CHILAS, [340, 80], [240, 80]] },
+  { id: "skardu", parent: "babusar", points: [CHILAS, [420, 80], [520, 80]] },
+  { id: "sialkot", points: [HUB, [460, 390], [540, 390]] },
+  { id: "kartarpur", points: [HUB, [540, 470]] },
+  { id: "wagah", points: [HUB, [420, 510], [540, 510]] },
+  { id: "nankana", points: [HUB, [240, 470]] },
+  { id: "faisalabad", points: [HUB, [320, 530], [220, 530]] },
+  { id: "multan", points: [HUB, [380, 560], [340, 600], [220, 600]] },
+];
+
+const SPEED = 520; // user units per second
+const len = (a: Pt, b: Pt) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+const lineLength = (l: LineDef) => l.points.slice(1).reduce((sum, p, i) => sum + len(l.points[i], p), 0);
+
+const offsets = new Map<string, number>();
+for (const l of LINES) {
+  const parentOffset = l.parent ? (offsets.get(l.parent) ?? 0) + lineLength(LINES.find((p) => p.id === l.parent)!) : 0;
+  offsets.set(l.id, parentOffset);
+}
+
+const segments = LINES.flatMap((l) => {
+  let acc = offsets.get(l.id) ?? 0;
+  return l.points.slice(1).map((p, i) => {
+    const a = l.points[i];
+    const delay = acc / SPEED;
+    const duration = len(a, p) / SPEED;
+    acc += len(a, p);
+    return { x1: a[0], y1: a[1], x2: p[0], y2: p[1], delay, duration, dashed: l.dashed, accent: l.accent, line: l.id };
+  });
+});
+
+interface StationDef {
+  route: string;
+  name: string;
+  at: Pt;
+  side: Side;
+  line: string;
+}
+
+const STATIONS: StationDef[] = [
+  { route: "lahore-to-islamabad", name: "Islamabad", at: ISB, side: "right", line: "m2" },
+  { route: "lahore-to-murree", name: "Murree", at: [500, 280], side: "right", line: "murree" },
+  { route: "lahore-to-swat", name: "Swat", at: [220, 260], side: "left", line: "swat" },
+  { route: "lahore-to-naran-kaghan", name: "Naran", at: [380, 200], side: "right", line: "naran" },
+  { route: "lahore-to-hunza", name: "Hunza", at: [240, 80], side: "left", line: "hunza" },
+  { route: "lahore-to-skardu", name: "Skardu", at: [520, 80], side: "right", line: "skardu" },
+  { route: "lahore-to-sialkot", name: "Sialkot", at: [540, 390], side: "right", line: "sialkot" },
+  { route: "lahore-to-kartarpur-nankana-sahib", name: "Kartarpur", at: [540, 470], side: "right", line: "kartarpur" },
+  { route: "lahore-to-wagah-border", name: "Wagah", at: [540, 510], side: "right", line: "wagah" },
+  { route: "lahore-to-kartarpur-nankana-sahib", name: "Nankana Sahib", at: [240, 470], side: "left", line: "nankana" },
+  { route: "lahore-to-faisalabad", name: "Faisalabad", at: [220, 530], side: "left", line: "faisalabad" },
+  { route: "lahore-to-multan", name: "Multan", at: [220, 600], side: "left", line: "multan" },
+];
+
+const stations = STATIONS.map((s) => {
+  const r = routes.find((x) => x.slug === s.route);
+  const line = LINES.find((l) => l.id === s.line)!;
+  // Station appears when its line has been drawn up to it.
+  const idx = line.points.findIndex((p) => p[0] === s.at[0] && p[1] === s.at[1]);
+  let reach = offsets.get(line.id) ?? 0;
+  for (let i = 1; i <= idx; i++) reach += len(line.points[i - 1], line.points[i]);
+  const interchange = s.route === "lahore-to-islamabad";
+  const showMeta = !(s.name === "Nankana Sahib");
+  return {
+    ...s,
+    href: r ? urls.route(s.route) : null,
+    meta: r && showMeta ? `${formatKm(r.distanceKm)}, ${formatDriveTime(r.driveHours)}` : s.name === "Nankana Sahib" ? "with Kartarpur" : "",
+    delay: reach / SPEED,
+    interchange,
+  };
+});
+
+const roadLabels = [
+  { text: "M-2", x: 368, y: 400, rotate: -90 },
+  { text: "M-11", x: 470, y: 380, rotate: 0 },
+  { text: "N-5", x: 470, y: 528, rotate: 0 },
+  { text: "M-3", x: 268, y: 618, rotate: 0 },
+  { text: "M-2, M-4", x: 262, y: 548, rotate: 0 },
+  { text: "Hazara Mwy", x: 368, y: 262, rotate: -90 },
+  { text: "KKH", x: 280, y: 72, rotate: 0 },
+  { text: "Swat Expwy", x: 262, y: 252, rotate: 0 },
+];
+---
+
+<figure class:list={["route-net relative overflow-hidden rounded-card border border-line bg-surface", className]} data-route-net>
+  <svg viewBox="0 0 680 640" class="block h-auto w-full" aria-hidden="true" focusable="false">
+    <defs>
+      <pattern id="rn-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <circle cx="20" cy="20" r="1" class="rn-grid" />
+      </pattern>
+    </defs>
+    <rect width="680" height="640" fill="url(#rn-grid)" />
+
+    {
+      roadLabels.map((r) => (
+        <text x={r.x} y={r.y} class="rn-road" text-anchor="middle" transform={r.rotate ? `rotate(${r.rotate} ${r.x} ${r.y})` : undefined}>
+          {r.text}
+        </text>
+      ))
+    }
+    <text x="392" y="164" class="rn-season">Babusar Pass, June to October</text>
+
+    {
+      segments.map((s) => (
+        <line
+          x1={s.x1}
+          y1={s.y1}
+          x2={s.x2}
+          y2={s.y2}
+          class:list={["rn-seg", s.accent && "rn-seg--accent", s.dashed && "rn-seg--dashed"]}
+          data-line={s.line}
+          vector-effect="non-scaling-stroke"
+          style={`transform-origin:${s.x1}px ${s.y1}px;--d:${s.delay.toFixed(3)}s;--t:${Math.max(0.12, s.duration).toFixed(3)}s`}
+        />
+      ))
+    }
+
+    {/* Waypoint */}
+    <circle cx={CHILAS[0]} cy={CHILAS[1]} r="5" class="rn-waypoint" />
+    <text x={CHILAS[0] + 14} y={CHILAS[1] + 5} class="rn-meta">Chilas</text>
+
+    {
+      stations.map((s) => {
+        const lx = s.side === "right" ? s.at[0] + 16 : s.at[0] - 16;
+        const anchor = s.side === "right" ? "start" : "end";
+        const body = (
+          <>
+            <circle cx={s.at[0]} cy={s.at[1]} r={s.interchange ? 11 : 8} class:list={["rn-stop", s.interchange && "rn-stop--x"]} style={`--d:${s.delay.toFixed(3)}s`} />
+            <text x={lx} y={s.at[1] - 1} text-anchor={anchor} class="rn-name">
+              {s.name}
+            </text>
+            {s.meta && (
+              <text x={lx} y={s.at[1] + 16} text-anchor={anchor} class="rn-meta">
+                {s.meta}
+              </text>
+            )}
+          </>
+        );
+        return s.href ? (
+          <a href={s.href} tabindex="-1" class="rn-station" data-route={s.route}>
+            {body}
+          </a>
+        ) : (
+          <g class="rn-station">{body}</g>
+        );
+      })
+    }
+
+    {/* Hub */}
+    <circle cx={HUB[0]} cy={HUB[1]} r="16" class="rn-hub" />
+    <circle cx={HUB[0]} cy={HUB[1]} r="6" class="rn-hub-core" />
+    <text x={HUB[0] - 22} y={HUB[1] - 18} text-anchor="end" class="rn-hub-label">Lahore</text>
+  </svg>
+  <figcaption class="border-t border-line px-4 py-3 text-xs text-muted">
+    Schematic, not to scale. Distances and drive times are approximate.
+  </figcaption>
+</figure>
+
+<style>
+  .route-net svg {
+    font-family: var(--font-sans);
+  }
+  .rn-grid {
+    fill: var(--line-strong);
+    opacity: 0.35;
+  }
+  .rn-road {
+    fill: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    opacity: 0.8;
+  }
+  .rn-season {
+    fill: var(--muted);
+    font-size: 11px;
+    font-style: italic;
+  }
+  .rn-seg {
+    stroke: color-mix(in oklab, var(--text) 62%, transparent);
+    stroke-width: 4;
+    stroke-linecap: round;
+  }
+  .rn-seg--accent {
+    stroke: var(--accent);
+    stroke-width: 6;
+  }
+  .rn-seg--dashed {
+    stroke-dasharray: 2 9;
+  }
+  .rn-stop {
+    fill: var(--bg);
+    stroke: var(--text);
+    stroke-width: 3;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: transform 0.3s var(--ease-out), fill 0.25s var(--ease-out);
+  }
+  .rn-stop--x {
+    stroke-width: 4;
+  }
+  .rn-waypoint {
+    fill: var(--surface);
+    stroke: var(--muted);
+    stroke-width: 2;
+  }
+  .rn-name {
+    fill: var(--text);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .rn-meta {
+    fill: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .rn-hub {
+    fill: var(--accent);
+    opacity: 0.2;
+  }
+  .rn-hub-core {
+    fill: var(--accent);
+  }
+  .rn-hub-label {
+    fill: var(--text);
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+  }
+  .rn-station {
+    cursor: pointer;
+    transition: opacity 0.25s var(--ease-out);
+  }
+  .rn-station:hover .rn-stop,
+  .rn-station.is-active .rn-stop {
+    fill: var(--accent);
+    transform: scale(1.25);
+  }
+  .rn-station:hover .rn-name,
+  .rn-station.is-active .rn-name {
+    fill: var(--accent-fg);
+  }
+  [data-route-net].has-active .rn-station:not(.is-active) {
+    opacity: 0.4;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :global(.js) [data-route-net] .rn-seg {
+      opacity: 0;
+      transform: scale(0);
+      transition:
+        transform var(--t) linear var(--d),
+        opacity 0.01s linear var(--d);
+    }
+    :global(.js) [data-route-net] .rn-stop {
+      transform: scale(0);
+      transition: transform 0.45s var(--ease-spring) var(--d);
+    }
+    :global(.js) [data-route-net].is-drawn .rn-seg {
+      opacity: 1;
+      transform: none;
+    }
+    :global(.js) [data-route-net].is-drawn .rn-stop {
+      transform: none;
+    }
+    :global(.js) [data-route-net].is-drawn .rn-station:hover .rn-stop,
+    :global(.js) [data-route-net].is-drawn .rn-station.is-active .rn-stop {
+      transform: scale(1.25);
+      transition-delay: 0s;
+    }
+  }
+
+  @media (width < 48rem) {
+    .rn-name {
+      font-size: 24px;
+    }
+    .rn-meta,
+    .rn-season,
+    .rn-road {
+      display: none;
+    }
+    .rn-hub-label {
+      font-size: 30px;
+    }
+  }
+</style>
+
+<script>
+  function initRouteNet() {
+    const map = document.querySelector<HTMLElement>("[data-route-net]");
+    if (!map) return;
+
+    // Draw once in view.
+    if (!("IntersectionObserver" in window) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      map.classList.add("is-drawn");
+    } else {
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            map.classList.add("is-drawn");
+            io.disconnect();
+          }
+        },
+        { threshold: 0.3 },
+      );
+      io.observe(map);
+      document.addEventListener("astro:before-swap", () => io.disconnect(), { once: true });
+    }
+
+    // Sync with the route list ([data-route-row]).
+    const stations = map.querySelectorAll<SVGElement>("[data-route]");
+    const rows = document.querySelectorAll<HTMLElement>("[data-route-row]");
+    const set = (slug: string | null) => {
+      map.classList.toggle("has-active", slug !== null);
+      stations.forEach((s) => s.classList.toggle("is-active", s.dataset.route === slug));
+      rows.forEach((r) => r.classList.toggle("is-active", r.dataset.routeRow === slug));
+    };
+    rows.forEach((row) => {
+      const slug = row.dataset.routeRow ?? null;
+      row.addEventListener("pointerenter", () => set(slug));
+      row.addEventListener("pointerleave", () => set(null));
+      row.addEventListener("focusin", () => set(slug));
+      row.addEventListener("focusout", () => set(null));
+    });
+    stations.forEach((s) => {
+      const slug = s.dataset.route ?? null;
+      s.addEventListener("pointerenter", () => set(slug));
+      s.addEventListener("pointerleave", () => set(null));
+    });
+  }
+  initRouteNet();
+</script>

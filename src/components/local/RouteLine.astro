@@ -1,0 +1,97 @@
+---
+/**
+ * Vertical "transit line" of a road trip: Lahore pickup -> stops -> destination.
+ * The line grows with scroll where CSS scroll-driven animations exist (transform only);
+ * otherwise, and under reduced motion, it is simply drawn.
+ */
+interface Props {
+  to: string;
+  stops: string[];
+  roads: string[];
+  class?: string;
+}
+
+const { to, stops, roads, class: className } = Astro.props;
+const points = [
+  { name: "Lahore", note: "Pickup at your door: home, hotel, office or the airport", kind: "origin" },
+  ...stops.map((s) => ({ name: s, note: "", kind: "stop" })),
+  { name: to, note: "Destination", kind: "dest" },
+];
+---
+
+<div class:list={["route-line-wrap", className]}>
+  {
+    roads.length > 0 && (
+      <ul class="mb-8 flex flex-wrap gap-2" aria-label="Roads on this route">
+        {roads.map((r) => (
+          <li class="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-fg">{r}</li>
+        ))}
+      </ul>
+    )
+  }
+  <div class="relative">
+  <span class="route-rail" aria-hidden="true"></span>
+  <ol class="route-line relative flex flex-col">
+    {
+      points.map((p) => (
+        <li class:list={["route-stop relative grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-4 pb-7 last:pb-0", `route-stop--${p.kind}`]} data-reveal="fade">
+          <span class="route-dot relative z-10 mt-1 grid size-[1.125rem] place-items-center justify-self-center rounded-full" aria-hidden="true" />
+          <span class="flex flex-col gap-1">
+            <span class:list={["font-semibold text-fg", p.kind !== "stop" && "font-display text-display-sm"]}>{p.name}</span>
+            {p.note && <span class="text-sm text-muted">{p.note}</span>}
+          </span>
+        </li>
+      ))
+    }
+  </ol>
+  </div>
+</div>
+
+<style>
+  .route-rail {
+    position: absolute;
+    left: calc(0.875rem - 1px);
+    top: 0.75rem;
+    bottom: 0.75rem;
+    width: 2px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--accent), color-mix(in oklab, var(--accent) 45%, var(--line-strong)));
+    transform-origin: 50% 0;
+  }
+  .route-dot {
+    background: var(--bg);
+    border: 2px solid color-mix(in oklab, var(--accent) 70%, var(--line-strong));
+  }
+  .route-stop--origin .route-dot,
+  .route-stop--dest .route-dot {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-top: 0.15rem;
+    border: 0;
+    background: var(--accent);
+    box-shadow:
+      0 0 0 4px var(--bg),
+      0 0 18px 2px color-mix(in oklab, var(--accent) 45%, transparent);
+  }
+  .route-stop--origin .route-dot {
+    background: var(--text);
+    box-shadow: 0 0 0 4px var(--bg);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .route-rail {
+        animation: route-grow linear both;
+        animation-timeline: view();
+        animation-range: entry 10% cover 55%;
+      }
+    }
+  }
+  @keyframes route-grow {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+</style>

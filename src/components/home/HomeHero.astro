@@ -1,0 +1,451 @@
+---
+/**
+ * Home hero: asymmetric copy (H1 = LCP text, sub, two CTAs, one proof line) over the night-drive
+ * stage. The stage shows, in order: a CSS gradient (instant), the poster (drawn into a 2D canvas
+ * after load, so it never competes with the H1 for LCP) and, on capable devices only, the live
+ * WebGL scene from src/scripts/hero3d.ts, which fades in over the poster.
+ *
+ * Dark (brand mode): full-bleed stage, vanishing point on the right, copy on the left.
+ * Light: the night scene sits in a framed media panel (no section flip), copy beside or below it.
+ */
+import Button from "@/components/Button.astro";
+import Container from "@/components/Container.astro";
+import Icon from "@/components/Icon.astro";
+import { formatOpeningHours, site } from "@/config/site";
+import { formatPKR } from "@/lib/format";
+import { whatsappUrl } from "@/lib/links";
+import type { FleetFacts } from "./home-data";
+
+interface Props {
+  facts: FleetFacts;
+}
+
+const { facts } = Astro.props;
+const hours = formatOpeningHours()[0];
+---
+
+<section class="hero" data-hero data-fab-hide aria-labelledby="hero-title">
+  <div class="hero-stage" data-hero-stage aria-hidden="true">
+    <canvas class="hero-poster" data-hero-poster width="16" height="10"></canvas>
+    <div class="hero-shade"></div>
+  </div>
+
+  <Container class="hero-body">
+    <div class="hero-copy">
+      <h1 id="hero-title" class="hero-title text-fg">
+        <span class="block">Rent a car in Lahore</span>
+        <span class="block text-accent">on Cantt time.</span>
+      </h1>
+      <p class="hero-sub text-lede text-muted">
+        Sedans, SUVs, vans and wedding cars, with a driver or self drive, from our base in Lahore Cantt.
+      </p>
+      <div class="hero-actions">
+        <Button href={site.cta.quote.href} size="lg" iconRight="ph:arrow-right" class="max-sm:w-full">
+          {site.cta.quote.label}
+        </Button>
+        <Button
+          href={whatsappUrl()}
+          variant="secondary"
+          size="lg"
+          icon="simple-icons:whatsapp"
+          iconClass="text-whatsapp"
+          external
+          class="max-sm:w-full"
+        >
+          {site.cta.whatsapp.label}
+        </Button>
+      </div>
+      <ul class="hero-proof" aria-label="At a glance">
+        <li>
+          <Icon name="ph:car-profile" size={18} class="text-accent" />
+          <span><span class="tabular">{facts.models}</span> models, <span class="tabular">{facts.units}</span> cars</span>
+        </li>
+        {
+          facts.fromPrice !== null && (
+            <li>
+              <Icon name="ph:tag" size={18} class="text-accent" />
+              <span>
+                from <data value={facts.fromPrice} class="tabular font-semibold text-fg">{formatPKR(facts.fromPrice)}</data>/day
+              </span>
+            </li>
+          )
+        }
+        <li>
+          <Icon name="ph:clock" size={18} class="text-accent" />
+          <span>{hours}</span>
+        </li>
+      </ul>
+    </div>
+  </Container>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    overflow: clip;
+  }
+
+  /* ---------- Stage (dark, phones: full-bleed behind the copy) ---------- */
+  .hero-stage {
+    --focus-x: 0.5;
+    --focus-y: 0.34;
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    background:
+      radial-gradient(70% 30% at calc(var(--focus-x) * 100%) calc(var(--focus-y) * 100%), rgb(232 85 61 / 0.15), transparent 70%),
+      radial-gradient(26% 14% at calc(var(--focus-x) * 100%) calc(var(--focus-y) * 100%), rgb(255 222 190 / 0.1), transparent 70%),
+      linear-gradient(180deg, #08090d 0%, #0b0d12 60%);
+  }
+
+  .hero-poster,
+  .hero-stage :global(canvas[data-hero-webgl]) {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero-poster {
+    opacity: 0;
+    transition: opacity 0.9s var(--ease-out);
+  }
+  .hero-stage[data-poster="ready"] .hero-poster {
+    opacity: 1;
+  }
+
+  .hero-stage :global(canvas[data-hero-webgl]) {
+    opacity: 0;
+    transition: opacity 1.6s var(--ease-out);
+  }
+  .hero-stage[data-live="true"] :global(canvas[data-hero-webgl]) {
+    opacity: 1;
+  }
+
+  .hero-shade {
+    position: absolute;
+    inset: 0;
+    /* Above the poster AND the live WebGL canvas (hero3d appends it after this element). */
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgb(11 13 18 / 0.6) 0%,
+      rgb(11 13 18 / 0) 16%,
+      rgb(11 13 18 / 0) 28%,
+      rgb(11 13 18 / 0.74) 46%,
+      rgb(11 13 18 / 0.9) 60%,
+      #0b0d12 100%
+    );
+  }
+
+  /* ---------- Copy ---------- */
+  .hero-body {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-top: calc(var(--header-h) + 2.5rem);
+    padding-bottom: clamp(3rem, 2rem + 4vw, 6.5rem);
+  }
+
+  .hero-copy {
+    max-width: 52rem;
+  }
+
+  .hero-title {
+    font-size: clamp(2.125rem, 1rem + 3.4vw, 4.25rem);
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+    font-weight: 600;
+  }
+
+  .hero-sub {
+    margin-top: 1.25rem;
+    max-width: 33rem;
+  }
+
+  .hero-actions {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .hero-proof {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem 1.5rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  .hero-proof li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Phones and tablets (dark): the copy sits on the moving scene, so the small text gets a soft dark
+     halo that keeps it legible when a headlight streak passes behind it. */
+  @media (width < 64rem) {
+    .hero-sub,
+    .hero-proof {
+      text-shadow:
+        0 0 14px rgb(11 13 18 / 0.95),
+        0 1px 3px rgb(11 13 18 / 0.9);
+    }
+  }
+
+  /* Entrance for everything except the H1 (the LCP element is never animated). */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-sub,
+    .hero-actions,
+    .hero-proof {
+      animation: reveal-up 0.9s var(--ease-out) both;
+    }
+    .hero-sub {
+      animation-delay: 0.12s;
+    }
+    .hero-actions {
+      animation-delay: 0.22s;
+    }
+    .hero-proof {
+      animation-delay: 0.32s;
+    }
+  }
+
+  /* ---------- Dark desktop: vanishing point right, copy left ---------- */
+  @media (width >= 64rem) {
+    .hero-stage {
+      --focus-x: 0.7;
+      --focus-y: 0.47;
+    }
+    .hero-shade {
+      background:
+        linear-gradient(90deg, #0b0d12 0%, rgb(11 13 18 / 0.88) 24%, rgb(11 13 18 / 0.4) 46%, rgb(11 13 18 / 0) 64%),
+        linear-gradient(180deg, rgb(11 13 18 / 0.55) 0%, rgb(11 13 18 / 0) 15%, rgb(11 13 18 / 0) 70%, #0b0d12 100%);
+    }
+    .hero-body {
+      justify-content: center;
+      padding-top: calc(var(--header-h) + 3rem);
+    }
+    .hero-actions {
+      margin-top: 2.5rem;
+    }
+    .hero-proof {
+      margin-top: 3rem;
+    }
+  }
+
+  /* ---------- Light: the night scene becomes a framed media panel ---------- */
+  @media (prefers-color-scheme: light) {
+    .hero {
+      min-height: 0;
+    }
+    .hero-sub,
+    .hero-proof {
+      text-shadow: none;
+    }
+    .hero-stage {
+      --focus-x: 0.5;
+      --focus-y: 0.42;
+      position: relative;
+      inset: auto;
+      z-index: 0;
+      flex: none;
+      margin: calc(var(--header-h) + 0.5rem) var(--gutter) 0;
+      height: clamp(14rem, 42svh, 24rem);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-lift);
+    }
+    .hero-shade {
+      background: linear-gradient(180deg, rgb(11 13 18 / 0) 55%, rgb(11 13 18 / 0.55) 100%);
+    }
+    .hero-body {
+      flex: none;
+      justify-content: flex-start;
+      padding-top: 2rem;
+    }
+
+    @media (width >= 64rem) {
+      .hero {
+        min-height: 100dvh;
+      }
+      .hero-stage {
+        --focus-y: 0.46;
+        position: absolute;
+        top: calc(var(--header-h) + 0.75rem);
+        right: max(var(--gutter), calc((100% - var(--container-site)) / 2 + var(--gutter)));
+        bottom: 2.5rem;
+        width: 41%;
+        height: auto;
+        margin: 0;
+      }
+      .hero-shade {
+        background: linear-gradient(180deg, rgb(11 13 18 / 0) 60%, rgb(11 13 18 / 0.45) 100%);
+      }
+      .hero-body {
+        flex: 1;
+        justify-content: center;
+        padding-top: calc(var(--header-h) + 3rem);
+      }
+      .hero-copy {
+        max-width: min(52rem, 54%);
+      }
+      .hero-title {
+        font-size: clamp(2.125rem, 0.5rem + 3.4vw, 3.875rem);
+      }
+    }
+  }
+</style>
+
+<script>
+  import { canRun3D, saveData, whenIdle } from "@/scripts/capabilities";
+
+  /** Poster = one frame of the same scene (src/scripts/hero3d.ts captureStill), rendered with this focus. */
+  const POSTER_SRC = "/media/hero-poster.webp";
+  const POSTER_FOCUS = { x: 0.7, y: 0.47 };
+
+  const hero = document.querySelector<HTMLElement>("[data-hero]");
+  const stage = hero?.querySelector<HTMLElement>("[data-hero-stage]") ?? null;
+  const poster = stage?.querySelector<HTMLCanvasElement>("[data-hero-poster]") ?? null;
+
+  let posterImage: HTMLImageElement | null = null;
+  let posterObserver: ResizeObserver | null = null;
+  let visibilityObserver: IntersectionObserver | null = null;
+  let dispose3D: (() => void) | null = null;
+  let loading3D = false;
+
+  function afterLoad(fn: () => void) {
+    if (document.readyState === "complete") fn();
+    else window.addEventListener("load", fn, { once: true });
+  }
+
+  function focusOf(el: HTMLElement) {
+    const style = getComputedStyle(el);
+    const fx = Number.parseFloat(style.getPropertyValue("--focus-x"));
+    const fy = Number.parseFloat(style.getPropertyValue("--focus-y"));
+    return { fx: Number.isFinite(fx) ? fx : 0.5, fy: Number.isFinite(fy) ? fy : 0.45 };
+  }
+
+  /** Cover-fit the poster so its vanishing point lands on the stage's focus point. */
+  function drawPoster() {
+    if (!stage || !poster || !posterImage) return;
+    const w = stage.clientWidth;
+    const h = stage.clientHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const cw = Math.round(w * dpr);
+    const ch = Math.round(h * dpr);
+    if (poster.width !== cw) poster.width = cw;
+    if (poster.height !== ch) poster.height = ch;
+    const ctx = poster.getContext("2d");
+    if (!ctx) return;
+    const { fx, fy } = focusOf(stage);
+    const iw = posterImage.naturalWidth;
+    const ih = posterImage.naturalHeight;
+    const { x: px, y: py } = POSTER_FOCUS;
+    const scale = Math.max(
+      cw / iw,
+      ch / ih,
+      (fx * cw) / (px * iw),
+      ((1 - fx) * cw) / ((1 - px) * iw),
+      (fy * ch) / (py * ih),
+      ((1 - fy) * ch) / ((1 - py) * ih),
+    );
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(posterImage, fx * cw - px * iw * scale, fy * ch - py * ih * scale, iw * scale, ih * scale);
+  }
+
+  function watchPoster() {
+    if (!stage || !posterImage || posterObserver) return;
+    posterObserver = new ResizeObserver(() => drawPoster());
+    posterObserver.observe(stage);
+  }
+
+  function loadPoster() {
+    if (!stage || !poster || posterImage || saveData()) return;
+    const img = new Image();
+    img.decoding = "async";
+    img.setAttribute("fetchpriority", "low");
+    img.src = POSTER_SRC;
+    img
+      .decode()
+      .then(() => {
+        posterImage = img;
+        drawPoster();
+        stage.dataset.poster = "ready";
+        watchPoster();
+      })
+      .catch(() => {});
+  }
+
+  function mount3D() {
+    if (!stage || !hero || dispose3D || loading3D) return;
+    loading3D = true;
+    import("@/scripts/hero3d")
+      .then(({ mountHeroScene }) => {
+        loading3D = false;
+        if (dispose3D || !stage.isConnected) return;
+        dispose3D = mountHeroScene({
+          container: stage,
+          scrollTarget: hero,
+          onReady: () => (stage.dataset.live = "true"),
+          onFail: () => (stage.dataset.live = "false"),
+        });
+      })
+      .catch(() => {
+        loading3D = false;
+      });
+  }
+
+  /** 3D only on capable devices, after load + idle, and only once the hero is actually visible. */
+  function schedule3D() {
+    if (!hero) return;
+    afterLoad(() =>
+      whenIdle(() => {
+        // canRun3D() probes WebGL2 by creating a context: keep that GPU work off the loading path.
+        if (!canRun3D()) return;
+        visibilityObserver?.disconnect();
+        visibilityObserver = new IntersectionObserver((entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            visibilityObserver?.disconnect();
+            visibilityObserver = null;
+            mount3D();
+          }
+        });
+        visibilityObserver.observe(hero);
+      }, 2500),
+    );
+  }
+
+  function teardown() {
+    visibilityObserver?.disconnect();
+    visibilityObserver = null;
+    dispose3D?.();
+    dispose3D = null;
+    posterObserver?.disconnect();
+    posterObserver = null;
+    if (stage) stage.dataset.live = "false";
+  }
+
+  if (hero && stage) {
+    afterLoad(loadPoster);
+    schedule3D();
+    window.addEventListener("pagehide", teardown);
+    document.addEventListener("astro:before-swap", teardown, { once: true });
+    window.addEventListener("pageshow", (event) => {
+      if (!event.persisted) return;
+      watchPoster();
+      schedule3D();
+    });
+  }
+</script>

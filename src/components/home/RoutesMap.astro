@@ -1,0 +1,357 @@
+---
+/**
+ * Outstation route map: a transit-map style schematic (Lahore hub, the north line to Islamabad,
+ * Murree, Naran and Hunza with the Skardu branch, plus Sialkot, Faisalabad and Multan) whose lines
+ * draw themselves as the map scrolls through the viewport (CSS scroll-driven animation, zero JS;
+ * fully drawn where unsupported or with reduced motion). The SVG is decorative: the route list
+ * next to it carries the links, distances and drive times.
+ */
+import Container from "@/components/Container.astro";
+import Icon from "@/components/Icon.astro";
+import SectionHeading from "@/components/SectionHeading.astro";
+import { formatKm } from "@/lib/format";
+import { urls } from "@/lib/urls";
+import { driveTimeLabel, type HomeRoute } from "./home-data";
+
+interface Props {
+  routes: HomeRoute[];
+}
+
+const { routes } = Astro.props;
+const bySlug = new Map(routes.map((r) => [r.slug, r]));
+const sub = (slug: string) => {
+  const r = bySlug.get(slug);
+  return r ? `${formatKm(r.km)} · ${driveTimeLabel(r.hours)}` : "";
+};
+
+/** Station positions in the 880 x 780 viewBox. */
+const STATIONS = [
+  { slugs: ["lahore-to-islamabad"], name: "Islamabad", x: 450, y: 420, lx: 472, ly: 436, anchor: "start", delay: 1 },
+  { slugs: ["lahore-to-swat"], name: "Swat", x: 300, y: 360, lx: 278, ly: 366, anchor: "end", delay: 2 },
+  { slugs: ["lahore-to-murree"], name: "Murree", x: 520, y: 350, lx: 542, ly: 356, anchor: "start", delay: 2 },
+  { slugs: ["lahore-to-naran-kaghan", "lahore-to-naran"], name: "Naran", x: 520, y: 240, lx: 542, ly: 246, anchor: "start", delay: 3 },
+  { slugs: ["lahore-to-hunza"], name: "Hunza", x: 460, y: 70, lx: 438, ly: 68, anchor: "end", delay: 5 },
+  { slugs: ["lahore-to-skardu"], name: "Skardu", x: 700, y: 110, lx: 722, ly: 116, anchor: "start", delay: 5 },
+  { slugs: ["lahore-to-sialkot"], name: "Sialkot", x: 680, y: 500, lx: 702, ly: 506, anchor: "start", delay: 1 },
+  { slugs: ["lahore-to-faisalabad"], name: "Faisalabad", x: 310, y: 640, lx: 310, ly: 592, anchor: "middle", delay: 1 },
+  { slugs: ["lahore-to-multan"], name: "Multan", x: 180, y: 720, lx: 180, ly: 672, anchor: "middle", delay: 2 },
+];
+const stations = STATIONS.flatMap((s) => {
+  const slug = s.slugs.find((candidate) => bySlug.has(candidate));
+  return slug ? [{ ...s, slug }] : [];
+});
+const hasStation = (slug: string) => stations.some((s) => s.slugs.includes(slug));
+---
+
+<section id="routes" class="relative overflow-clip py-section" aria-labelledby="routes-title">
+  <Container>
+    <SectionHeading
+      id="routes-title"
+      title="Outstation trips from Lahore"
+      intro="Motorway runs to Islamabad and Sialkot, long drives to the northern areas. Distances and drive times are approximate, from Lahore in normal traffic."
+    />
+
+    <div class="mt-12 grid gap-12 md:mt-16 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-start lg:gap-16">
+      <figure class="route-map lg:sticky lg:top-[calc(var(--header-h)+1.5rem)]">
+        <svg viewBox="0 0 880 780" class="h-auto w-full" aria-hidden="true" focusable="false">
+          <defs>
+            <pattern id="rm-dots" width="28" height="28" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="1.3" fill="currentColor"></circle>
+            </pattern>
+          </defs>
+          <rect width="880" height="780" fill="url(#rm-dots)" class="rm-grid"></rect>
+
+          <text x="70" y="560" class="rm-region">Punjab</text>
+          <text x="90" y="300" class="rm-region">Khyber Pakhtunkhwa</text>
+          <text x="560" y="40" class="rm-region">Gilgit-Baltistan</text>
+
+          {/* Lines: north (accent), branches (text colour) */}
+          <path id="rm-north" class="rm-line rm-line--north" pathLength="1" d="M580 640 V590 L450 460 V420 L520 350 V170 L460 110 V70"></path>
+          {hasStation("lahore-to-skardu") && <path class="rm-line rm-line--branch rm-line--skardu" pathLength="1" d="M520 170 L580 110 H700" />}
+          {hasStation("lahore-to-swat") && <path class="rm-line rm-line--branch rm-line--swat" pathLength="1" d="M450 420 L390 360 H300" />}
+          <path class="rm-line rm-line--branch rm-line--sialkot" pathLength="1" d="M580 640 L680 540 V500"></path>
+          <path class="rm-line rm-line--branch rm-line--faisalabad" pathLength="1" d="M580 640 H310"></path>
+          <path class="rm-line rm-line--branch rm-line--multan" pathLength="1" d="M580 640 L500 720 H180"></path>
+
+          {/* Road badges */}
+          <g class="rm-badge" transform="translate(515 525)"><rect x="-24" y="-13" width="48" height="26" rx="13"></rect><text y="5">M-2</text></g>
+          <g class="rm-badge" transform="translate(630 590)"><rect x="-28" y="-13" width="56" height="26" rx="13"></rect><text y="5">M-11</text></g>
+          <g class="rm-badge" transform="translate(410 720)"><rect x="-24" y="-13" width="48" height="26" rx="13"></rect><text y="5">M-3</text></g>
+          <g class="rm-badge" transform="translate(490 140)"><rect x="-26" y="-13" width="52" height="26" rx="13"></rect><text y="5">KKH</text></g>
+
+          {/* Junction near Jaglot where the Skardu road leaves the highway */}
+          <circle cx="520" cy="170" r="6" class="rm-junction"></circle>
+
+          {
+            stations.map((s) => (
+              <g class="rm-stop" style={`--delay:${s.delay}`}>
+                <circle cx={s.x} cy={s.y} r="9" class="rm-station" />
+                <text x={s.lx} y={s.ly} text-anchor={s.anchor} class="rm-name">
+                  {s.name}
+                </text>
+                <text x={s.lx} y={s.ly + 24} text-anchor={s.anchor} class="rm-sub">
+                  {sub(s.slug)}
+                </text>
+              </g>
+            ))
+          }
+
+          {/* Lahore hub */}
+          <g class="rm-hub">
+            <circle cx="580" cy="640" r="26" class="rm-hub-ring"></circle>
+            <circle cx="580" cy="640" r="15" class="rm-hub-dot"></circle>
+            <text x="612" y="690" class="rm-hub-name">Lahore</text>
+            <text x="612" y="716" class="rm-sub rm-sub--hub">Start from Cantt</text>
+          </g>
+
+          {/* A tail-light running the north line */}
+          <circle r="5.5" class="rm-runner">
+            <animateMotion dur="9s" repeatCount="indefinite" calcMode="linear">
+              <mpath href="#rm-north"></mpath>
+            </animateMotion>
+          </circle>
+        </svg>
+        <figcaption class="mt-4 text-sm text-muted">Schematic, not to scale.</figcaption>
+      </figure>
+
+      <div>
+        <ol class="route-list">
+          {
+            routes.map((r) => (
+              <li>
+                <a href={urls.route(r.slug)} class="route-row group">
+                  <span class="flex min-w-0 flex-col gap-1">
+                    <span class="font-display text-display-sm text-fg transition-colors group-hover:text-accent-fg">
+                      Lahore to {r.city}
+                    </span>
+                    <span class="text-sm text-muted">
+                      About <span class="tabular font-semibold text-fg">{formatKm(r.km)}</span>, around{" "}
+                      <span class="tabular font-semibold text-fg">{driveTimeLabel(r.hours)}</span> of driving.{r.via && ` ${r.via}.`}
+                    </span>
+                  </span>
+                  <Icon
+                    name="ph:arrow-up-right"
+                    size={20}
+                    class="shrink-0 text-muted transition-[color,transform] duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent"
+                  />
+                </a>
+              </li>
+            ))
+          }
+        </ol>
+        <a
+          href={urls.routes()}
+          class="group mt-8 inline-flex items-center gap-2 font-semibold text-fg underline decoration-line-strong decoration-1 underline-offset-[0.3em] transition-colors hover:decoration-accent"
+        >
+          All outstation routes and road advice
+          <Icon name="ph:arrow-right" size={18} class="transition-transform duration-300 group-hover:translate-x-1" />
+        </a>
+      </div>
+    </div>
+  </Container>
+</section>
+
+<style>
+  .route-map {
+    view-timeline-name: --routemap;
+    view-timeline-axis: block;
+    color: var(--muted);
+  }
+
+  .rm-grid {
+    opacity: 0.18;
+  }
+  .rm-region {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    fill: var(--muted);
+    opacity: 0.45;
+  }
+
+  .rm-line {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .rm-line--north {
+    stroke: var(--accent);
+    stroke-width: 10;
+  }
+  .rm-line--branch {
+    stroke: var(--text);
+    stroke-width: 7;
+    opacity: 0.78;
+  }
+  .rm-line--skardu {
+    stroke: var(--accent);
+    opacity: 0.7;
+    stroke-width: 7;
+  }
+
+  .rm-badge rect {
+    fill: var(--surface-2);
+    stroke: var(--line-strong);
+    stroke-width: 1;
+  }
+  .rm-badge text {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 800;
+    text-anchor: middle;
+    fill: var(--text);
+  }
+
+  .rm-junction {
+    fill: var(--bg);
+    stroke: var(--accent);
+    stroke-width: 3;
+  }
+  .rm-station {
+    fill: var(--bg);
+    stroke: var(--text);
+    stroke-width: 4;
+  }
+  .rm-name {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    fill: var(--text);
+  }
+  .rm-sub {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 600;
+    fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rm-hub-ring {
+    fill: var(--accent-soft);
+    stroke: var(--accent);
+    stroke-width: 2;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .rm-hub-dot {
+    fill: var(--accent);
+  }
+  .rm-hub-name {
+    font-family: var(--font-display);
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    fill: var(--text);
+  }
+
+  .rm-runner {
+    fill: #fff;
+    filter: drop-shadow(0 0 6px var(--accent));
+  }
+
+  /* Phones: bigger names, no secondary labels (the list below carries them). */
+  @media (width < 40rem) {
+    .rm-name {
+      font-size: 34px;
+    }
+    .rm-sub,
+    .rm-badge,
+    .rm-region {
+      display: none;
+    }
+    .rm-hub-name {
+      font-size: 42px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rm-runner {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .rm-hub-ring {
+      animation: rm-pulse 2.8s var(--ease-out) infinite;
+    }
+
+    @supports (animation-timeline: view()) {
+      .rm-line {
+        stroke-dasharray: 1;
+        animation: rm-draw linear both;
+        animation-timeline: --routemap;
+        animation-range: entry 25% cover 50%;
+      }
+      .rm-line--skardu,
+      .rm-line--swat {
+        animation-range: cover 38% cover 58%;
+      }
+      .rm-line--sialkot,
+      .rm-line--faisalabad,
+      .rm-line--multan {
+        animation-range: entry 45% cover 42%;
+      }
+      .rm-stop,
+      .rm-badge {
+        animation: rm-fade linear both;
+        animation-timeline: --routemap;
+        animation-range: cover calc(18% + var(--delay, 2) * 6%) cover calc(26% + var(--delay, 2) * 6%);
+      }
+      .rm-runner {
+        animation: rm-fade linear both;
+        animation-timeline: --routemap;
+        animation-range: cover 45% cover 55%;
+      }
+    }
+  }
+
+  @keyframes rm-draw {
+    from {
+      stroke-dashoffset: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes rm-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes rm-pulse {
+    0% {
+      transform: scale(0.7);
+      opacity: 0.9;
+    }
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+
+  .route-list {
+    border-top: 1px solid var(--line);
+  }
+  .route-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding-block: 1.1rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .route-row > span:first-child {
+    transition: transform 0.3s var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .route-row:hover > span:first-child {
+      transform: translateX(0.5rem);
+    }
+  }
+</style>

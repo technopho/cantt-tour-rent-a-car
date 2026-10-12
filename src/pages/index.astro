@@ -1,0 +1,70 @@
+---
+/**
+ * Home page. Ten sections, each a different layout family (DESIGN.md "Signature experiences"):
+ *  1. Night-drive hero (WebGL on capable devices, poster otherwise)
+ *  2. Trip composer band (quote island)
+ *  3. The garage (pinned horizontal pan + Flip filters on desktop, scroll-snap on phones)
+ *  4. Services bento
+ *  5. Outstation route map (lines draw on scroll)
+ *  6. How renting works (sticky stack)
+ *  7. Neighbourhood index
+ *  8. Why Cantt (editorial split, real facts only)
+ *  9. FAQ (FAQPage JSON-LD)
+ * 10. Final CTA (the footer CTA band is hidden here to avoid repeating it)
+ * The layout adds AutoRental + WebSite JSON-LD; every price and count comes from the catalog.
+ */
+import { getCollection } from "astro:content";
+import AreaIndex from "@/components/home/AreaIndex.astro";
+import ComposerBand from "@/components/home/ComposerBand.astro";
+import FinalCta from "@/components/home/FinalCta.astro";
+import Garage from "@/components/home/Garage.astro";
+import HomeFaq from "@/components/home/HomeFaq.astro";
+import HomeHero from "@/components/home/HomeHero.astro";
+import HowItWorks from "@/components/home/HowItWorks.astro";
+import RoutesMap from "@/components/home/RoutesMap.astro";
+import ServicesBento from "@/components/home/ServicesBento.astro";
+import WhyCantt from "@/components/home/WhyCantt.astro";
+import { fleetFacts, homeFaqs, homeRoutes } from "@/components/home/home-data";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getCategories, getFeaturedModels, getModels, modelName } from "@/lib/catalog";
+import { toComposerModels } from "@/lib/composer";
+
+const [models, featured, categories, routeEntries] = await Promise.all([
+  getModels(),
+  getFeaturedModels(),
+  getCategories(),
+  getCollection("routes"),
+]);
+
+const facts = fleetFacts(models);
+const composerModels = toComposerModels(models, categories);
+const routes = homeRoutes(
+  routeEntries.map((entry) => ({
+    slug: entry.data.slug,
+    distanceKm: entry.data.distanceKm,
+    driveHours: entry.data.driveHours,
+    motorways: entry.data.motorways,
+  })),
+);
+const faqs = homeFaqs(facts);
+const showcase = featured[0] ?? models[0];
+const showcaseCategory = categories.find((c) => c.slug === showcase.category)?.name;
+---
+
+<BaseLayout
+  title="Rent a Car in Lahore with Driver or Self Drive"
+  description="Rent a car in Lahore with a driver or self drive. Sedans, SUVs, vans and wedding cars from Lahore Cantt for airport runs, weddings and outstation trips."
+  overlayHeader
+  hideFooterCta
+>
+  <HomeHero facts={facts} />
+  <ComposerBand models={composerModels} />
+  <Garage featured={featured} models={models} categories={categories} />
+  <ServicesBento models={models} facts={facts} />
+  <RoutesMap routes={routes} />
+  <HowItWorks exampleModel={modelName(showcase)} />
+  <AreaIndex />
+  <WhyCantt facts={facts} model={showcase} categoryName={showcaseCategory} />
+  <HomeFaq faqs={faqs} />
+  <FinalCta />
+</BaseLayout>

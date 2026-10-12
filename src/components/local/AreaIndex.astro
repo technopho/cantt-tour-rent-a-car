@@ -1,0 +1,114 @@
+---
+/**
+ * Neighbourhood index (DESIGN.md signature 6): a big typographic list of the areas we serve,
+ * next to the stylised Lahore map. Hovering or focusing a row lights up its dot on the map
+ * (and hovering a dot lights up the row). Everything is plain links and text in the HTML;
+ * the sync script is a few lines and only adds classes.
+ */
+import Icon from "@/components/Icon.astro";
+import { urls } from "@/lib/urls";
+import LahoreMap from "./LahoreMap.astro";
+
+export interface AreaIndexItem {
+  slug: string;
+  name: string;
+  note: string;
+  tag?: string;
+  /** Approximate minutes to the airport, from the area content. */
+  airportMinutes?: number | null;
+}
+
+interface Props {
+  items: AreaIndexItem[];
+}
+
+const { items } = Astro.props;
+---
+
+<div class="area-index grid gap-10 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-12 lg:gap-20" data-area-index>
+  <div class="order-2 md:order-1">
+    <ol class="border-t border-line">
+      {
+        items.map((item, i) => (
+          <li class="border-b border-line" data-reveal="fade">
+            <a
+              href={urls.area(item.slug)}
+              class="area-row group grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-start gap-x-4 py-6 md:py-7"
+              data-area-row={item.slug}
+            >
+              <span class="pt-2 font-display text-sm font-semibold text-muted tabular transition-colors duration-300 group-hover:text-accent-fg group-focus-visible:text-accent-fg">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span class="flex min-w-0 flex-col gap-2">
+                <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span class="area-name font-display text-[clamp(1.5rem,1rem+2.2vw,2.75rem)] leading-[1.05] font-semibold tracking-[-0.04em] text-fg">
+                    {item.name}
+                  </span>
+                  {item.tag && (
+                    <span class="rounded-badge border border-line px-2 py-1 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-accent-fg">{item.tag}</span>
+                  )}
+                </span>
+                <span class="max-w-xl text-sm leading-relaxed text-muted md:text-[0.9375rem]">{item.note}</span>
+                {typeof item.airportMinutes === "number" && (
+                  <span class="flex items-center gap-1.5 text-xs font-semibold text-fg tabular">
+                    <Icon name="ph:airplane-tilt" size={14} class="text-accent" />
+                    Airport in about {item.airportMinutes} min
+                  </span>
+                )}
+              </span>
+              <span class="mt-2 grid size-10 place-items-center rounded-full border border-line text-muted transition-[color,border-color,transform,background-color] duration-300 ease-(--ease-out) group-hover:translate-x-1 group-hover:border-transparent group-hover:bg-accent-fill group-hover:text-accent-ink group-focus-visible:bg-accent-fill group-focus-visible:text-accent-ink">
+                <Icon name="ph:arrow-right" size={18} />
+                <span class="sr-only">Rent a car in {item.name}</span>
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+  <div class="order-1 md:order-2">
+    <div class="md:sticky md:top-[calc(var(--header-h)+1.5rem)]">
+      <LahoreMap mode="index" uid="hub" />
+    </div>
+  </div>
+</div>
+
+<style>
+  .area-name {
+    transition: transform 0.4s var(--ease-out);
+  }
+  .area-row:hover .area-name,
+  .area-row:focus-visible .area-name,
+  .area-row.is-active .area-name {
+    transform: translateX(0.35rem);
+  }
+  .area-row.is-active .area-name {
+    color: var(--text);
+  }
+</style>
+
+<script>
+  function initAreaIndex() {
+    const root = document.querySelector<HTMLElement>("[data-area-index]");
+    if (!root) return;
+    const rows = root.querySelectorAll<HTMLElement>("[data-area-row]");
+    const dots = root.querySelectorAll<SVGElement>("[data-area-dot]");
+    const set = (slug: string | null) => {
+      dots.forEach((d) => d.classList.toggle("is-active", d.dataset.areaDot === slug));
+      rows.forEach((r) => r.classList.toggle("is-active", r.dataset.areaRow === slug));
+    };
+    rows.forEach((row) => {
+      const slug = row.dataset.areaRow ?? null;
+      row.addEventListener("pointerenter", () => set(slug));
+      row.addEventListener("focus", () => set(slug));
+      row.addEventListener("pointerleave", () => set(null));
+      row.addEventListener("blur", () => set(null));
+    });
+    dots.forEach((dot) => {
+      const slug = dot.dataset.areaDot ?? null;
+      dot.addEventListener("pointerenter", () => set(slug));
+      dot.addEventListener("pointerleave", () => set(null));
+    });
+  }
+  initAreaIndex();
+</script>

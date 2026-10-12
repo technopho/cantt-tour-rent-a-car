@@ -1,0 +1,416 @@
+---
+/**
+ * How renting works: a stack of three cards.
+ *  - Everywhere: CSS sticky stack (cards stick under the header and the next one slides over).
+ *  - Desktop with motion: the canonical GSAP sticky-stack: each card pins at "top top"
+ *    (pinSpacing false) until the last card arrives, and the incoming card shrinks and dims the
+ *    previous one (scrubbed). Card heights are identical in both modes, so nothing jumps when
+ *    GSAP takes over.
+ */
+import Container from "@/components/Container.astro";
+import Icon from "@/components/Icon.astro";
+import SectionHeading from "@/components/SectionHeading.astro";
+import { site } from "@/config/site";
+import { urls } from "@/lib/urls";
+
+interface Props {
+  /** Model name for the example sentence (a real catalog model). */
+  exampleModel: string;
+}
+
+const { exampleModel } = Astro.props;
+---
+
+<section id="how" class="how relative pt-section" aria-labelledby="how-title" data-how>
+  <Container>
+    <SectionHeading
+      id="how-title"
+      title="How renting a car works"
+      intro="Three steps from the first message to a car at your door. No paperwork marathon."
+    />
+  </Container>
+
+  <ol class="how-stack mt-10 md:mt-14">
+    <li class="how-card" style="--i: 0">
+      <Container class="how-card__frame">
+        <article class="how-card__inner">
+          <span class="how-card__shade" aria-hidden="true"></span>
+          <div class="how-copy">
+            <span class="how-num" aria-hidden="true">01</span>
+            <h3 class="how-title">Tell us your trip</h3>
+            <p class="how-text">
+              Pick a car, the dates and where we should pick you up. Use the trip composer or send a WhatsApp message,
+              whichever is quicker for you.
+            </p>
+            <a href={site.cta.quote.href} class="how-link group">
+              {site.cta.quote.label}
+              <Icon name="ph:arrow-right" size={18} class="transition-transform duration-300 group-hover:translate-x-1" />
+            </a>
+          </div>
+          <div class="how-visual">
+            <p class="how-sentence">
+              <span class="how-eg">For example</span>
+              I need a <span class="how-token">{exampleModel}</span> <span class="how-token">with driver</span> for{" "}
+              <span class="how-token">a wedding</span> from <span class="how-token">Friday</span> to{" "}
+              <span class="how-token">Sunday</span>, picking up in <span class="how-token">DHA Phase 5</span>.
+            </p>
+          </div>
+        </article>
+      </Container>
+    </li>
+
+    <li class="how-card" style="--i: 1">
+      <Container class="how-card__frame">
+        <article class="how-card__inner how-card__inner--2">
+          <span class="how-card__shade" aria-hidden="true"></span>
+          <div class="how-copy">
+            <span class="how-num" aria-hidden="true">02</span>
+            <h3 class="how-title">We confirm on WhatsApp</h3>
+            <p class="how-text">
+              Our team replies with the final price, what it includes and the car details. Nothing is booked until you say
+              yes.
+            </p>
+          </div>
+          <div class="how-visual">
+            <div class="how-checklist">
+              <p class="how-checklist__head">
+                <Icon name="simple-icons:whatsapp" size={20} class="text-whatsapp" />
+                What we confirm before you book
+              </p>
+              <ul>
+                <li><Icon name="ph:check-circle" size={20} class="text-accent" /> The final price, with fuel, tolls and duty hours spelled out</li>
+                <li><Icon name="ph:check-circle" size={20} class="text-accent" /> The car, the pickup time and the pickup point</li>
+                <li><Icon name="ph:check-circle" size={20} class="text-accent" /> Your driver's name and number, shared before the trip</li>
+                <li><Icon name="ph:check-circle" size={20} class="text-accent" /> For self drive: the deposit, km allowance and return time</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+      </Container>
+    </li>
+
+    <li class="how-card" style="--i: 2">
+      <Container class="how-card__frame">
+        <article class="how-card__inner how-card__inner--3">
+          <span class="how-card__shade" aria-hidden="true"></span>
+          <div class="how-copy">
+            <span class="how-num" aria-hidden="true">03</span>
+            <h3 class="how-title">Drive or get driven</h3>
+            <p class="how-text">
+              Your driver arrives at the agreed time and place. For self drive, collect the keys after a quick handover in
+              Lahore Cantt with your CNIC and driving licence.
+            </p>
+            <a href={urls.service("self-drive-car-rental-lahore")} class="how-link group">
+              Self drive requirements
+              <Icon name="ph:arrow-right" size={18} class="transition-transform duration-300 group-hover:translate-x-1" />
+            </a>
+          </div>
+          <div class="how-visual how-split">
+            <div class="how-option">
+              <Icon name="ph:steering-wheel" size={30} class="text-accent" />
+              <p class="how-option__title">With driver</p>
+              <p class="how-option__text">Picked up from your door, the airport or your hotel, on time.</p>
+            </div>
+            <div class="how-option">
+              <Icon name="ph:key" size={30} class="text-accent" />
+              <p class="how-option__title">Self drive</p>
+              <p class="how-option__text">Keys at a quick handover in Lahore Cantt, deposit refunded on return.</p>
+            </div>
+          </div>
+        </article>
+      </Container>
+    </li>
+  </ol>
+</section>
+
+<style>
+  .how-stack {
+    position: relative;
+    overflow-anchor: none;
+  }
+
+  /* Sticky stack (all sizes, needs JS). Phones: cards keep their natural height and peek under each other.
+     A card taller than the space under the header would have its bottom covered by the next card before
+     anyone could read it, so the script below measures each card (--card-h) and it sticks only once its
+     bottom edge is on screen. Without JS the cards are a plain list. */
+  .how-card {
+    position: relative;
+    z-index: calc(var(--i) + 1);
+    padding-bottom: 1rem;
+  }
+  :global(.js) .how-card {
+    position: sticky;
+    top: min(calc(var(--header-h) + 0.75rem + var(--i) * 0.875rem), calc(100dvh - var(--card-h, 0px)));
+  }
+  .how-card:last-child {
+    padding-bottom: var(--section-space);
+  }
+
+  .how-card__inner {
+    display: grid;
+    gap: 2rem;
+    padding: 1.5rem;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: var(--shadow-lift);
+    transform-origin: 50% 0%;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  /* Dims a card as the next one slides over it (animated by opacity; the card itself stays opaque). */
+  .how-card__shade {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: var(--bg);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .how-card__inner--2 {
+    background: linear-gradient(160deg, var(--surface-2), var(--surface) 60%);
+  }
+  .how-card__inner--3 {
+    background:
+      radial-gradient(70% 90% at 100% 100%, var(--accent-soft), transparent 70%),
+      var(--surface);
+  }
+
+  @media (width >= 48rem) {
+    .how-card__inner {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: center;
+      gap: 3rem;
+      padding: 2.5rem;
+    }
+  }
+
+  /* Desktop: every card is one viewport tall, identical with or without GSAP. */
+  @media (width >= 64rem) and (height >= 40rem) {
+    .how-card,
+    :global(.js) .how-card {
+      top: 0;
+    }
+    .how-card {
+      display: flex;
+      height: 100dvh;
+      align-items: center;
+      padding-top: calc(var(--header-h) + 1.25rem);
+      padding-bottom: 1.25rem;
+    }
+    .how-card:last-child {
+      padding-bottom: 1.25rem;
+    }
+    .how-card :global(.how-card__frame) {
+      height: 100%;
+    }
+    .how-card__inner {
+      height: 100%;
+      max-height: 40rem;
+      padding: clamp(2.5rem, 5vh, 4rem);
+    }
+    .how[data-stack="pin"] .how-card {
+      position: relative;
+    }
+  }
+
+  .how-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .how-num {
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 2rem + 5vw, 7rem);
+    font-weight: 700;
+    line-height: 0.9;
+    letter-spacing: -0.06em;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--line-strong);
+  }
+  .how-title {
+    font-size: var(--text-display-lg);
+    line-height: var(--text-display-lg--line-height);
+    letter-spacing: var(--text-display-lg--letter-spacing);
+    color: var(--text);
+  }
+  .how-text {
+    max-width: 30rem;
+    font-size: var(--text-lede);
+    line-height: 1.55;
+    color: var(--muted);
+  }
+  .how-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
+    transition: text-decoration-color 0.2s var(--ease-out);
+  }
+  .how-link:hover {
+    text-decoration-color: var(--accent);
+  }
+
+  /* Step 1: the trip sentence. */
+  .how-sentence {
+    font-family: var(--font-display);
+    font-size: clamp(1.125rem, 0.9rem + 1vw, 1.75rem);
+    line-height: 1.7;
+    letter-spacing: -0.02em;
+    color: var(--muted);
+  }
+  .how-eg {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .how-token {
+    display: inline;
+    padding: 0.1em 0.5em;
+    border-radius: 9999px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface-2);
+    color: var(--text);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  /* Step 2: what we confirm. */
+  .how-checklist {
+    border-radius: var(--radius-card);
+    border: 1px solid var(--line);
+    background: var(--bg);
+    padding: 1.5rem;
+  }
+  .how-checklist__head {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--line);
+    font-weight: 700;
+    color: var(--text);
+  }
+  .how-checklist ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    padding-top: 1rem;
+  }
+  .how-checklist li {
+    display: flex;
+    gap: 0.75rem;
+    color: var(--muted);
+  }
+
+  /* Step 3: two ways to go. */
+  .how-split {
+    display: grid;
+    gap: 0.875rem;
+  }
+  @media (width >= 40rem) {
+    .how-split {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .how-option {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding: 1.5rem;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .how-option__title {
+    font-family: var(--font-display);
+    font-size: var(--text-display-sm);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .how-option__text {
+    font-size: 0.9375rem;
+    color: var(--muted);
+  }
+</style>
+
+<script>
+  import { whenIdle } from "@/scripts/capabilities";
+  import { onPageAnimations } from "@/scripts/motion";
+
+  const PIN_QUERY =
+    "(min-width: 64rem) and (min-height: 40rem) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)";
+  const how = document.querySelector<HTMLElement>("[data-how]");
+
+  // Sticky offsets for cards taller than the viewport (phones): publish each card's height so the CSS
+  // can stick it by its bottom edge instead of its top. 0.75rem of breathing room under the card.
+  if (how && "ResizeObserver" in window) {
+    const measure = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const inner = entry.target as HTMLElement;
+        inner.closest<HTMLElement>(".how-card")?.style.setProperty("--card-h", `${Math.ceil(inner.offsetHeight + 12)}px`);
+      }
+    });
+    const observe = () => how.querySelectorAll<HTMLElement>(".how-card__inner").forEach((inner) => measure.observe(inner));
+    observe();
+    window.addEventListener("pagehide", () => measure.disconnect());
+    window.addEventListener("pageshow", (event) => event.persisted && observe());
+    document.addEventListener("astro:before-swap", () => measure.disconnect(), { once: true });
+  }
+
+  if (how && window.matchMedia(PIN_QUERY).matches) {
+    whenIdle(() => {
+      onPageAnimations(
+        ({ gsap, ScrollTrigger }) => {
+          const mm = gsap.matchMedia();
+          mm.add(PIN_QUERY, () => {
+            how.dataset.stack = "pin";
+            const cards = gsap.utils.toArray<HTMLElement>(".how-card", how);
+            const last = cards[cards.length - 1];
+            cards.forEach((card, i) => {
+              if (i === cards.length - 1) return;
+              ScrollTrigger.create({
+                trigger: card,
+                start: "top top",
+                endTrigger: last,
+                end: "top top",
+                // Pin the frame inside the <li>, not the <li> itself: GSAP wraps the pinned element in a
+                // div.pin-spacer, and a <div> directly inside the <ol> breaks list semantics (axe "list").
+                // The <li> has no background of its own, so this looks identical.
+                pin: card.querySelector<HTMLElement>(".how-card__frame") ?? true,
+                pinSpacing: false,
+              });
+              const shrink = {
+                ease: "none",
+                scrollTrigger: { trigger: cards[i + 1], start: "top bottom", end: "top top", scrub: true },
+              };
+              gsap.to(card.querySelector(".how-card__inner"), { scale: 0.9, ...shrink });
+              gsap.to(card.querySelector(".how-card__shade"), { opacity: 0.7, ...shrink });
+            });
+            // Other sections may have pinned (and added spacing) before or after this: re-measure in page order.
+            ScrollTrigger.sort();
+            ScrollTrigger.refresh();
+            return () => {
+              delete how.dataset.stack;
+            };
+          });
+          return () => mm.revert();
+        },
+        { scope: how },
+      );
+    }, 1500);
+  }
+</script>

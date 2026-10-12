@@ -1,0 +1,142 @@
+---
+/**
+ * Mobile rate cards: one card per model with its with driver and self drive rates
+ * (rows only for values the catalog has). Optional category group headings.
+ *
+ *   <RateCards groups={groups} />                       grouped (rates page)
+ *   <RateCards groups={[{ category, models }]} hideGroupHeaders />
+ */
+import Icon from "@/components/Icon.astro";
+import type { CatalogCategory, CatalogModel } from "@/lib/catalog-types";
+import { formatNumber, formatPKR } from "@/lib/format";
+import { urls } from "@/lib/urls";
+import { CITY_DAY_HOURS, carName, softLower } from "./fleet-data";
+
+interface Group {
+  category: CatalogCategory;
+  models: CatalogModel[];
+}
+
+interface Props {
+  groups: Group[];
+  hideGroupHeaders?: boolean;
+  headingLevel?: "h2" | "h3";
+  class?: string;
+}
+
+const { groups, hideGroupHeaders = false, headingLevel: Heading = "h3", class: className } = Astro.props;
+const ModelHeading = hideGroupHeaders ? Heading : Heading === "h2" ? "h3" : "h4";
+// A service no listed car offers (e.g. self drive on a driver-only category) is left out instead of repeating "Not offered".
+const listed = groups.flatMap((g) => g.models);
+const showDriver = listed.some((m) => m.rates.withDriver);
+const showSelf = listed.some((m) => m.rates.selfDrive);
+
+type Row = [label: string, value: string];
+
+function driverRows(m: CatalogModel): Row[] {
+  const r = m.rates.withDriver;
+  if (!r) return [];
+  const rows: (Row | null)[] = [
+    [`City day (${CITY_DAY_HOURS} h)`, formatPKR(r.daily)],
+    r.outstationDaily ? ["Outstation day", formatPKR(r.outstationDaily)] : null,
+    r.monthly ? ["Monthly", formatPKR(r.monthly)] : null,
+    r.overtimeHourly ? ["Overtime per hour", formatPKR(r.overtimeHourly)] : null,
+    m.rates.driverNightAllowance ? ["Driver night stay", formatPKR(m.rates.driverNightAllowance)] : null,
+  ];
+  return rows.filter((x): x is Row => x !== null);
+}
+
+function selfRows(m: CatalogModel): Row[] {
+  const r = m.rates.selfDrive;
+  if (!r) return [];
+  const rows: (Row | null)[] = [
+    ["Daily", formatPKR(r.daily)],
+    r.weekly ? ["Weekly", formatPKR(r.weekly)] : null,
+    r.monthly ? ["Monthly", formatPKR(r.monthly)] : null,
+    r.securityDeposit ? ["Deposit (refundable)", formatPKR(r.securityDeposit)] : null,
+    r.kmPerDay ? ["Km per day", `${formatNumber(r.kmPerDay)} km`] : null,
+  ];
+  return rows.filter((x): x is Row => x !== null);
+}
+---
+
+<div class:list={["flex flex-col gap-10", className]}>
+  {
+    groups
+      .filter((g) => g.models.length > 0)
+      .map((group) => (
+        <section aria-labelledby={hideGroupHeaders ? undefined : `rate-cards-${group.category.slug}`}>
+          {!hideGroupHeaders && (
+            <div class="mb-4 flex items-baseline justify-between gap-4">
+              <Heading id={`rate-cards-${group.category.slug}`} class="text-display-sm text-fg">
+                {group.category.name}
+              </Heading>
+              <a href={urls.category(group.category.slug)} class="text-sm font-semibold text-accent-fg underline-offset-4 hover:underline">
+                See {softLower(group.category.name)}
+              </a>
+            </div>
+          )}
+          <ul class="grid gap-3 sm:grid-cols-2">
+            {group.models.map((m) => {
+              const dr = driverRows(m);
+              const sr = selfRows(m);
+              return (
+                <li class="rounded-card border border-line bg-surface p-4">
+                  <ModelHeading class="text-[1.0625rem] leading-tight text-fg">
+                    <a href={urls.car(m.slug)} class="group inline-flex items-center gap-1.5 underline-offset-4 hover:underline">
+                      {carName(m)}
+                      <Icon name="ph:arrow-up-right" size={15} class="text-muted group-hover:text-accent" />
+                    </a>
+                  </ModelHeading>
+                  <p class="mt-0.5 text-xs text-muted">{[m.variant, `${m.seats} seats`].filter(Boolean).join(" · ")}</p>
+
+                  <div class="mt-4 grid gap-4">
+                    {showDriver && (
+                      <div>
+                        <p class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] text-muted">
+                          <Icon name="ph:steering-wheel" size={14} class="text-accent" />
+                          With driver
+                        </p>
+                        {dr.length ? (
+                          <dl class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                            {dr.map(([label, value]) => (
+                              <div class="flex flex-col">
+                                <dt class="text-xs text-muted">{label}</dt>
+                                <dd class="tabular font-display font-semibold tracking-[-0.02em] text-fg">{value}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        ) : (
+                          <p class="mt-2 text-sm text-muted">Not offered</p>
+                        )}
+                      </div>
+                    )}
+                    {showSelf && (
+                      <div class:list={[showDriver && "border-t border-line pt-4"]}>
+                        <p class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] text-muted">
+                          <Icon name="ph:key" size={14} class="text-accent" />
+                          Self drive
+                        </p>
+                        {sr.length ? (
+                          <dl class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                            {sr.map(([label, value]) => (
+                              <div class="flex flex-col">
+                                <dt class="text-xs text-muted">{label}</dt>
+                                <dd class="tabular font-display font-semibold tracking-[-0.02em] text-fg">{value}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        ) : (
+                          <p class="mt-2 text-sm text-muted">Not offered. Booked with a driver.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))
+  }
+</div>

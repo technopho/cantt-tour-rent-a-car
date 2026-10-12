@@ -1,0 +1,87 @@
+---
+/**
+ * Service rate table. Every amount comes from the catalog through the column getters in
+ * service-data.ts and is formatted with formatPKR. Scrolls horizontally inside its own wrapper on
+ * small screens (html/body clip overflow), with the car column pinned to the left.
+ */
+import type { CatalogCategory, CatalogModel } from "@/lib/catalog-types";
+import { formatNumber, formatPKR } from "@/lib/format";
+import { urls } from "@/lib/urls";
+import type { RateColumn } from "./service-data";
+
+interface Props {
+  models: CatalogModel[];
+  columns: RateColumn[];
+  categories: CatalogCategory[];
+  caption: string;
+  id: string;
+}
+
+const { models, columns, categories, caption, id } = Astro.props;
+const categoryName = (slug: string) => categories.find((c) => c.slug === slug)?.name ?? slug;
+const captionId = `${id}-caption`;
+---
+
+<div
+  class="rates-scroll relative overflow-x-auto overscroll-x-contain rounded-card border border-line bg-bg"
+  role="region"
+  aria-label={`${caption}, scrollable table`}
+  tabindex="0"
+  data-lenis-prevent-wheel
+>
+  <table class="w-full min-w-[42rem] border-collapse text-left text-sm tabular-nums">
+    <caption id={captionId} class="sr-only">{caption}</caption>
+    <thead>
+      <tr class="border-b border-line bg-surface">
+        <th scope="col" class="sticky left-0 z-10 bg-surface px-4 py-3.5 text-xs font-bold tracking-[0.12em] text-muted uppercase sm:px-5">
+          Car
+        </th>
+        {
+          columns.map((c) => (
+            <th scope="col" class="px-4 py-3.5 text-xs font-bold tracking-[0.12em] whitespace-nowrap text-muted uppercase">
+              {c.label}
+            </th>
+          ))
+        }
+      </tr>
+    </thead>
+    <tbody>
+      {
+        models.map((m) => (
+          <tr class="group border-b border-line last:border-b-0">
+            <th scope="row" class="sticky left-0 z-10 bg-bg px-4 py-4 font-normal transition-colors group-hover:bg-surface sm:px-5">
+              <a href={urls.car(m.slug)} class="font-semibold whitespace-nowrap text-fg transition-colors hover:text-accent-fg">
+                {m.make} {m.model}
+              </a>
+              <span class="mt-0.5 block text-xs text-muted">{categoryName(m.category)}</span>
+            </th>
+            {columns.map((c) => {
+              const v = c.get(m);
+              return (
+                <td class="px-4 py-4 whitespace-nowrap transition-colors group-hover:bg-surface">
+                  {v === null || v === undefined ? (
+                    <span class="text-muted">Ask us</span>
+                  ) : c.kind === "money" && typeof v === "number" ? (
+                    <span>
+                      <data value={v} class="font-display font-semibold tracking-[-0.02em] text-fg">
+                        {formatPKR(v)}
+                      </data>
+                      {c.unit && <span class="text-muted">/{c.unit}</span>}
+                    </span>
+                  ) : c.kind === "number" && typeof v === "number" ? (
+                    <span class="text-fg">
+                      {formatNumber(v)}
+                      {c.suffix}
+                    </span>
+                  ) : (
+                    <span class="text-fg">{v}</span>
+                  )}
+                </td>
+              );
+            })}
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>

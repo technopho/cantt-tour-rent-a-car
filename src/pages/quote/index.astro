@@ -1,0 +1,292 @@
+---
+/**
+ * /quote/ : "Get a car rental quote in Lahore". The full-width TripComposer above the fold, then
+ * short reassurance (how it works, pickup areas, documents, payment), an FAQ and contact options.
+ * Deep links prefill the composer: /quote/?model=<slug>&service=<with_driver|self_drive>&trip=<tripType>&pickup=<text>&to=<text>
+ */
+import Breadcrumbs from "@/components/Breadcrumbs.astro";
+import Button from "@/components/Button.astro";
+import Container from "@/components/Container.astro";
+import FaqList from "@/components/FaqList.astro";
+import HeroTrails from "@/components/HeroTrails.astro";
+import Icon from "@/components/Icon.astro";
+import SampleFleetNote from "@/components/SampleFleetNote.astro";
+import Section from "@/components/Section.astro";
+import SectionHeading from "@/components/SectionHeading.astro";
+import TripComposer from "@/components/quote/TripComposer.svelte";
+import { TERMS } from "@/components/services/terms";
+import { formatOpeningHours, primaryPhone, site } from "@/config/site";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getCategories, getModels } from "@/lib/catalog";
+import { toComposerModels } from "@/lib/composer";
+import { telUrl, whatsappUrl } from "@/lib/links";
+import type { FaqItem } from "@/lib/schema";
+import { urls } from "@/lib/urls";
+
+const [models, categories] = await Promise.all([getModels(), getCategories()]);
+const composerModels = toComposerModels(models, categories);
+const hours = formatOpeningHours();
+
+if (import.meta.env.PROD && !import.meta.env.PUBLIC_TURNSTILE_SITE_KEY) {
+  console.warn(
+    "[quote] PUBLIC_TURNSTILE_SITE_KEY is not set: the quote form uses Cloudflare's TEST site key. Set the real key before launch (DEPLOYMENT.md step 7).",
+  );
+}
+
+/** "cash, bank transfer, JazzCash or Easypaisa" (brand names keep their capitals). */
+const listJoin = (items: readonly string[], last = "and") =>
+  items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} ${last} ${items[items.length - 1]}`;
+const inSentence = (method: string) => (/^(cash|bank transfer|card|cheque)/i.test(method) ? method.toLowerCase() : method);
+const payments = site.paymentAccepted;
+/** "every day, 8:00 am to 10:00 pm" for use mid-sentence. */
+const hoursInSentence = hours.map((line) => line.charAt(0).toLowerCase() + line.slice(1)).join("; ");
+const paymentIcon = (method: string) =>
+  /cash/i.test(method) ? "ph:money" : /bank/i.test(method) ? "ph:bank" : /jazz|easy|wallet/i.test(method) ? "ph:device-mobile" : "ph:wallet";
+
+const steps = [
+  {
+    title: "Finish the sentence",
+    body: "Pick a car, the dates and where we should meet you. The estimate uses the same daily rates you see on our rates page.",
+  },
+  {
+    title: "We confirm on WhatsApp",
+    body: "We check which cars are free on your dates and send the final price, with what it includes: driver duty hours, fuel and tolls, or the self drive deposit.",
+  },
+  {
+    title: "Drive or get driven",
+    body: `Say yes and the car is booked in your name. With a driver, we meet you at your pickup point. Self drive cars are handed over ${TERMS.selfDriveHandover}.`,
+  },
+];
+
+const withDriverDocs = [
+  "The exact pickup point. A WhatsApp location pin works best in big housing societies like DHA or Bahria Town.",
+  "Your flight number for airport pickups, so the driver can follow delays.",
+  "Stops and timings for weddings, events and outstation days.",
+];
+const selfDriveDocs = [
+  "Your original CNIC, or passport if you are visiting from abroad.",
+  "A valid driving licence.",
+  "The refundable security deposit. The amount depends on the car and shows in the estimate.",
+];
+
+const faqs: FaqItem[] = [
+  {
+    q: "Is the estimate the final price?",
+    a: "No. The estimate is worked out from the current daily rates for the car, service and dates you chose. Our team confirms the final price on WhatsApp before anything is booked.\n\nWith a driver, the estimate does not include fuel, tolls or parking. For self drive it does not include fuel, and a refundable security deposit is collected at handover.",
+  },
+  {
+    q: "How quickly will you reply?",
+    a: `We reply on WhatsApp during opening hours, ${hoursInSentence}. Requests sent late at night are answered the next morning.`,
+  },
+  {
+    q: "Does sending a quote request book the car?",
+    a: "No. A quote request does not hold a car. We check availability for your dates and send a price. The car is booked only after you confirm with our team.",
+  },
+  {
+    q: "I am visiting from abroad and have no Pakistani number. Can I still get a quote?",
+    a: "The form needs a Pakistani mobile number because we reply on WhatsApp. If you only have a foreign number, use the WhatsApp us button on this page instead. It works with any number and we will quote you the same way.",
+  },
+  {
+    q: "Can you pick me up from home, a hotel or the airport?",
+    a: `Yes. With a driver, we pick you up from your home, hotel or office in the areas we serve, from Allama Iqbal International Airport and from Lahore Railway Station. Self drive cars are handed over ${TERMS.selfDriveHandover}.`,
+  },
+  {
+    q: "How can I pay?",
+    a: `You can pay by ${listJoin(payments.map(inSentence), "or")}. No payment is taken on this website: you pay once our team has confirmed the car and the price.`,
+  },
+];
+---
+
+<BaseLayout
+  title="Get a car rental quote in Lahore"
+  description="Get a car rental quote in Lahore: choose the car, dates and pickup area, see a live estimate from our rates, then get the final price on WhatsApp."
+  overlayHeader
+  hideFooterCta
+  whatsappMessage="Assalam o Alaikum! I'd like a quote for a car in Lahore."
+>
+  <section class="relative isolate overflow-hidden pt-[calc(var(--header-h)+1.75rem)] pb-[calc(var(--section-space)*0.7)] md:pt-[calc(var(--header-h)+2.75rem)]">
+    <HeroTrails placement="bottom" />
+    <Container>
+      <Breadcrumbs items={[{ label: "Get a quote" }]} />
+      <div class="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-end lg:gap-14">
+        <h1 class="text-display-xl text-fg">Get a car rental quote in <span class="text-accent">Lahore</span></h1>
+        <p class="text-lede max-w-xl text-muted lg:pb-1.5">
+          Finish one sentence to see an estimate from our current rates. Our team confirms the final price on WhatsApp.
+        </p>
+      </div>
+
+      <div class="mt-9 md:mt-12">
+        <TripComposer client:visible models={composerModels} />
+      </div>
+
+      <ul class="mt-6 flex flex-col gap-3 text-sm text-muted md:flex-row md:flex-wrap md:items-center md:gap-x-8">
+        <li class="flex items-center gap-2"><Icon name="ph:lock-simple" size={16} class="text-accent" />No payment on this website</li>
+        <li class="flex items-center gap-2"><Icon name="ph:chats-circle" size={16} class="text-accent" />Final price on WhatsApp</li>
+        <li class="flex items-center gap-2"><Icon name="ph:calendar-check" size={16} class="text-accent" />Nothing is booked until you confirm</li>
+      </ul>
+      <SampleFleetNote class="mt-5" />
+    </Container>
+  </section>
+
+  <Section id="how-it-works" labelledby="how-title" divider>
+    <div class="grid gap-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-16">
+      <div class="md:sticky md:top-[calc(var(--header-h)+2rem)] md:self-start">
+        <SectionHeading
+          id="how-title"
+          title="From quote to car"
+          intro="The form is the first step. Everything after it happens on WhatsApp, with a real person from our Lahore Cantt team."
+        />
+        <p class="mt-6 text-muted">
+          Want to compare first? See the <a href={urls.rates()} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">daily rates</a> or{" "}
+          <a href={urls.cars()} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">browse the fleet</a>.
+        </p>
+      </div>
+      <ol class="relative flex flex-col gap-12 border-l border-dashed border-line-strong/50 pl-9 md:pl-12">
+        {
+          steps.map((s, i) => (
+            <li class="relative" data-reveal data-reveal-delay={i ? String(i) : undefined}>
+              <span class="absolute top-0 -left-9 grid size-10 -translate-x-1/2 place-items-center rounded-full border border-line bg-bg font-display text-sm text-accent-fg tabular-nums md:-left-12">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <h3 class="text-display-sm text-fg">{s.title}</h3>
+              <p class="mt-3 max-w-xl text-muted">{s.body}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </Section>
+
+  <Section id="pickup-areas" labelledby="areas-title" divider>
+    <SectionHeading
+      id="areas-title"
+      title="Pickup anywhere we serve in Lahore"
+      intro="Choose an area in the form or type your exact address. Drivers know the city well, from the lanes of the Walled City to the wide boulevards of DHA."
+    />
+    <ul class="mt-10 grid border-t border-line md:grid-cols-2 md:gap-x-8 lg:grid-cols-4" aria-label="Car rental pickup areas">
+      {
+        site.areasServed.map((area) => (
+          <li class="border-b border-line">
+            <a
+              href={urls.area(area.slug)}
+              class="group flex items-center justify-between gap-4 py-4 font-display text-display-sm text-fg transition-colors hover:text-accent-fg"
+            >
+              {area.name}
+              <Icon name="ph:arrow-up-right" size={18} class="text-muted transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <div class="mt-12 grid gap-10 md:grid-cols-2 md:gap-16">
+      <div class="flex gap-4" data-reveal>
+        <span class="grid size-11 shrink-0 place-items-center rounded-full bg-accent-soft text-accent"><Icon name="ph:airplane-tilt" size={22} /></span>
+        <div>
+          <h3 class="text-display-sm text-fg">Allama Iqbal International Airport (LHE)</h3>
+          <p class="mt-2 text-muted">
+            The airport is about 15 minutes from Lahore Cantt in normal traffic, so early morning and late night flights are easy to cover. Add your flight
+            number in the form. More on <a href={urls.service("lahore-airport-car-rental")} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">airport pick and drop in Lahore</a>.
+          </p>
+        </div>
+      </div>
+      <div class="flex gap-4" data-reveal data-reveal-delay="1">
+        <span class="grid size-11 shrink-0 place-items-center rounded-full bg-accent-soft text-accent"><Icon name="ph:train" size={22} /></span>
+        <div>
+          <h3 class="text-display-sm text-fg">Lahore Railway Station</h3>
+          <p class="mt-2 text-muted">
+            About 25 minutes from Lahore Cantt in normal traffic, longer at rush hour around Garhi Shahu. Tell us your train and arrival time so the driver
+            is waiting when you come out.
+          </p>
+        </div>
+      </div>
+    </div>
+  </Section>
+
+  <Section id="before-you-book" labelledby="docs-title" divider>
+    <div class="grid gap-14 md:grid-cols-2 md:gap-16">
+      <div>
+        <SectionHeading id="docs-title" size="md" title="What to keep ready" intro="Nothing is needed to get a quote. These help when you book." />
+        <div class="mt-8 grid gap-8 lg:grid-cols-2">
+          <div>
+            <h3 class="flex items-center gap-2 font-sans text-base font-bold text-fg"><Icon name="ph:steering-wheel" size={18} class="text-accent" />With a driver</h3>
+            <ul class="mt-4 flex flex-col gap-3 text-sm text-muted">
+              {
+                withDriverDocs.map((d) => (
+                  <li class="flex gap-2.5">
+                    <Icon name="ph:check" size={16} class="mt-0.5 text-accent" />
+                    {d}
+                  </li>
+                ))
+              }
+            </ul>
+            <p class="mt-4 text-sm text-muted">
+              More on <a href={urls.service("rent-a-car-with-driver-lahore")} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">renting a car with a driver in Lahore</a>{" "}
+              and <a href={urls.routes()} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">outstation trips from Lahore</a>.
+            </p>
+          </div>
+          <div>
+            <h3 class="flex items-center gap-2 font-sans text-base font-bold text-fg"><Icon name="ph:key" size={18} class="text-accent" />Self drive</h3>
+            <ul class="mt-4 flex flex-col gap-3 text-sm text-muted">
+              {
+                selfDriveDocs.map((d) => (
+                  <li class="flex gap-2.5">
+                    <Icon name="ph:check" size={16} class="mt-0.5 text-accent" />
+                    {d}
+                  </li>
+                ))
+              }
+            </ul>
+            <p class="mt-4 text-sm text-muted">
+              More on <a href={urls.service("self-drive-car-rental-lahore")} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">self drive car rental in Lahore</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <SectionHeading id="pay-title" size="md" title="How you pay" intro="Pay only after our team has confirmed the car and the price on WhatsApp." />
+        <ul class="mt-8 flex flex-wrap gap-2.5" aria-label="Payment methods">
+          {
+            payments.map((method) => (
+              <li class="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-fg">
+                <Icon name={paymentIcon(method)} size={18} class="text-accent" />
+                {method}
+              </li>
+            ))
+          }
+        </ul>
+        <p class="mt-6 max-w-lg text-sm text-muted">
+          No card details or payments are taken on this website. Self drive rentals also need the refundable security deposit at handover. Read the full{" "}
+          <a href={urls.policies()} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">rental policies</a>.
+        </p>
+      </div>
+    </div>
+  </Section>
+
+  <Section id="faq" labelledby="faq-title" width="narrow" divider>
+    <SectionHeading id="faq-title" title="Quote questions" />
+    <FaqList faqs={faqs} exclusive id="quote-faq" class="mt-10" />
+    <p class="mt-8 text-sm text-muted">
+      More answers on the <a href={urls.faq()} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">car rental FAQ</a>.
+    </p>
+  </Section>
+
+  <section aria-labelledby="talk-title" class="relative border-t border-line" data-fab-hide>
+    <Container class="grid items-end gap-8 py-[calc(var(--section-space)*0.7)] lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      <div>
+        <h2 id="talk-title" class="text-display-lg text-fg">Rather talk it through?</h2>
+        <p class="text-lede mt-4 max-w-xl text-muted">
+          Gari chahiye but not sure which one? Message or call us. We are open {hoursInSentence}.
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-3 lg:justify-end">
+        <Button href={whatsappUrl("Assalam o Alaikum! I'd like a quote for a car in Lahore.")} size="lg" variant="secondary" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
+          {site.cta.whatsapp.label}
+        </Button>
+        <Button href={telUrl()} size="lg" variant="ghost" icon="ph:phone">
+          {site.cta.call.label}
+          <span class="sr-only">{primaryPhone.display}</span>
+        </Button>
+      </div>
+    </Container>
+  </section>
+</BaseLayout>

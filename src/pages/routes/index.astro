@@ -1,0 +1,218 @@
+---
+/**
+ * Routes hub (/routes/): transit-style mini map + list of every outstation route with
+ * approximate distance, drive time and season; outstation pricing rules with catalog prices;
+ * car choice by trip type; quote; FAQs.
+ */
+import { getCollection } from "astro:content";
+import Button from "@/components/Button.astro";
+import FaqList from "@/components/FaqList.astro";
+import Icon from "@/components/Icon.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import PriceTag from "@/components/PriceTag.astro";
+import SampleFleetNote from "@/components/SampleFleetNote.astro";
+import Section from "@/components/Section.astro";
+import SectionHeading from "@/components/SectionHeading.astro";
+import OutstationPricing from "@/components/local/OutstationPricing.astro";
+import QuoteBand from "@/components/local/QuoteBand.astro";
+import RouteNetworkMap from "@/components/local/RouteNetworkMap.astro";
+import { cheapestOutstation, withDriverOnly } from "@/components/local/pricing";
+import { ROUTE_META, routeMeta } from "@/components/local/route-meta";
+import { itemListSchema } from "@/components/local/schema";
+import { site } from "@/config/site";
+import PageLayout from "@/layouts/PageLayout.astro";
+import { getCategories, getModels, getModelsSuitableFor } from "@/lib/catalog";
+import { formatDriveTime, formatKm } from "@/lib/format";
+import { whatsappUrl } from "@/lib/links";
+import { urls } from "@/lib/urls";
+
+const entries = await getCollection("routes");
+const order = ROUTE_META.map((r) => r.slug);
+const routes = [...entries].sort((a, b) => {
+  const ia = order.indexOf(a.data.slug);
+  const ib = order.indexOf(b.data.slug);
+  return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+});
+
+const groups = [
+  { id: "north", title: "Mountains and the north", routes: routes.filter((r) => routeMeta(r.data.slug).region === "north") },
+  { id: "punjab", title: "Cities, shrines and the border", routes: routes.filter((r) => routeMeta(r.data.slug).region !== "north") },
+];
+
+const [models, categories, outstationTagged] = await Promise.all([getModels(), getCategories(), getModelsSuitableFor("outstation")]);
+const outstationModels = withDriverOnly(outstationTagged.length ? outstationTagged : models);
+
+/** Car choice by trip type, with the cheapest outstation day rate per category from the catalog. */
+const choices = [
+  {
+    icon: "ph:car-profile",
+    title: "Sedans for the motorway",
+    text: "Islamabad, Sialkot, Faisalabad and Multan are motorway trips. A sedan with a driver is comfortable and economical for up to four people.",
+    category: "sedan",
+    linkLabel: "See sedans",
+  },
+  {
+    icon: "ph:jeep",
+    title: "SUVs and 4x4s for the mountains",
+    text: "For Murree in snow, Naran, Hunza and Skardu, ground clearance and power matter. Pick an SUV, and a 4x4 for the high passes.",
+    category: "suv",
+    linkLabel: "See SUVs",
+  },
+  {
+    icon: "ph:van",
+    title: "Vans and coasters for groups",
+    text: "Families, wedding parties, school trips and office outings travel together in a Toyota Hiace or a coaster, with room for luggage.",
+    category: "van",
+    linkLabel: "See vans",
+  },
+].map((c) => {
+  const cat = categories.find((x) => x.slug === c.category);
+  // Same pool as the pricing rules above (cars offered for outstation), so the two "from" prices agree.
+  const tagged = outstationModels.filter((m) => m.category === c.category);
+  const inCat = tagged.length ? tagged : withDriverOnly(models.filter((m) => m.category === c.category));
+  return { ...c, href: cat ? urls.category(cat.slug) : urls.cars(), price: cheapestOutstation(inCat)?.price ?? null, linkLabel: cat ? c.linkLabel : "See the fleet" };
+});
+
+const faqs = [
+  {
+    q: "How is an outstation trip priced?",
+    a: "Each 24-hour day from your pickup time is charged at the car's outstation rate with a driver. For every night away from Lahore there is a fixed driver night allowance for his stay and meals. Fuel, tolls and parking are charged at actual cost.",
+  },
+  {
+    q: "Can I rent a self drive car for an outstation trip?",
+    a: "Outstation trips are mostly booked with a driver, and for the northern areas we strongly recommend one. If you want a self drive car outside Lahore, ask us: it depends on the car, the route and your documents.",
+  },
+  {
+    q: "Do you do one way trips from Lahore?",
+    a: "Yes, for example a drop at Islamabad airport or a move to another city. The car and driver return to Lahore afterwards, and the price reflects the return journey.",
+  },
+  {
+    q: "Is it safe to travel to the northern areas by road?",
+    a: "Many families make the trip every summer. Drive in daylight, keep spare days for landslides and road closures, check the weather before high passes like Babusar, and choose an experienced driver and a suitable car.",
+  },
+  {
+    q: "How far ahead should I book an outstation trip?",
+    a: "For summer trips north, Eid holidays and long weekends, book two to three weeks ahead because SUVs and vans go first. For motorway trips like Islamabad or Faisalabad, a few days is usually enough.",
+  },
+];
+---
+
+<PageLayout
+  title="Outstation Car Rental from Lahore: Routes and Times"
+  description="Car rental with driver from Lahore to Islamabad, Murree, Naran, Hunza, Skardu, Swat, Sialkot, Multan and more. Distances, drive times and pricing."
+  h1="Outstation car rental from Lahore"
+  intro="Motorway runs to Islamabad, family weekends in Murree and two-day drives to Hunza. Every route with distance, drive time, the right car and an honest price."
+  crumbs={[{ label: "Outstation routes" }]}
+>
+  <JsonLd slot="jsonld" data={itemListSchema("Outstation routes from Lahore", routes.map((r) => ({ name: r.data.h1, url: urls.route(r.data.slug) })))} />
+
+  <Fragment slot="actions">
+    <Button href="#quote" size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+    <Button href={whatsappUrl("Assalam o Alaikum! I need a car with driver for an outstation trip from Lahore.")} variant="secondary" size="lg" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
+      {site.cta.whatsapp.label}
+    </Button>
+  </Fragment>
+
+  <Section id="routes" aria-label="All outstation routes from Lahore">
+    <div class="grid gap-12 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-10 lg:gap-16">
+      <div class="md:sticky md:top-[calc(var(--header-h)+1.5rem)] md:self-start">
+        <RouteNetworkMap routes={routes.map((r) => ({ slug: r.data.slug, distanceKm: r.data.distanceKm, driveHours: r.data.driveHours }))} />
+      </div>
+      <div class="flex flex-col gap-12">
+        {
+          groups.map((g) => (
+            <div>
+              <h2 id={`group-${g.id}`} class="text-display-md text-fg">
+                {g.title}
+              </h2>
+              <ol class="mt-6 border-t border-line" aria-labelledby={`group-${g.id}`}>
+                {g.routes.map((r) => {
+                  const m = routeMeta(r.data.slug);
+                  return (
+                    <li class="border-b border-line">
+                      <a href={urls.route(r.data.slug)} class="route-row group grid grid-cols-[3.25rem_minmax(0,1fr)_auto] items-center gap-x-4 py-5" data-route-row={r.data.slug}>
+                        <span class="grid h-8 place-items-center rounded-badge border border-line font-display text-[0.6875rem] font-semibold tracking-[0.02em] text-accent-fg transition-colors duration-300 group-hover:border-transparent group-hover:bg-accent-soft">
+                          {m.code}
+                        </span>
+                        <span class="flex min-w-0 flex-col gap-1">
+                          <span class="font-display text-display-sm text-fg">Lahore to {r.data.to}</span>
+                          <span class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted tabular">
+                            <span>about {formatKm(r.data.distanceKm)}</span>
+                            <span>
+                              {formatDriveTime(r.data.driveHours)}
+                              {m.timeNote ? `, ${m.timeNote}` : ""}
+                            </span>
+                            <span class="flex items-center gap-1">
+                              <Icon name="ph:calendar-blank" size={14} />
+                              {m.season}
+                            </span>
+                          </span>
+                        </span>
+                        <Icon name="ph:arrow-right" size={18} class="text-muted transition-[color,transform] duration-300 group-hover:translate-x-1 group-hover:text-accent" />
+                      </a>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </Section>
+
+  <Section id="pricing" labelledby="pricing-title" divider>
+    <SectionHeading
+      id="pricing-title"
+      title="How outstation pricing works"
+      intro="The same four rules for every trip out of Lahore. Prices below come straight from our current fleet rates."
+    />
+    <OutstationPricing models={outstationModels} days={3} class="mt-12" />
+  </Section>
+
+  <Section id="choose" labelledby="choose-title" divider>
+    <SectionHeading id="choose-title" title="Pick the car for the road" intro="The road decides the car. A quick guide, with the lowest outstation day rate in each group." />
+    <ul class="mt-12 border-t border-line">
+      {
+        choices.map((c) => (
+          <li class="grid gap-x-8 gap-y-4 border-b border-line py-8 md:grid-cols-[3.5rem_minmax(0,1.1fr)_minmax(0,1fr)_auto] md:items-center" data-reveal>
+            <span class="grid size-12 place-items-center rounded-full bg-accent-soft text-accent">
+              <Icon name={c.icon} size={24} />
+            </span>
+            <h3 class="text-display-sm text-fg">{c.title}</h3>
+            <p class="text-sm leading-relaxed text-muted">{c.text}</p>
+            <div class="flex flex-wrap items-center gap-4 md:flex-col md:items-end md:gap-2">
+              <PriceTag amount={c.price} note={c.price ? "outstation" : undefined} />
+              <a href={c.href} class="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-fg underline-offset-4 hover:underline">
+                {c.linkLabel} <Icon name="ph:arrow-right" size={14} />
+              </a>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+    <SampleFleetNote class="mt-8" />
+  </Section>
+
+  <QuoteBand
+    title="Plan your trip out of Lahore"
+    intro="Pick a car, your dates and where you are going. We confirm the route, the driver and a clear price on WhatsApp."
+    defaultServiceType="with_driver"
+    defaultTripType="outstation"
+    whatsappMessage="Assalam o Alaikum! I need a car with driver for an outstation trip from Lahore."
+  />
+
+  <Section id="faq" labelledby="faq-title" width="narrow" divider>
+    <SectionHeading id="faq-title" title="Outstation trips: questions" size="md" />
+    <FaqList faqs={faqs} exclusive id="routes-faq" class="mt-10" />
+    <p class="mt-8 text-sm text-muted">
+      Planning a long trip? Read our <a href={urls.guide("lahore-to-northern-areas-road-trip-guide")} class="font-semibold text-accent-fg underline underline-offset-2">northern areas road trip guide</a>.
+    </p>
+  </Section>
+</PageLayout>
+
+<style>
+  .route-row.is-active .font-display {
+    color: var(--accent-fg);
+  }
+</style>

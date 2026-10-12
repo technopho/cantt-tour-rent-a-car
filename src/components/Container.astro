@@ -1,0 +1,32 @@
+---
+/**
+ * Page-width container: max 1400px, 16px gutters on phones (24px tablet, 40px desktop),
+ * safe-area aware.
+ *
+ *   <Container>...</Container>
+ *   <Container width="narrow" as="header">...</Container>
+ */
+import type { HTMLAttributes } from "astro/types";
+
+type Width = "default" | "narrow" | "prose" | "wide";
+
+interface Props extends HTMLAttributes<"div"> {
+  as?: "div" | "section" | "header" | "footer" | "nav" | "article" | "aside";
+  /** default = 1400px, wide = full bleed with gutters, narrow = 960px, prose = 704px. */
+  width?: Width;
+  class?: string;
+}
+
+const { as: Tag = "div", width = "default", class: className, ...rest } = Astro.props;
+
+const widths: Record<Width, string> = {
+  default: "",
+  wide: "max-w-none",
+  narrow: "max-w-[60rem]",
+  prose: "max-w-[calc(var(--container-prose)+2*var(--gutter))]",
+};
+---
+
+<Tag class:list={["container-site", widths[width], className]} {...rest}>
+  <slot />
+</Tag>

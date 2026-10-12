@@ -1,0 +1,52 @@
+---
+/**
+ * "Read before you book" links to guides (src/content/guides). Slugs are resolved against the
+ * collection at build time, so a renamed, removed or draft guide is skipped instead of becoming a
+ * dead link. Renders nothing when no guide resolves.
+ *
+ *   <GuideLinks slugs={["cost-to-rent-a-car-in-lahore"]} headingId="guides-title" />
+ */
+import { getCollection } from "astro:content";
+import Icon from "@/components/Icon.astro";
+import { urls } from "@/lib/urls";
+
+interface Props {
+  slugs: readonly string[];
+  headingId: string;
+  title?: string;
+}
+
+const { slugs, headingId, title = "Read before you book" } = Astro.props;
+const all = await getCollection("guides", ({ data }) => !data.draft);
+const guides = slugs
+  .map((slug) => all.find((g) => g.id === slug))
+  .filter((g): g is (typeof all)[number] => Boolean(g));
+---
+
+{
+  guides.length > 0 && (
+    <div>
+      <h2 id={headingId} class="text-display-md text-fg">
+        {title}
+      </h2>
+      <ul class="mt-8 border-t border-line">
+        {guides.map((g) => (
+          <li class="border-b border-line">
+            <a href={urls.guide(g.id)} class="group flex items-start gap-4 py-5">
+              <Icon name="ph:book-open-text" size={22} class="mt-0.5 shrink-0 text-muted transition-colors group-hover:text-accent" />
+              <span class="flex min-w-0 flex-col gap-1">
+                <span class="font-semibold text-fg transition-colors group-hover:text-accent-fg">{g.data.title}</span>
+                <span class="text-sm leading-relaxed text-muted">{g.data.excerpt}</span>
+              </span>
+              <Icon
+                name="ph:arrow-right"
+                size={18}
+                class="mt-1 ml-auto shrink-0 text-muted transition-transform duration-300 ease-(--ease-out) group-hover:translate-x-1"
+              />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}

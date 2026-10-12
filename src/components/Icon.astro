@@ -1,0 +1,69 @@
+---
+/**
+ * SVG icon rendered at build time (no client JS).
+ *
+ *   <Icon name="ph:car-profile" />                      decorative, 1em, inherits colour
+ *   <Icon name="simple-icons:whatsapp" size={20} />
+ *   <Icon name="ph:phone" label="Call now" />           meaningful icon (role="img")
+ *
+ * Phosphor "regular" weight only (ph:<name>), brand marks from simple-icons.
+ *
+ * On prerendered pages the paths live once per page in a <symbol> sprite (src/lib/icon-sprite.ts,
+ * injected by src/middleware.ts) and each icon is a tiny <svg><use/></svg>, so a grid of car cards
+ * does not repeat the same paths dozens of times. On-demand renders fall back to inline paths.
+ */
+import type { HTMLAttributes } from "astro/types";
+import { useSpriteIcon } from "@/lib/icon-sprite";
+import { getIcon } from "@/lib/icons";
+
+interface Props extends Omit<HTMLAttributes<"svg">, "name"> {
+  /** "ph:<name>" or "simple-icons:<name>". */
+  name: string;
+  /** Number = px, string = any CSS length. Default "1em". */
+  size?: number | string;
+  /** Accessible label. Omit for decorative icons (rendered aria-hidden). */
+  label?: string;
+  class?: string;
+}
+
+const { name, size = "1em", label, class: className, ...rest } = Astro.props;
+const icon = getIcon(name);
+const symbolId = Astro.isPrerendered ? useSpriteIcon(Astro.locals, name, icon) : null;
+// Unitless numbers are pixels in SVG presentation attributes.
+const dim = typeof size === "number" ? String(size) : size;
+const ariaLabel = label ?? (rest["aria-label"] as string | undefined);
+const decorative = !ariaLabel;
+---
+
+{
+  symbolId ? (
+    <svg
+      viewBox={icon.viewBox}
+      width={dim}
+      height={dim}
+      fill="currentColor"
+      class:list={["shrink-0", className]}
+      role={decorative ? undefined : "img"}
+      aria-hidden={decorative ? "true" : undefined}
+      {...rest}
+      aria-label={ariaLabel}
+    >
+      <use href={`#${symbolId}`} />
+    </svg>
+  ) : (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox={icon.viewBox}
+      width={dim}
+      height={dim}
+      fill="currentColor"
+      focusable="false"
+      class:list={["shrink-0", className]}
+      role={decorative ? undefined : "img"}
+      aria-hidden={decorative ? "true" : undefined}
+      {...rest}
+      aria-label={ariaLabel}
+      set:html={icon.body}
+    />
+  )
+}

@@ -1,0 +1,259 @@
+---
+/**
+ * Site header (rendered by BaseLayout). Fixed, transparent over the hero; turns solid + blurred
+ * once the page scrolls past a sentinel (IntersectionObserver, no scroll listener).
+ * Desktop: single-line nav from site.nav.primary, call + WhatsApp shortcuts (xl), "Get a quote".
+ * Mobile: native <dialog> sheet (focus is trapped by showModal, Escape and backdrop close it).
+ * Focus lands on "Close menu" (autofocus) and returns to the menu button on close. Invoker commands
+ * (commandfor/command) open and close the sheet even before the module script has loaded; the
+ * script adds aria-expanded, the Lenis scroll lock, backdrop/link closing and the resize close.
+ */
+import { formatOpeningHours, primaryPhone, site } from "@/config/site";
+import { telUrl, whatsappUrl } from "@/lib/links";
+import { isActivePath } from "@/lib/urls";
+import Button from "./Button.astro";
+import Container from "./Container.astro";
+import Icon from "./Icon.astro";
+import Logo from "./Logo.astro";
+
+const current = Astro.url.pathname;
+const hours = formatOpeningHours();
+---
+
+<div data-header-sentinel class="pointer-events-none absolute inset-x-0 top-0 h-6" aria-hidden="true"></div>
+
+<header class="site-header group/header fixed inset-x-0 top-0 z-50" data-site-header data-scrolled="false">
+  <div
+    class="absolute inset-0 border-b border-transparent opacity-0 transition-[opacity,border-color] duration-300 ease-(--ease-out) group-data-[scrolled=true]/header:border-line group-data-[scrolled=true]/header:opacity-100 bg-(--header-bg) backdrop-blur-xl backdrop-saturate-150 not-supports-[backdrop-filter:blur(1px)]:bg-bg"
+    aria-hidden="true"
+  >
+  </div>
+
+  <Container class="relative flex h-(--header-h) items-center gap-4 lg:gap-8">
+    <Logo size="md" class="max-sm:hidden" />
+    <Logo size="sm" class="sm:hidden" />
+
+    <nav aria-label="Main" class="hidden lg:block">
+      <ul class="flex items-center gap-0.5">
+        {
+          site.nav.primary.map((link) => {
+            const active = isActivePath(link.href, current);
+            return (
+              <li>
+                <a
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  class="relative inline-flex h-10 items-center rounded-full px-3 text-[0.9375rem] font-medium text-muted transition-colors duration-200 hover:text-fg aria-[current=page]:text-fg"
+                >
+                  {link.label}
+                  {active && (
+                    <span class="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-accent" aria-hidden="true" />
+                  )}
+                </a>
+              </li>
+            );
+          })
+        }
+      </ul>
+    </nav>
+
+    <div class="ml-auto flex items-center gap-1.5 sm:gap-2">
+      <Button
+        href={telUrl()}
+        variant="ghost"
+        iconOnly
+        icon="ph:phone"
+        label={`${site.cta.call.label}: ${primaryPhone.display}`}
+        class="max-md:hidden lg:max-xl:hidden"
+      />
+      <Button
+        href={whatsappUrl()}
+        variant="ghost"
+        iconOnly
+        icon="simple-icons:whatsapp"
+        iconClass="text-whatsapp"
+        label={site.cta.whatsapp.label}
+        external
+        class="max-md:hidden lg:max-xl:hidden"
+      />
+      <Button href={site.cta.quote.href} size="sm" class="sm:hidden">{site.cta.quote.label}</Button>
+      <Button href={site.cta.quote.href} size="md" class="max-sm:hidden">{site.cta.quote.label}</Button>
+
+      <button
+        type="button"
+        class="inline-flex size-11 items-center justify-center rounded-full text-fg transition-[background-color,transform] duration-200 hover:bg-surface-2 active:scale-95 lg:hidden"
+        aria-haspopup="dialog"
+        aria-controls="site-menu"
+        aria-expanded="false"
+        commandfor="site-menu"
+        command="show-modal"
+        data-menu-open
+      >
+        <Icon name="ph:list" size={24} />
+        <span class="sr-only">Menu</span>
+      </button>
+    </div>
+  </Container>
+</header>
+
+<dialog
+  id="site-menu"
+  class="menu-sheet m-0 ml-auto h-dvh max-h-dvh w-full max-w-[min(100vw,26rem)] bg-bg p-0 text-fg backdrop:bg-black/55 backdrop:backdrop-blur-sm"
+  aria-labelledby="site-menu-title"
+  data-scroll-lock
+  closedby="any"
+>
+  <div class="flex h-full flex-col border-l border-line">
+    <div class="flex h-(--header-h) shrink-0 items-center justify-between border-b border-line px-(--gutter)">
+      <p id="site-menu-title" class="sr-only">Menu</p>
+      <Logo size="sm" />
+      <button
+        type="button"
+        class="inline-flex size-11 items-center justify-center rounded-full text-fg transition-colors hover:bg-surface-2"
+        commandfor="site-menu"
+        command="close"
+        autofocus
+        data-menu-close
+      >
+        <Icon name="ph:x" size={24} />
+        <span class="sr-only">Close menu</span>
+      </button>
+    </div>
+
+    <nav aria-label="Mobile" class="flex-1 overflow-y-auto overscroll-contain px-(--gutter) py-6">
+      <ul class="flex flex-col">
+        {
+          site.nav.primary.map((link) => (
+            <li>
+              <a
+                href={link.href}
+                aria-current={isActivePath(link.href, current) ? "page" : undefined}
+                class="group flex items-center justify-between border-b border-line py-3.5 font-display text-[1.375rem] font-semibold tracking-[-0.03em] text-fg aria-[current=page]:text-accent-fg"
+              >
+                {link.label}
+                <Icon
+                  name="ph:arrow-up-right"
+                  size={18}
+                  class="text-muted transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                />
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+
+      <p class="mt-8 text-xs font-bold uppercase tracking-[0.16em] text-muted">Services</p>
+      <ul class="mt-3 grid grid-cols-1 gap-1 min-[400px]:grid-cols-2">
+        {
+          site.services.map((s) => (
+            <li>
+              <a
+                href={`/${s.slug}/`}
+                class="flex items-center gap-2.5 rounded-badge px-2 py-2 text-[0.9375rem] text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+              >
+                <Icon name={s.icon} size={18} class="text-accent" />
+                {s.shortName}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="grid shrink-0 gap-3 border-t border-line px-(--gutter) pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <Button href={site.cta.quote.href} size="lg" fullWidth iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+      <div class="grid grid-cols-2 gap-3">
+        <Button
+          href={whatsappUrl()}
+          variant="secondary"
+          icon="simple-icons:whatsapp"
+          iconClass="text-whatsapp"
+          external
+          fullWidth>{site.cta.whatsapp.label}</Button
+        >
+        <Button href={telUrl()} variant="secondary" icon="ph:phone" fullWidth>{site.cta.call.label}</Button>
+      </div>
+      <p class="text-center text-sm text-muted">{hours.join(" · ")}</p>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  const header = document.querySelector<HTMLElement>("[data-site-header]");
+  const sentinel = document.querySelector("[data-header-sentinel]");
+  if (header && sentinel && "IntersectionObserver" in window) {
+    new IntersectionObserver(([entry]) => {
+      header.dataset.scrolled = String(!entry.isIntersecting);
+    }).observe(sentinel);
+  }
+
+  const dialog = document.getElementById("site-menu") as HTMLDialogElement | null;
+  const openButton = document.querySelector<HTMLButtonElement>("[data-menu-open]");
+
+  const lock = (locked: boolean) => window.dispatchEvent(new CustomEvent("cantt:scroll-lock", { detail: { locked } }));
+
+  if (dialog && openButton) {
+    openButton.addEventListener("click", () => {
+      dialog.showModal();
+      openButton.setAttribute("aria-expanded", "true");
+      lock(true);
+    });
+    dialog.addEventListener("close", () => {
+      openButton.setAttribute("aria-expanded", "false");
+      lock(false);
+      openButton.focus({ preventScroll: true });
+    });
+    dialog.addEventListener("click", (event) => {
+      const target = event.target as HTMLElement;
+      // Backdrop click (the dialog element itself) or any link / close button inside.
+      if (target === dialog || target.closest("[data-menu-close], a")) dialog.close();
+    });
+    window.matchMedia("(min-width: 64rem)").addEventListener("change", (event) => {
+      if (event.matches && dialog.open) dialog.close();
+    });
+  }
+</script>
+
+<style>
+  /* Sheet slides in from the right; @starting-style gives an entry animation without JS. */
+  .menu-sheet {
+    transition:
+      translate 0.38s var(--ease-out),
+      opacity 0.3s var(--ease-out),
+      overlay 0.38s allow-discrete,
+      display 0.38s allow-discrete;
+    translate: 100% 0;
+    opacity: 0;
+  }
+  .menu-sheet[open] {
+    translate: 0 0;
+    opacity: 1;
+  }
+  @starting-style {
+    .menu-sheet[open] {
+      translate: 100% 0;
+      opacity: 0;
+    }
+  }
+  .menu-sheet::backdrop {
+    transition:
+      opacity 0.3s var(--ease-out),
+      overlay 0.3s allow-discrete,
+      display 0.3s allow-discrete;
+    opacity: 0;
+  }
+  .menu-sheet[open]::backdrop {
+    opacity: 1;
+  }
+  @starting-style {
+    .menu-sheet[open]::backdrop {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .menu-sheet,
+    .menu-sheet::backdrop {
+      transition: none;
+    }
+  }
+</style>

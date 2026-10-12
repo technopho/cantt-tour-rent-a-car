@@ -1,0 +1,90 @@
+---
+/**
+ * Quote panel for a model page: a short heading + the TripComposer island (client:visible) with this
+ * model preselected, and a one-line reassurance. The composer shows its own live estimate and
+ * WhatsApp link, so the panel stays slim enough for a sticky side column.
+ *
+ * Placement (done by the page): sticky side column on desktop, inline after the rates on phones.
+ * With `sticky`, the panel sticks below the header, and when it is taller than the viewport it scrolls
+ * with the page until its bottom is visible, then sticks there (tiny script, no scroll listener).
+ * Carries data-fab-hide (the composer already offers WhatsApp).
+ *
+ *   <QuotePanel model={model} composerModels={toComposerModels(models, categories)} sticky />
+ */
+import Icon from "@/components/Icon.astro";
+import TripComposer from "@/components/quote/TripComposer.svelte";
+import type { ComposerModel } from "@/components/quote/types";
+import type { CatalogModel, TripType } from "@/lib/catalog-types";
+import { formatPKR } from "@/lib/format";
+import { CITY_DAY_HOURS } from "./fleet-data";
+
+interface Props {
+  model: CatalogModel;
+  composerModels: ComposerModel[];
+  headingId?: string;
+  /** Sticky behaviour on lg+ screens. */
+  sticky?: boolean;
+  class?: string;
+}
+
+const { model, composerModels, headingId = "quote-title", sticky = false, class: className } = Astro.props;
+const wd = model.rates.withDriver;
+const sd = model.rates.selfDrive;
+const defaultServiceType = wd ? "with_driver" : "self_drive";
+const defaultTripType: TripType = model.category === "wedding" ? "wedding" : "within_city";
+const priceLine = [
+  wd ? `${formatPKR(wd.daily)} per ${CITY_DAY_HOURS} hour day with a driver` : null,
+  sd ? `${formatPKR(sd.daily)} per day self drive` : null,
+]
+  .filter(Boolean)
+  .join(", ");
+---
+
+<div class:list={["quote-panel flex flex-col gap-4", sticky && "lg:sticky", className]} data-fab-hide data-quote-panel={sticky ? "sticky" : undefined}>
+  <div class="px-1">
+    <h2 id={headingId} class="text-display-sm text-fg">Get a price for the {model.model}</h2>
+    <p class="mt-2 text-sm text-muted">
+      {priceLine}. Pick your dates and trip, and we confirm availability and the final price on WhatsApp.
+    </p>
+  </div>
+
+  <TripComposer
+    client:visible
+    models={composerModels}
+    defaultModelSlug={model.slug}
+    defaultServiceType={defaultServiceType}
+    defaultTripType={defaultTripType}
+    compact
+  />
+
+  <p class="flex items-start gap-2 px-1 text-xs leading-relaxed text-muted">
+    <Icon name="ph:shield-check" size={16} class="shrink-0 text-accent" />
+    No payment online. A quote request is not a booking: we confirm everything with you first.
+  </p>
+</div>
+
+<style>
+  .quote-panel[data-quote-panel="sticky"] {
+    top: var(--quote-top, calc(var(--header-h) + 1.5rem));
+  }
+</style>
+
+<script>
+  // Sticky panels taller than the viewport: stick by their bottom edge instead of their top, so every
+  // part of the composer stays reachable. Recomputed when the panel or the viewport changes size.
+  const panels = document.querySelectorAll<HTMLElement>('[data-quote-panel="sticky"]');
+  if (panels.length && "ResizeObserver" in window) {
+    const gap = 24;
+    const update = () => {
+      const header = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-h")) * 16 || 72;
+      panels.forEach((panel) => {
+        const top = Math.min(header + gap, window.innerHeight - panel.offsetHeight - gap);
+        panel.style.setProperty("--quote-top", `${Math.round(top)}px`);
+      });
+    };
+    const ro = new ResizeObserver(update);
+    panels.forEach((panel) => ro.observe(panel));
+    window.addEventListener("resize", update, { passive: true });
+    update();
+  }
+</script>

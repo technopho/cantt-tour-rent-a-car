@@ -1,0 +1,57 @@
+---
+/**
+ * Closing call to action (the layout's footer CTA band is hidden on the home page so the two
+ * never repeat). Offers WhatsApp, so it carries data-fab-hide.
+ */
+import Button from "@/components/Button.astro";
+import Container from "@/components/Container.astro";
+import HeroTrails from "@/components/HeroTrails.astro";
+import { formatOpeningHours, primaryPhone, site } from "@/config/site";
+import { telUrl, whatsappUrl } from "@/lib/links";
+
+const hours = formatOpeningHours();
+---
+
+<section id="get-started" class="relative isolate overflow-hidden border-t border-line" aria-labelledby="final-cta-title" data-fab-hide>
+  <HeroTrails intensity="bold" placement="top" />
+  <div
+    class="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[70%] bg-[radial-gradient(60%_80%_at_50%_100%,color-mix(in_oklab,var(--accent)_16%,transparent),transparent_70%)]"
+    aria-hidden="true"
+  >
+  </div>
+  <Container class="grid gap-10 py-[calc(var(--section-space)*1.15)] lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-end">
+    <div>
+      <h2 id="final-cta-title" class="text-display-xl text-fg">
+        <span class="block">Gari chahiye?</span>
+        <span class="block text-accent">We'll be there on Cantt time.</span>
+      </h2>
+      <p class="text-lede mt-6 max-w-xl text-muted">
+        Tell us the car, the dates and where to pick you up. We reply with a clear price before anything is booked.
+      </p>
+    </div>
+    <div class="flex flex-col gap-5 lg:items-end">
+      <div class="flex flex-wrap gap-3 lg:justify-end">
+        <Button href={site.cta.quote.href} size="lg" iconRight="ph:arrow-right" class="max-sm:w-full">
+          {site.cta.quote.label}
+        </Button>
+        <Button
+          href={whatsappUrl()}
+          variant="secondary"
+          size="lg"
+          icon="simple-icons:whatsapp"
+          iconClass="text-whatsapp"
+          external
+          class="max-sm:w-full"
+        >
+          {site.cta.whatsapp.label}
+        </Button>
+        <Button href={telUrl()} variant="ghost" size="lg" icon="ph:phone" class="max-sm:w-full">
+          {site.cta.call.label}
+        </Button>
+      </div>
+      <p class="text-sm text-muted lg:text-right">
+        <span class="tabular">{primaryPhone.display}</span> · {hours.join(", ")}
+      </p>
+    </div>
+  </Container>
+</section>

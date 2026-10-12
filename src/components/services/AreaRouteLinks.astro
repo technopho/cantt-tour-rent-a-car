@@ -1,0 +1,91 @@
+---
+/**
+ * Internal links block: Lahore areas (pills with service-specific anchor text) and, where the
+ * service goes beyond Lahore, outstation routes with distance and drive time when the route
+ * page's content entry has them.
+ */
+import { getCollection } from "astro:content";
+import Icon from "@/components/Icon.astro";
+import { getRoute, site } from "@/config/site";
+import { formatDriveTime, formatKm } from "@/lib/format";
+import { urls } from "@/lib/urls";
+
+interface Props {
+  areas: { title: string; intro: string; linkLabel: (areaName: string) => string };
+  routes: { title: string; intro: string; slugs: string[] } | null;
+  headingId: string;
+}
+
+const { areas, routes, headingId } = Astro.props;
+const routeEntries = routes ? await getCollection("routes") : [];
+const routeRows = (routes?.slugs ?? [])
+  .map((slug) => {
+    const served = getRoute(slug);
+    if (!served) return null;
+    const entry = routeEntries.find((r) => r.data.slug === slug);
+    return {
+      slug,
+      city: served.city,
+      meta: entry ? `about ${formatKm(entry.data.distanceKm)}, ${formatDriveTime(entry.data.driveHours)}` : null,
+    };
+  })
+  .filter((r): r is { slug: string; city: string; meta: string | null } => r !== null);
+---
+
+<div class:list={["grid gap-14", routeRows.length > 0 && "lg:grid-cols-2 lg:gap-16"]}>
+  <div>
+    <h2 id={headingId} class="text-display-md text-fg">{areas.title}</h2>
+    <p class="mt-3 max-w-xl text-muted">{areas.intro}</p>
+    <ul class="mt-8 flex flex-wrap gap-2.5">
+      {
+        site.areasServed.map((area) => (
+          <li>
+            <a
+              href={urls.area(area.slug)}
+              class="group inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 py-2.5 pr-4 pl-3.5 text-sm font-medium text-fg transition-[border-color,background-color] duration-200 hover:border-line-strong hover:bg-surface-2"
+            >
+              <Icon name="ph:map-pin" size={16} class="text-accent" />
+              {areas.linkLabel(area.name)}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <p class="mt-6 text-sm text-muted">
+      Not on the list? We cover all of Lahore, including Cavalry Ground, Walton, Garden Town, Township and Raiwind Road. <a
+        href={urls.areas()}
+        class="font-semibold text-accent-fg underline underline-offset-4">See all areas</a
+      >.
+    </p>
+  </div>
+
+  {
+    routes && routeRows.length > 0 && (
+      <div>
+        <h2 class="text-display-md text-fg">{routes.title}</h2>
+        <p class="mt-3 max-w-xl text-muted">{routes.intro}</p>
+        <ul class="mt-8 border-t border-line">
+          {routeRows.map((r) => (
+            <li class="border-b border-line">
+              <a href={urls.route(r.slug)} class="group flex items-center gap-4 py-4 transition-colors hover:text-accent-fg">
+                <Icon name="ph:road-horizon" size={20} class="text-muted transition-colors group-hover:text-accent" />
+                <span class="font-semibold text-fg group-hover:text-accent-fg">Lahore to {r.city}</span>
+                {r.meta && <span class="hidden text-sm text-muted tabular-nums sm:inline">{r.meta}</span>}
+                <Icon
+                  name="ph:arrow-right"
+                  size={18}
+                  class="ml-auto text-muted transition-transform duration-300 ease-(--ease-out) group-hover:translate-x-1"
+                />
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p class="mt-6 text-sm text-muted">
+          <a href={urls.routes()} class="font-semibold text-accent-fg underline underline-offset-4">
+            All outstation routes from Lahore
+          </a>
+        </p>
+      </div>
+    )
+  }
+</div>

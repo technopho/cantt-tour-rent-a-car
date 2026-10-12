@@ -1,0 +1,292 @@
+---
+/**
+ * /policies/: rental terms in plain English.
+ *
+ * TODO(owner, legal): this is a plain-language summary written for customers, NOT reviewed legal
+ * wording. The business must have it checked against the signed rental agreement (self drive),
+ * the quote terms (with driver) and Pakistani law before launch. Values in {TERMS} live in
+ * src/components/services/terms.ts; every amount (deposits, km, overtime, night allowance) is read
+ * from the catalog so this page never drifts from the rate list.
+ */
+import Icon from "@/components/Icon.astro";
+import Section from "@/components/Section.astro";
+import OnThisPage from "@/components/services/OnThisPage.astro";
+import { TERMS } from "@/components/services/terms";
+import { primaryPhone, site } from "@/config/site";
+import PageLayout from "@/layouts/PageLayout.astro";
+import { getModels } from "@/lib/catalog";
+import { formatDate, formatNumber, formatPKR } from "@/lib/format";
+import { mailtoUrl, telUrl } from "@/lib/links";
+import { urls } from "@/lib/urls";
+
+/** Last time the wording on this page changed. */
+const UPDATED = "2026-10-12";
+
+const models = await getModels();
+
+function range(values: (number | null | undefined)[]): { min: number; max: number } | null {
+  const nums = values.filter((v): v is number => typeof v === "number" && v > 0);
+  return nums.length ? { min: Math.min(...nums), max: Math.max(...nums) } : null;
+}
+function rangeText(r: { min: number; max: number } | null, f: (n: number) => string, fallback: string): string {
+  if (!r) return fallback;
+  return r.min === r.max ? f(r.min) : `${f(r.min)} to ${f(r.max)}`;
+}
+
+const deposit = rangeText(range(models.map((m) => m.rates.selfDrive?.securityDeposit)), formatPKR, "set per car");
+const km = rangeText(range(models.map((m) => m.rates.selfDrive?.kmPerDay)), (n) => `${formatNumber(n)} km`, "set per car");
+const overtime = rangeText(range(models.map((m) => m.rates.withDriver?.overtimeHourly)), formatPKR, "set per car");
+const night = rangeText(range(models.map((m) => m.rates.driverNightAllowance)), formatPKR, "set per car");
+
+interface PolicySection {
+  id: string;
+  title: string;
+  icon: string;
+  paras?: string[];
+  bullets?: string[];
+  after?: string[];
+}
+
+const sections: PolicySection[] = [
+  {
+    id: "about-these-terms",
+    title: "About these terms",
+    icon: "ph:info",
+    paras: [
+      `These terms apply to every booking with ${site.name}. They are a plain-English summary of our standard rental terms, written to be read before you book.`,
+      "When you book, the confirmed quote (car with driver) or the signed rental agreement (self drive) is the document that applies. If anything on this page differs from your agreement, the agreement takes priority.",
+    ],
+  },
+  {
+    id: "bookings",
+    title: "Bookings and confirmation",
+    icon: "ph:calendar-check",
+    bullets: [
+      "A booking is confirmed when you accept our quote on WhatsApp or email and pay any advance we ask for. Prices on this website are estimates until then.",
+      "We ask for a CNIC (or passport) for every booking, and a driving licence for self drive. We may decline a booking if documents cannot be verified.",
+      `Self drive renters must be at least ${TERMS.selfDriveMinAge} and hold a valid driving licence. For high value cars we may ask for more driving experience, or suggest a car with driver instead.`,
+      `Self drive cars are handed over and returned ${TERMS.selfDriveHandover}.`,
+      "Pickup times are agreed in advance. For with driver bookings, the duty hours start at the agreed pickup time.",
+      "If a car we confirmed becomes unavailable, for example after a breakdown, we offer a similar or better car at the same price, or a full refund of your advance.",
+    ],
+  },
+  {
+    id: "fuel",
+    title: "Fuel",
+    icon: "ph:gas-pump",
+    bullets: [
+      "None of our published rates include fuel.",
+      `Car with driver: fuel is ${TERMS.fuelWithDriver}. Your quote states which.`,
+      `Self drive: ${TERMS.fuelSelfDrive}. Missing fuel is charged at the current pump price.`,
+      "Use only the correct fuel for the car, from a proper filling station. Damage from the wrong fuel is the renter's responsibility.",
+    ],
+  },
+  {
+    id: "kilometre-limits",
+    title: "Kilometre limits",
+    icon: "ph:gauge",
+    bullets: [
+      `Self drive cars include a daily allowance, currently ${km} per day depending on the car. It is counted across the whole rental.`,
+      "Kilometres above the total allowance are charged at the per km rate written in your agreement.",
+      "Monthly rentals have a monthly allowance agreed in writing before handover.",
+      "Cars with driver are priced by duty hours and days, not kilometres, within the city. Outstation trips use the outstation daily rate.",
+    ],
+  },
+  {
+    id: "duty-hours",
+    title: "Duty hours and overtime (car with driver)",
+    icon: "ph:clock",
+    bullets: [
+      `A city day includes ${TERMS.cityDayHours} hours of duty, for example ${TERMS.cityDayWindow}, starting at the agreed pickup time.`,
+      `Time beyond the duty hours is overtime, billed per hour at the car's rate, currently ${overtime} per hour depending on the car.`,
+      `When the driver stays away from Lahore overnight, a driver night allowance applies per night, currently ${night} depending on the car.`,
+      "For safety, long outstation days are planned with rest stops, and mountain roads are driven in daylight.",
+    ],
+  },
+  {
+    id: "late-returns",
+    title: "Late returns (self drive)",
+    icon: "ph:timer",
+    bullets: [
+      "Return the car at the date and time on your agreement. If you are running late, tell us as early as possible.",
+      `There is a grace period of ${TERMS.lateGraceMinutes} minutes. After that, late time is charged per hour.`,
+      `A return more than ${TERMS.lateFullDayAfterHours} hours late is charged as an extra rental day.`,
+      "Extensions depend on availability. If the car is booked by another customer, we may ask you to return it on time or swap it for another car.",
+    ],
+  },
+  {
+    id: "cancellations",
+    title: "Cancellations and changes",
+    icon: "ph:calendar-x",
+    bullets: [
+      `Cancel at least ${TERMS.freeCancelHours} hours before pickup and your advance is refunded in full.`,
+      `Cancellations inside ${TERMS.freeCancelHours} hours, and no-shows, may lose the advance, because the car was held for you.`,
+      `Wedding and peak date bookings (December, Eid and long weekends): the advance may be non refundable inside ${TERMS.weddingCancelDays} days of the pickup date.`,
+      "Changing the date is free when the car is available on the new date.",
+    ],
+  },
+  {
+    id: "deposits-and-refunds",
+    title: "Security deposits and refunds",
+    icon: "ph:wallet",
+    bullets: [
+      `Self drive rentals need a refundable security deposit, currently ${deposit} depending on the car, paid at handover by cash or bank transfer.`,
+      `The deposit is refunded within ${TERMS.depositRefundDays} days of return, after we check the car and the Safe City e-challan record.`,
+      "Deductions can include unpaid rent, missing fuel, extra kilometres, late return, traffic challans, cleaning beyond normal use and damage. Every deduction is listed in writing with photos or a copy of the challan.",
+      "Refunds go back by the method you paid, or to a bank account in your name.",
+      "Cars with driver do not need a security deposit. An advance holds the booking instead.",
+    ],
+  },
+  {
+    id: "damage-and-accidents",
+    title: "Damage and accidents",
+    icon: "ph:shield-check",
+    bullets: [
+      "At handover and return we photograph the car together with you. Damage that is not in the handover photos is treated as new damage.",
+      "Self drive: the renter is responsible for damage, theft of parts and loss during the rental, as set out in the agreement and subject to any insurance cover on the car.",
+      "Car with driver: damage caused by our driver is our responsibility. Damage caused by passengers, such as torn seats or stains, is charged to the customer.",
+      "After an accident: make sure everyone is safe, call Rescue 1122 for injuries and the police on 15 (Motorway Police 130 on motorways), then call us. Take photos and do not agree to roadside repairs.",
+      "If the car is stolen, report it to the police straight away and inform us. A police report is needed for any insurance claim.",
+      "Repairs are carried out by our workshop or one we approve. While a damaged car is off the road, the agreement may include a charge for lost rental days.",
+    ],
+  },
+  {
+    id: "traffic-challans",
+    title: "Traffic challans and fines",
+    icon: "ph:traffic-signal",
+    bullets: [
+      "Self drive: the renter pays every traffic ticket, parking fine and Safe City e-challan dated during the rental.",
+      "E-challans are issued to the car's registration and can appear days after the rental. We check the record before refunding the deposit and share a copy of every challan we deduct.",
+      "If a challan dated during your rental appears after your deposit is refunded, we send you a copy and ask you to pay it.",
+      "Tickets issued on the spot by the traffic police or the Motorway Police are paid by the person driving at the time.",
+      "Car with driver: challans caused by our driver are our responsibility.",
+    ],
+  },
+  {
+    id: "prohibited-use",
+    title: "What the cars may not be used for",
+    icon: "ph:prohibit",
+    bullets: [
+      "Ride hailing, taxi or delivery work, or renting the car on to anyone else.",
+      "Racing, stunts, aerial firing from or near the car, or blocking roads in convoys.",
+      "Driving under the influence of alcohol or drugs.",
+      "Carrying weapons, illegal goods or anything that breaks the law.",
+      "Towing, off-road driving, driving lessons, or carrying more people than the car has seats.",
+      "Self drive outside Lahore without our written approval.",
+    ],
+    after: ["Breaking these rules ends the rental, and the renter is responsible for any resulting costs, fines or damage."],
+  },
+  {
+    id: "outstation-travel",
+    title: "Outstation travel",
+    icon: "ph:road-horizon",
+    bullets: [
+      "Car with driver: outstation trips are welcome. Tell us the route and nights away so we can price the outstation days and the driver night allowance.",
+      `Self drive: the car can leave Lahore ${TERMS.selfDriveOutstation}. Tell us the destination and dates. We may ask for a higher deposit for long trips.`,
+      "For the northern areas, including Naran, Hunza and Skardu, we recommend a car with a driver who knows the mountain roads.",
+      "Motorway tolls are paid by the customer unless the quote includes them.",
+    ],
+  },
+  {
+    id: "smoking-food-pets",
+    title: "Smoking, food and pets",
+    icon: "ph:cigarette-slash",
+    bullets: [
+      "No smoking in any of our cars. This applies to customers and drivers alike.",
+      "Light snacks and drinks are fine. A car returned needing deep cleaning is charged a cleaning fee.",
+      "Pets only with our approval before the booking, in a carrier or on a seat cover.",
+    ],
+  },
+  {
+    id: "privacy",
+    title: "Privacy summary",
+    icon: "ph:lock-key",
+    paras: [
+      "We collect only what we need to rent you a car: your name, phone number, email if you share it, trip details, and for self drive copies of your CNIC and licence.",
+      "We use this to quote, confirm and run your booking, to verify identity for self drive, to settle deposits and challans, and to meet legal and accounting requirements.",
+      "We never sell your information. We share it only with the driver assigned to your trip, and with authorities when the law requires it, for example for traffic challans or an accident report.",
+      "The quote form on this website sends your details straight to our booking team and is protected from spam by a Cloudflare Turnstile check. Ask us at any time to see or delete the information we hold about you, unless we must keep it by law.",
+    ],
+  },
+];
+
+const toc = [...sections.map((s) => ({ id: s.id, text: s.title })), { id: "questions", text: "Questions about these terms" }];
+---
+
+<PageLayout
+  title="Rental Policies and Terms, Car Rental in Lahore"
+  description="Our car rental terms in plain English: fuel, km limits, overtime, late returns, cancellations, deposits and refunds, damage, challans and privacy."
+  h1="Rental policies"
+  intro="Every term that matters, in plain English: fuel, kilometres, hours, deposits, damage, challans and cancellations."
+  crumbs={[{ label: "Policies" }]}
+>
+  <Section id="terms" spacing="sm">
+    <div class="grid gap-12 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-20">
+      <aside class="hidden lg:block">
+        <OnThisPage items={toc} />
+      </aside>
+
+      <div class="max-w-3xl">
+        <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+          <Icon name="ph:calendar-dots" size={16} class="text-accent" />
+          Last updated <time datetime={UPDATED}>{formatDate(UPDATED)}</time>
+        </p>
+        <!-- Phones and tablets: the same index, collapsed, so the 15 sections are one tap away -->
+        <details class="group mt-6 rounded-card border border-line lg:hidden">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-semibold text-fg [&::-webkit-details-marker]:hidden">
+            Jump to a section
+            <Icon name="ph:caret-down" size={18} class="text-muted transition-transform duration-200 group-open:rotate-180" />
+          </summary>
+          <div class="border-t border-line px-5 py-4">
+            <OnThisPage items={toc} sticky={false} title="Sections" />
+          </div>
+        </details>
+        <div class="mt-6 flex gap-4 rounded-card border border-line bg-surface p-5 text-[0.9375rem] leading-relaxed text-muted">
+          <Icon name="ph:scales" size={22} class="mt-0.5 shrink-0 text-accent" />
+          <p>
+            This page summarises our standard terms. Your confirmed quote or signed rental agreement is the binding document. Amounts
+            quoted here come from our current rate list and differ by car.
+          </p>
+        </div>
+
+        {
+          sections.map((s) => (
+            <section id={s.id} aria-labelledby={`${s.id}-title`} class="mt-14 scroll-mt-[calc(var(--header-h)+1.5rem)] border-t border-line pt-10">
+              <h2 id={`${s.id}-title`} class="flex items-center gap-3 text-display-md text-fg">
+                <Icon name={s.icon} size={26} class="shrink-0 text-accent" />
+                {s.title}
+              </h2>
+              {s.paras?.map((p) => (
+                <p class="mt-4 leading-relaxed text-muted">{p}</p>
+              ))}
+              {s.bullets && (
+                <ul class="mt-5 flex flex-col gap-3">
+                  {s.bullets.map((b) => (
+                    <li class="flex gap-3 leading-relaxed text-muted">
+                      <span class="mt-[0.7em] h-0.5 w-2.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {s.after?.map((p) => (
+                <p class="mt-4 leading-relaxed text-fg">{p}</p>
+              ))}
+            </section>
+          ))
+        }
+
+        <section id="questions" aria-labelledby="questions-title" class="mt-14 scroll-mt-[calc(var(--header-h)+1.5rem)] border-t border-line pt-10">
+          <h2 id="questions-title" class="text-display-md text-fg">Questions about these terms</h2>
+          <p class="mt-4 leading-relaxed text-muted">
+            Ask before you book and we will explain anything that is not clear. Call{" "}
+            <a href={telUrl()} class="font-semibold text-fg tabular-nums underline underline-offset-4">{primaryPhone.display}</a>, email{" "}
+            <a href={mailtoUrl(site.email, "Question about rental terms")} class="font-semibold text-fg underline underline-offset-4">{site.email}</a>, or
+            see the <a href={urls.faq()} class="font-semibold text-accent-fg underline underline-offset-4">FAQ</a> and{" "}
+            <a href={urls.contact()} class="font-semibold text-accent-fg underline underline-offset-4">contact page</a>.
+          </p>
+        </section>
+      </div>
+    </div>
+  </Section>
+</PageLayout>

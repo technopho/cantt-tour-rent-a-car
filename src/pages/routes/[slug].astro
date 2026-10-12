@@ -1,0 +1,266 @@
+---
+/**
+ * Route page (/routes/lahore-to-<city>/): an outstation road trip from Lahore.
+ * Content: src/content/routes/<slug>.md (+ src/components/local/route-meta.ts).
+ * Prices: catalog only (outstation day rate, driver night allowance, worked estimate).
+ * JSON-LD: TouristTrip + Service (both linked to the AutoRental @id), BreadcrumbList. FAQs are visible
+ * only (no FAQPage: see FaqList.astro). FAQ answers may use {{key}} tokens from terms.ts.
+ */
+import { getCollection, render } from "astro:content";
+import Button from "@/components/Button.astro";
+import FaqList from "@/components/FaqList.astro";
+import Icon from "@/components/Icon.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import Prose from "@/components/Prose.astro";
+import SampleFleetNote from "@/components/SampleFleetNote.astro";
+import Section from "@/components/Section.astro";
+import SectionHeading from "@/components/SectionHeading.astro";
+import OutstationCars from "@/components/local/OutstationCars.astro";
+import OutstationPricing from "@/components/local/OutstationPricing.astro";
+import QuoteBand from "@/components/local/QuoteBand.astro";
+import RouteLine from "@/components/local/RouteLine.astro";
+import RouteLinks from "@/components/local/RouteLinks.astro";
+import RouteTicket from "@/components/local/RouteTicket.astro";
+import { cheapestOutstation, modelsOrFallback, withDriverOnly } from "@/components/local/pricing";
+import { driveTimeWords, routeMeta } from "@/components/local/route-meta";
+import { destinationPlace } from "@/components/local/schema";
+import { fillTerms } from "@/components/services/terms";
+import { site } from "@/config/site";
+import PageLayout from "@/layouts/PageLayout.astro";
+import { getCategories, modelName } from "@/lib/catalog";
+import { formatDriveTime, formatKm } from "@/lib/format";
+import { whatsappUrl } from "@/lib/links";
+import { serviceSchema, touristTripSchema } from "@/lib/schema";
+import { urls } from "@/lib/urls";
+
+export async function getStaticPaths() {
+  const routes = await getCollection("routes");
+  return routes.map((entry) => ({ params: { slug: entry.data.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+const meta = routeMeta(data.slug);
+const isCity = meta.tripType !== "outstation";
+
+const [routes, categories] = await Promise.all([getCollection("routes"), getCategories()]);
+const recommended = withDriverOnly(await modelsOrFallback(data.recommendedModels, "outstation", 5));
+const cheapest = cheapestOutstation(recommended);
+const cityFrom = recommended.reduce<number | null>((min, m) => {
+  const d = m.rates.withDriver?.daily ?? null;
+  return d === null ? min : min === null ? d : Math.min(min, d);
+}, null);
+const headlinePrice = isCity ? cityFrom : (cheapest?.price ?? null);
+
+const path = urls.route(data.slug);
+const roads = data.motorways;
+const viaShort = roads.map((r) => r.replace(/\s*\(.*\)$/, "").replace(/ (Lahore to|Abdul Hakeem to|Pindi Bhattian to|Islamabad to).*$/, "")).slice(0, 3);
+const intro =
+  meta.intro ??
+  `About ${formatKm(data.distanceKm)} and ${driveTimeWords(data.driveHours)} of driving${meta.timeNote ? ` (${meta.timeNote})` : ""} from Lahore${viaShort.length ? ` via the ${viaShort.slice(0, 2).join(" and ")}` : ""}. A clean car and a driver who knows the road, at a price you see before you book.`;
+const waMessage = `Assalam o Alaikum! I need a car with driver from Lahore to ${data.to}.`;
+const description = data.metaDescription;
+// Policy wording (fuel, etc.) comes from terms.ts via {{key}} tokens.
+const faqs = data.faqs.map((f) => ({ q: fillTerms(f.q), a: fillTerms(f.a) }));
+
+const tripJson = touristTripSchema({
+  name: data.h1,
+  description,
+  url: path,
+  // Clean Place names for the itinerary (the human-friendly stops stay on the page).
+  to: meta.places.at(-1) ?? data.to,
+  stops: meta.places.slice(0, -1),
+  distanceKm: data.distanceKm,
+  driveHours: data.driveHours,
+  lowPrice: isCity ? null : (cheapest?.price ?? null),
+});
+const serviceJson = serviceSchema({
+  name: `Car rental with driver from Lahore to ${data.to}`,
+  description,
+  url: path,
+  serviceType: isCity ? "Car rental with driver" : "Outstation car rental with driver",
+  lowPrice: headlinePrice,
+  areaServed: [{ "@type": "City", name: "Lahore" }, destinationPlace(data.to)],
+});
+---
+
+<PageLayout
+  title={data.metaTitle}
+  description={description}
+  h1={data.h1}
+  intro={intro}
+  crumbs={[{ label: "Outstation routes", href: urls.routes() }, { label: `Lahore to ${data.to}` }]}
+  whatsappMessage={waMessage}
+>
+  <JsonLd slot="jsonld" data={[tripJson, serviceJson]} />
+
+  <Fragment slot="actions">
+    <Button href="#quote" size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+    <Button href={whatsappUrl(waMessage)} variant="secondary" size="lg" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
+      {site.cta.whatsapp.label}
+    </Button>
+  </Fragment>
+
+  <Fragment slot="aside">
+    <RouteTicket
+      to={meta.short === data.to ? data.to : meta.short}
+      code={meta.code}
+      km={data.distanceKm}
+      hours={data.driveHours}
+      timeNote={meta.timeNote}
+      via={viaShort}
+      season={meta.season}
+      fromPrice={headlinePrice}
+      fromModel={isCity ? undefined : cheapest ? modelName(cheapest.model) : undefined}
+      priceLabel={isCity ? "City day with driver" : "Outstation with driver"}
+    />
+  </Fragment>
+
+  <Section id="route" labelledby="route-title">
+    <div class="grid gap-12 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-12 lg:gap-20">
+      <div>
+        <SectionHeading id="route-title" title="The route, stop by stop" size="md" intro="The usual way our drivers take. On the day, they adjust for traffic, weather and road works." />
+        <RouteLine to={data.to} stops={data.stops} roads={roads} class="mt-10" />
+      </div>
+      <div class="flex flex-col gap-0 self-start rounded-card border border-line bg-surface">
+        <h2 class="border-b border-line px-6 py-5 font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">Before you go</h2>
+        <dl class="divide-y divide-line">
+          {
+            data.bestSeason && (
+              <div class="relative py-5 pr-6 pl-15.5">
+                <dt class="font-semibold text-fg">
+                  <Icon name="ph:sun-horizon" size={22} class="absolute top-5.5 left-6 text-accent" />Best time to go
+                </dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-muted">{data.bestSeason}</dd>
+              </div>
+            )
+          }
+          {
+            data.roadAdvice && (
+              <div class="relative py-5 pr-6 pl-15.5">
+                <dt class="font-semibold text-fg">
+                  <Icon name="ph:road-horizon" size={22} class="absolute top-5.5 left-6 text-accent" />Road and weather
+                </dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-muted">{data.roadAdvice}</dd>
+              </div>
+            )
+          }
+          {
+            data.tollNote && (
+              <div class="relative py-5 pr-6 pl-15.5">
+                <dt class="font-semibold text-fg">
+                  <Icon name="ph:receipt" size={22} class="absolute top-5.5 left-6 text-accent" />Tolls
+                </dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-muted">{data.tollNote}</dd>
+              </div>
+            )
+          }
+        </dl>
+      </div>
+    </div>
+  </Section>
+
+  <Section id="guide" aria-label={`Lahore to ${data.to} travel guide`} divider>
+    <div class="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-20">
+      <Prose>
+        <Content />
+      </Prose>
+      <aside class="flex flex-col gap-4 lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:self-start" aria-label="Trip at a glance">
+        <div class="rounded-card border border-line bg-surface p-5">
+          <p class="font-sans text-xs font-bold uppercase tracking-[0.16em] text-muted">At a glance</p>
+          <ul class="mt-4 flex flex-col gap-3 text-sm">
+            <li class="flex items-center gap-2.5 text-fg tabular">
+              <Icon name="ph:path" size={18} class="text-accent" />
+              About {formatKm(data.distanceKm)} from Lahore
+            </li>
+            <li class="flex items-center gap-2.5 text-fg tabular">
+              <Icon name="ph:clock" size={18} class="text-accent" />
+              About {formatDriveTime(data.driveHours)} driving{meta.timeNote ? `, ${meta.timeNote}` : ""}
+            </li>
+            <li class="flex items-center gap-2.5 text-fg tabular">
+              <Icon name="ph:calendar-check" size={18} class="text-accent" />
+              Typical trip: {meta.typicalDays} {meta.typicalDays === 1 ? "day" : "days"}
+            </li>
+          </ul>
+        </div>
+        {
+          meta.region === "north" && (
+            <a href={urls.guide("lahore-to-northern-areas-road-trip-guide")} class="group flex items-center justify-between gap-4 rounded-card border border-line p-5 transition-colors hover:bg-surface">
+              <span class="text-sm font-semibold text-fg">Northern areas road trip guide</span>
+              <Icon name="ph:arrow-right" size={18} class="text-muted transition-transform group-hover:translate-x-1" />
+            </a>
+          )
+        }
+        <a href={urls.areas()} class="group flex items-center justify-between gap-4 rounded-card border border-line p-5 transition-colors hover:bg-surface">
+          <span class="flex flex-col gap-1">
+            <span class="text-sm font-semibold text-fg">Pickup areas in Lahore</span>
+            <span class="text-xs text-muted">Cantt, DHA, Gulberg, Johar Town and more</span>
+          </span>
+          <Icon name="ph:arrow-right" size={18} class="shrink-0 text-muted transition-transform group-hover:translate-x-1" />
+        </a>
+        <a href={urls.rates()} class="group flex items-center justify-between gap-4 rounded-card border border-line p-5 transition-colors hover:bg-surface">
+          <span class="text-sm font-semibold text-fg">Live rates for every car</span>
+          <Icon name="ph:arrow-right" size={18} class="text-muted transition-transform group-hover:translate-x-1" />
+        </a>
+      </aside>
+    </div>
+  </Section>
+
+  {
+    recommended.length > 0 && (
+      <Section id="cars" labelledby="cars-title" divider>
+        <SectionHeading
+          id="cars-title"
+          title={`Which car for ${data.to}?`}
+          intro={
+            meta.carsIntro ??
+            (meta.region === "north"
+              ? "Mountain roads reward ground clearance and power. These are the cars we recommend for this trip, with live rates from our fleet."
+              : "Comfortable cars for the motorway and the city at the other end, with live rates from our fleet.")
+          }
+        >
+          <Button slot="actions" href={urls.cars()} variant="secondary" iconRight="ph:arrow-right">
+            See the full fleet
+          </Button>
+        </SectionHeading>
+        <OutstationCars models={recommended} categories={categories} rate={isCity ? "city" : "outstation"} class="mt-10" />
+        <SampleFleetNote class="mt-8" />
+      </Section>
+    )
+  }
+
+  <Section id="pricing" labelledby="pricing-title" divider>
+    <SectionHeading
+      id="pricing-title"
+      title={isCity ? "How pricing works for this trip" : "How outstation pricing works"}
+      intro={isCity ? "Simple and upfront. Your quote lists every item before you confirm." : "Four simple rules, the same for every outstation trip. Your quote lists every item before you confirm."}
+    />
+    <OutstationPricing models={recommended} days={meta.typicalDays} to={meta.short} tripType={meta.tripType} class="mt-12" />
+  </Section>
+
+  <QuoteBand
+    title={`Get a quote for Lahore to ${data.to}`}
+    intro={isCity ? "Choose a car and the date. We confirm the price and pickup time on WhatsApp." : "Choose a car and your dates. We confirm the price, the route and the driver on WhatsApp."}
+    defaultServiceType="with_driver"
+    defaultTripType={meta.tripType}
+    defaultDestination={data.to}
+    whatsappMessage={waMessage}
+  />
+
+  {
+    faqs.length > 0 && (
+      <Section id="faq" labelledby="faq-title" width="narrow" divider>
+        <SectionHeading id="faq-title" title={`Lahore to ${data.to}: questions`} size="md" />
+        <FaqList faqs={faqs} exclusive id={`faq-${data.slug}`} class="mt-10" />
+      </Section>
+    )
+  }
+
+  <Section id="more-routes" labelledby="more-routes-title" divider spacing="sm">
+    <SectionHeading id="more-routes-title" title="More road trips from Lahore" size="md">
+      <Button slot="actions" href={urls.routes()} variant="ghost" iconRight="ph:arrow-right">All routes</Button>
+    </SectionHeading>
+    <RouteLinks routes={routes} exclude={data.slug} limit={6} class="mt-8" />
+  </Section>
+</PageLayout>

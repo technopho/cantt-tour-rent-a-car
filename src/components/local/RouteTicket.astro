@@ -1,0 +1,140 @@
+---
+/**
+ * Route page hero aside: a trip ticket (Lahore -> destination) with approximate distance,
+ * drive time, roads, best season and the catalog "from" price for an outstation car.
+ * A small tail-light travels the track (CSS only, static under reduced motion).
+ */
+import PriceTag from "@/components/PriceTag.astro";
+import { formatDriveTime, formatKm } from "@/lib/format";
+
+interface Props {
+  to: string;
+  code: string;
+  km: number;
+  hours: number;
+  timeNote?: string;
+  via: string[];
+  season: string;
+  fromPrice: number | null;
+  fromModel?: string;
+  /** "Outstation with driver" or "City day with driver". */
+  priceLabel?: string;
+  class?: string;
+}
+
+const { to, code, km, hours, timeNote, via, season, fromPrice, fromModel, priceLabel = "Outstation with driver", class: className } = Astro.props;
+---
+
+<section class:list={["ticket relative overflow-hidden rounded-card border border-line bg-surface/85 shadow-soft backdrop-blur-sm", className]} aria-label={`Trip summary: Lahore to ${to}`}>
+  <div class="flex items-end justify-between gap-4 px-5 pt-5 pb-4 sm:px-6">
+    <div class="min-w-0">
+      <span class="block font-display text-[2rem] leading-none font-semibold tracking-[-0.05em] text-fg sm:text-[2.5rem]">LHE</span>
+      <span class="mt-1.5 block text-xs font-semibold text-muted">Lahore</span>
+    </div>
+    <div class="ticket-track relative mb-5 h-px flex-1" aria-hidden="true">
+      <span class="ticket-car absolute top-1/2 left-0 size-2.5 -translate-y-1/2 rounded-full bg-accent"></span>
+    </div>
+    <div class="min-w-0 text-right">
+      <span class="block font-display text-[2rem] leading-none font-semibold tracking-[-0.05em] text-accent sm:text-[2.5rem]">{code}</span>
+      <span class="mt-1.5 block text-xs font-semibold text-muted">{to}</span>
+    </div>
+  </div>
+
+  <div class="ticket-perf relative mx-5 h-px sm:mx-6" aria-hidden="true"></div>
+
+  <dl class="grid grid-cols-2 gap-x-6 gap-y-4 px-5 py-5 sm:px-6">
+    <div>
+      <dt class="text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-muted">Distance</dt>
+      <dd class="mt-1 font-semibold text-fg tabular">about {formatKm(km)}</dd>
+    </div>
+    <div>
+      <dt class="text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-muted">Drive time</dt>
+      <dd class="mt-1 font-semibold text-fg tabular">
+        about {formatDriveTime(hours)}{timeNote && <span class="block text-xs font-medium text-muted">{timeNote}</span>}
+      </dd>
+    </div>
+    <div>
+      <dt class="text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-muted">Roads</dt>
+      <dd class="mt-1 text-sm font-semibold text-fg">
+        {via.map((road, i) => (
+          <>
+            <span class="whitespace-nowrap">{road}</span>
+            {i < via.length - 1 ? ", " : ""}
+          </>
+        ))}
+      </dd>
+    </div>
+    <div>
+      <dt class="text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-muted">Best time</dt>
+      <dd class="mt-1 text-sm font-semibold text-fg">{season}</dd>
+    </div>
+  </dl>
+
+  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line bg-surface-2/50 px-5 py-4 sm:px-6">
+    <span class="text-sm text-muted">{priceLabel}{fromModel && <span class="block text-xs">{fromModel}</span>}</span>
+    <PriceTag amount={fromPrice} size="lg" />
+  </div>
+</section>
+
+<style>
+  .ticket-track {
+    container-type: inline-size;
+    background: repeating-linear-gradient(90deg, var(--line-strong) 0 6px, transparent 6px 12px);
+    opacity: 0.9;
+  }
+  .ticket-car {
+    box-shadow: 0 0 14px 2px color-mix(in oklab, var(--accent) 55%, transparent);
+    translate: calc(50cqw - 5px) 0;
+  }
+  .ticket-perf {
+    background: repeating-linear-gradient(90deg, var(--line-strong) 0 4px, transparent 4px 10px);
+    opacity: 0.5;
+  }
+  .ticket-perf::before,
+  .ticket-perf::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    translate: 0 -50%;
+  }
+  .ticket-perf::before {
+    left: calc(-1.25rem - 11px);
+  }
+  .ticket-perf::after {
+    right: calc(-1.25rem - 11px);
+  }
+  @media (width >= 40rem) {
+    .ticket-perf::before {
+      left: calc(-1.5rem - 11px);
+    }
+    .ticket-perf::after {
+      right: calc(-1.5rem - 11px);
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .ticket-car {
+      animation: ticket-drive 4.8s var(--ease-in-out) infinite;
+    }
+  }
+  @keyframes ticket-drive {
+    0% {
+      translate: 0 0;
+      opacity: 0;
+    }
+    12% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      translate: calc(100cqw - 10px) 0;
+      opacity: 0;
+    }
+  }
+</style>

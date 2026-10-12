@@ -1,0 +1,155 @@
+---
+/**
+ * CSS-only night-drive backdrop for page heroes: a tail-light glow plus light streaks
+ * (red tail lights one way, white headlights the other). Transform/opacity animation only,
+ * static under reduced motion, no JS. Place inside a `relative isolate overflow-hidden` parent.
+ *
+ *   <section class="relative isolate overflow-hidden"><HeroTrails /> ...</section>
+ */
+interface Props {
+  /** "subtle" for inner pages, "bold" for 404 / special pages. */
+  intensity?: "subtle" | "bold";
+  /**
+   * Where the light streaks run. Put them where there is NO text: "bottom" when the hero copy
+   * sits at the top (inner pages), "top" when the copy sits at the bottom (tall heroes).
+   * Streaks are masked away from the left (text) side and hidden on phones.
+   */
+  placement?: "top" | "bottom";
+  class?: string;
+}
+
+const { intensity = "subtle", placement = "bottom", class: className } = Astro.props;
+---
+
+<div class:list={["hero-trails pointer-events-none absolute inset-0 -z-10", className]} data-intensity={intensity} data-placement={placement} aria-hidden="true">
+  <div class="hero-trails__glow"></div>
+  <div class="hero-trails__road">
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <div class="hero-trails__fade"></div>
+</div>
+
+<style>
+  .hero-trails {
+    overflow: hidden;
+  }
+  .hero-trails__glow {
+    position: absolute;
+    /* Offset by its own size (translate), not by the hero's height: a top in % of the parent moved
+       the glow whenever the hero grew (font swap, the quote island hydrating) and counted as CLS. */
+    inset: 0 -10% auto auto;
+    translate: 0 -22%;
+    width: min(70rem, 110%);
+    aspect-ratio: 1.6;
+    background:
+      radial-gradient(40% 45% at 70% 40%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 70%),
+      radial-gradient(30% 30% at 30% 70%, color-mix(in oklab, var(--text) 5%, transparent), transparent 70%);
+  }
+  .hero-trails__road {
+    position: absolute;
+    inset: auto -10% 2% -10%;
+    height: 32%;
+    container-type: inline-size;
+    transform: rotate(-4deg);
+    transform-origin: 50% 50%;
+    opacity: 0.9;
+    /* Keep streaks off the text column (left) so they never read as strikethrough. */
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 42%, black 78%);
+    mask-image: linear-gradient(90deg, transparent 0%, transparent 42%, black 78%);
+    /* Shown only after first paint. The road hangs off the bottom of the hero, and the hero keeps
+       growing while the page streams in (and when fonts swap): a visible layer moving down with it
+       counted as layout shift (CLS 0.19 on /quote/). Hidden layers do not count. */
+    animation: trails-reveal 0.8s ease-out 0.9s both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-trails__road {
+      animation-duration: 0.01s;
+    }
+  }
+  .hero-trails[data-placement="top"] .hero-trails__road {
+    inset: 10% -10% auto -10%;
+    height: 38%;
+    transform: rotate(-7deg);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 30%, black 70%);
+    mask-image: linear-gradient(90deg, transparent 0%, transparent 30%, black 70%);
+  }
+  /* Phones: copy spans the full width, so only the glow remains (DESIGN: light motion on phones). */
+  @media (width < 48rem) {
+    .hero-trails__road {
+      display: none;
+    }
+  }
+  .hero-trails[data-intensity="subtle"] .hero-trails__road {
+    opacity: 0.55;
+  }
+  .hero-trails__road span {
+    position: absolute;
+    left: 0;
+    height: 2px;
+    width: 22%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--accent) 85%, transparent));
+    translate: -110% 0;
+    will-change: translate;
+  }
+  /* Headlights travel the other way. */
+  .hero-trails__road span:nth-child(even) {
+    background: linear-gradient(270deg, transparent, color-mix(in oklab, var(--text) 70%, transparent));
+    translate: calc(100cqw + 10%) 0;
+  }
+  .hero-trails__road span:nth-child(1) { top: 18%; width: 26%; }
+  .hero-trails__road span:nth-child(2) { top: 30%; width: 18%; opacity: 0.6; }
+  .hero-trails__road span:nth-child(3) { top: 44%; width: 34%; height: 3px; }
+  .hero-trails__road span:nth-child(4) { top: 56%; width: 22%; opacity: 0.5; }
+  .hero-trails__road span:nth-child(5) { top: 68%; width: 16%; opacity: 0.7; }
+  .hero-trails__road span:nth-child(6) { top: 80%; width: 28%; opacity: 0.4; }
+  .hero-trails__road span:nth-child(7) { top: 92%; width: 20%; opacity: 0.5; }
+
+  .hero-trails__fade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 55%, var(--bg) 100%);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-trails__road span:nth-child(odd) {
+      animation: trail-ltr 7s linear infinite;
+    }
+    .hero-trails__road span:nth-child(even) {
+      animation: trail-rtl 9s linear infinite;
+    }
+    .hero-trails__road span:nth-child(1) { animation-duration: 6.5s; animation-delay: -1s; }
+    .hero-trails__road span:nth-child(2) { animation-duration: 10s; animation-delay: -4s; }
+    .hero-trails__road span:nth-child(3) { animation-duration: 5.2s; animation-delay: -2.5s; }
+    .hero-trails__road span:nth-child(4) { animation-duration: 8.5s; animation-delay: -6s; }
+    .hero-trails__road span:nth-child(5) { animation-duration: 7.5s; animation-delay: -5s; }
+    .hero-trails__road span:nth-child(6) { animation-duration: 11s; animation-delay: -3s; }
+    .hero-trails__road span:nth-child(7) { animation-duration: 6s; animation-delay: -0.5s; }
+  }
+
+  /* Static composition under reduced motion: streaks parked across the road. */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-trails__road span:nth-child(1) { translate: 50cqw 0; }
+    .hero-trails__road span:nth-child(2) { translate: 20cqw 0; }
+    .hero-trails__road span:nth-child(3) { translate: 62cqw 0; }
+    .hero-trails__road span:nth-child(4) { translate: 8cqw 0; }
+    .hero-trails__road span:nth-child(5) { translate: 74cqw 0; }
+    .hero-trails__road span:nth-child(6) { translate: 34cqw 0; }
+    .hero-trails__road span:nth-child(7) { translate: 58cqw 0; }
+  }
+
+  @keyframes trails-reveal {
+    from {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+  @keyframes trail-ltr {
+    from { translate: -110% 0; }
+    to { translate: calc(100cqw + 10%) 0; }
+  }
+  @keyframes trail-rtl {
+    from { translate: calc(100cqw + 10%) 0; }
+    to { translate: -110% 0; }
+  }
+</style>

@@ -1,0 +1,270 @@
+---
+/**
+ * Area page (/areas/<slug>/): local car rental landing page for one Lahore neighbourhood.
+ * Content: src/content/areas/<slug>.md. Prices: catalog only. JSON-LD: the sitewide AutoRental
+ * (by @id) with this area as areaServed and BreadcrumbList (PageLayout). The FAQs are visible only
+ * (no FAQPage: see FaqList.astro). FAQ answers may use {{key}} tokens from terms.ts.
+ */
+import { getCollection, render } from "astro:content";
+import Button from "@/components/Button.astro";
+import CarCard from "@/components/CarCard.astro";
+import FaqList from "@/components/FaqList.astro";
+import Icon from "@/components/Icon.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import PriceTag from "@/components/PriceTag.astro";
+import Prose from "@/components/Prose.astro";
+import SampleFleetNote from "@/components/SampleFleetNote.astro";
+import Section from "@/components/Section.astro";
+import SectionHeading from "@/components/SectionHeading.astro";
+import AreaLinks from "@/components/local/AreaLinks.astro";
+import DistanceBoard from "@/components/local/DistanceBoard.astro";
+import LahoreMap from "@/components/local/LahoreMap.astro";
+import QuoteBand from "@/components/local/QuoteBand.astro";
+import RouteLinks from "@/components/local/RouteLinks.astro";
+import { areaMeta } from "@/components/local/area-meta";
+import { AREA_GEO } from "@/components/local/geo";
+import { modelsOrFallback } from "@/components/local/pricing";
+import { fillTerms } from "@/components/services/terms";
+import { areaBusinessSchema } from "@/components/local/schema";
+import { formatAddress, formatOpeningHours, primaryPhone, site } from "@/config/site";
+import PageLayout from "@/layouts/PageLayout.astro";
+import { cheapestFrom, getCategories } from "@/lib/catalog";
+import { mapsUrl, telUrl, whatsappUrl } from "@/lib/links";
+import { urls } from "@/lib/urls";
+
+export async function getStaticPaths() {
+  const areas = await getCollection("areas");
+  return areas.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+
+const [allAreas, routes, categories] = await Promise.all([getCollection("areas"), getCollection("routes"), getCategories()]);
+const meta = areaMeta(entry.id);
+const geo = AREA_GEO.find((a) => a.slug === entry.id);
+const popular = await modelsOrFallback(data.popularModels, "family", 4);
+const fromPrice = cheapestFrom(popular);
+const categoryName = (slug: string) => categories.find((c) => c.slug === slug)?.name;
+
+const isHq = entry.id === "lahore-cantt";
+const path = urls.area(entry.id);
+const waMessage = `Assalam o Alaikum! I need a car in ${data.areaName}.`;
+const nearby = data.nearbyAreas.filter((s) => s !== entry.id);
+const hours = formatOpeningHours();
+// Policy wording (self drive handover, etc.) comes from terms.ts via {{key}} tokens.
+const faqs = data.faqs.map((f) => ({ q: fillTerms(f.q), a: fillTerms(f.a) }));
+---
+
+<PageLayout
+  title={data.metaTitle}
+  description={data.metaDescription}
+  h1={data.h1}
+  intro={data.intro}
+  crumbs={[{ label: "Areas we serve", href: urls.areas() }, { label: data.areaName }]}
+  whatsappMessage={waMessage}
+>
+  <JsonLd slot="jsonld" data={areaBusinessSchema({ name: data.areaName, url: path, lat: geo?.lat, lng: geo?.lng })} />
+
+  <Fragment slot="actions">
+    <Button href="#quote" size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+    <Button href={whatsappUrl(waMessage)} variant="secondary" size="lg" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
+      {site.cta.whatsapp.label}
+    </Button>
+    <Button href={telUrl()} variant="ghost" size="lg" icon="ph:phone">{site.cta.call.label}</Button>
+  </Fragment>
+
+  <Fragment slot="aside">
+    <DistanceBoard from={data.areaName} distances={data.distances} />
+  </Fragment>
+
+  {
+    isHq && (
+      <Section id="office" labelledby="office-title" spacing="sm">
+        <div class="grid gap-8 rounded-card border border-line bg-surface p-6 sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-12">
+          <div class="flex flex-col gap-4">
+            <p class="eyebrow">Head office</p>
+            <h2 id="office-title" class="text-display-md text-fg">
+              Our office is in {data.areaName}
+            </h2>
+            <p class="text-muted">
+              Self drive handovers, document checks and most of our trips start here. Message us before you visit so the car and the paperwork are ready.
+            </p>
+            <div class="flex flex-wrap gap-3">
+              <Button href={mapsUrl()} variant="secondary" icon="ph:map-pin" external>
+                Get directions
+              </Button>
+              <Button href={urls.contact()} variant="ghost" iconRight="ph:arrow-right">
+                Contact details
+              </Button>
+            </div>
+          </div>
+          <dl class="grid gap-5 text-sm sm:grid-cols-2">
+            <div class="relative pl-8">
+              <dt class="font-semibold text-fg">
+                <Icon name="ph:map-pin" size={20} class="absolute top-0.5 left-0 text-accent" />Address
+              </dt>
+              <dd class="mt-1 text-muted">
+                <address class="not-italic">{formatAddress()}</address>
+              </dd>
+            </div>
+            <div class="relative pl-8">
+              <dt class="font-semibold text-fg">
+                <Icon name="ph:clock" size={20} class="absolute top-0.5 left-0 text-accent" />Opening hours
+              </dt>
+              {hours.map((h) => (
+                <dd class="mt-1 text-muted">{h}</dd>
+              ))}
+            </div>
+            <div class="relative pl-8">
+              <dt class="font-semibold text-fg">
+                <Icon name="ph:phone" size={20} class="absolute top-0.5 left-0 text-accent" />Phone
+              </dt>
+              <dd class="mt-1">
+                <a href={telUrl()} class="text-muted tabular transition-colors hover:text-fg">
+                  {primaryPhone.display}
+                </a>
+              </dd>
+            </div>
+            <div class="relative pl-8">
+              <dt class="font-semibold text-fg">
+                <Icon name="ph:envelope-simple" size={20} class="absolute top-0.5 left-0 text-accent" />Email
+              </dt>
+              <dd class="mt-1 break-all">
+                <a href={`mailto:${site.email}`} class="text-muted transition-colors hover:text-fg">
+                  {site.email}
+                </a>
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </Section>
+    )
+  }
+
+  <Section id="pickup" labelledby="pickup-title" spacing={isHq ? "sm" : "md"}>
+    <div class="grid gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-12 lg:gap-20">
+      <div class="flex flex-col gap-8">
+        <SectionHeading
+          id="pickup-title"
+          title={`Pickup points in ${data.areaName}`}
+          intro="We come to your door. These are the places we pick up from most often, so tell us the nearest one if you are not at home."
+          size="md"
+        />
+        <div class="grid gap-8 sm:grid-cols-2">
+          <div>
+            <h3 class="flex items-center gap-2 font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">
+              <Icon name="ph:map-pin" size={16} class="text-accent" />
+              Pickup points
+            </h3>
+            <ul class="mt-4 flex flex-col gap-3 text-sm leading-relaxed text-muted">
+              {
+                data.pickupPoints.map((p) => (
+                  <li class="flex gap-2.5">
+                    <Icon name="ph:check" size={16} class="mt-0.5 shrink-0 text-accent" />
+                    <span>{p}</span>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+          <div>
+            <h3 class="flex items-center gap-2 font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">
+              <Icon name="ph:buildings" size={16} class="text-accent" />
+              Landmarks we know
+            </h3>
+            <ul class="mt-4 flex flex-col gap-3 text-sm leading-relaxed text-muted">
+              {
+                data.landmarks.map((l) => (
+                  <li class="flex gap-2.5">
+                    <span class="mt-2 h-0.5 w-2.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+                    <span>{l}</span>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+        </div>
+      </div>
+      <LahoreMap mode="locator" highlight={entry.id} distances={data.distances} uid={`map-${entry.id}`} />
+    </div>
+  </Section>
+
+  <Section id="local-guide" aria-label={`${data.areaName} local guide`} divider>
+    <div class="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-20">
+      <Prose>
+        <Content />
+      </Prose>
+      <aside class="flex flex-col gap-8 lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:self-start" aria-labelledby="trips-title">
+        <div>
+          <h2 id="trips-title" class="font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">Popular trips from {data.areaName}</h2>
+          <RouteLinks routes={routes} prefer={meta.routes} limit={4} layout="stack" class="mt-4" />
+          <a href={urls.routes()} class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-fg underline-offset-4 hover:underline">
+            All outstation routes <Icon name="ph:arrow-right" size={14} />
+          </a>
+        </div>
+        <div class="rounded-card border border-line bg-surface p-5">
+          <p class="font-semibold text-fg">Self drive or with a driver?</p>
+          <p class="mt-2 text-sm text-muted">
+            Both work in {data.areaName}. Compare them in our <a href={urls.guide("self-drive-vs-car-with-driver-lahore")} class="font-semibold text-accent-fg underline underline-offset-2">self drive vs driver guide</a>.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </Section>
+
+  {
+    popular.length > 0 && (
+      <Section id="cars" labelledby="cars-title" divider>
+        <SectionHeading
+          id="cars-title"
+          title={`Popular cars in ${data.areaName}`}
+          intro={`The cars people in ${data.areaName} ask us for most, with live rates. The badges show whether each one comes with a driver, as self drive or both.`}
+        >
+          {fromPrice !== null && <PriceTag amount={fromPrice} size="lg" class="mt-1" />}
+          <Button slot="actions" href={urls.cars()} variant="secondary" iconRight="ph:arrow-right">
+            See the full fleet
+          </Button>
+        </SectionHeading>
+        {/* Phones: a native scroll-snap row instead of four tall stacked cards. */}
+        <ul
+          class="mt-12 mx-[calc(var(--gutter)*-1)] flex snap-x snap-mandatory scroll-px-(--gutter) gap-4 overflow-x-auto px-(--gutter) pb-4 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-x-6 sm:gap-y-12 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4"
+          aria-label={`Popular cars in ${data.areaName}`}
+          data-reveal
+        >
+          {/* The reveal sits on the list, not the cards: inside a horizontal scroller a per-card view() timeline would track the wrong scroller. */}
+          {popular.map((model) => (
+            <li class="w-[82%] shrink-0 snap-start sm:w-auto">
+              <CarCard model={model} categoryName={categoryName(model.category)} />
+            </li>
+          ))}
+        </ul>
+        <SampleFleetNote class="mt-10" />
+      </Section>
+    )
+  }
+
+  <QuoteBand
+    title={`Get a quote for a pickup in ${data.areaName}`}
+    intro={`Pick a car and your dates. We confirm the price and the pickup time in ${data.areaName} on WhatsApp.`}
+    defaultPickup={data.areaName}
+    whatsappMessage={waMessage}
+  />
+
+  {
+    faqs.length > 0 && (
+      <Section id="faq" labelledby="faq-title" width="narrow" divider>
+        <SectionHeading id="faq-title" title={`Renting a car in ${data.areaName}: questions`} size="md" />
+        <FaqList faqs={faqs} exclusive id={`faq-${entry.id}`} class="mt-10" />
+      </Section>
+    )
+  }
+
+  <Section id="nearby" labelledby="nearby-title" divider spacing="sm">
+    <SectionHeading id="nearby-title" title="Nearby areas we serve" size="md">
+      <Button slot="actions" href={urls.areas()} variant="ghost" iconRight="ph:arrow-right">All areas in Lahore</Button>
+    </SectionHeading>
+    <AreaLinks slugs={nearby} areas={allAreas} class="mt-8" />
+  </Section>
+</PageLayout>

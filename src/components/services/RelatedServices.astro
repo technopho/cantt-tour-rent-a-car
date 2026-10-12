@@ -1,0 +1,46 @@
+---
+/**
+ * Links to related service pages (descriptive anchors from site.ts). Hairline grid, no cards.
+ */
+import Icon from "@/components/Icon.astro";
+import { getService, type ServiceSummary } from "@/config/site";
+import { urls } from "@/lib/urls";
+
+interface Props {
+  slugs: string[];
+  headingId: string;
+  title?: string;
+}
+
+const { slugs, headingId, title = "Other ways to rent with us" } = Astro.props;
+const services = slugs.map((s) => getService(s)).filter((s): s is ServiceSummary => Boolean(s));
+const lgCols = services.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3";
+---
+
+{
+  services.length > 0 && (
+    <>
+      <h2 id={headingId} class="text-display-md text-fg">
+        {title}
+      </h2>
+      <ul class:list={["mt-8 grid gap-px overflow-hidden rounded-card border border-line bg-line md:grid-cols-2", lgCols]}>
+        {services.map((s) => (
+          <li class="bg-bg">
+            <a href={urls.service(s.slug)} class="group flex h-full flex-col gap-3 p-6 transition-colors duration-300 hover:bg-surface">
+              <Icon name={s.icon} size={24} class="text-accent" />
+              <span class="font-display text-[1.0625rem] leading-snug font-semibold tracking-[-0.02em] text-fg">
+                {s.name} in Lahore
+              </span>
+              <span class="text-sm leading-relaxed text-muted">{s.description}</span>
+              <Icon
+                name="ph:arrow-right"
+                size={18}
+                class="mt-auto pt-1 text-muted transition-[color,transform] duration-300 ease-(--ease-out) group-hover:translate-x-1 group-hover:text-accent"
+              />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}

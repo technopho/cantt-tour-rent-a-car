@@ -1,0 +1,58 @@
+---
+/**
+ * Section heading: optional eyebrow, heading (h2 by default) and intro paragraph.
+ *
+ *   <SectionHeading id="fleet-title" title="Pick your car" intro="Sedans, SUVs, vans and wedding cars." />
+ *   <SectionHeading eyebrow="Outstation" title="Lahore to anywhere" align="center">
+ *     <Button slot="actions" href="/routes/" variant="secondary">See routes</Button>
+ *   </SectionHeading>
+ *
+ * Eyebrow restraint rule (DESIGN.md): at most ONE eyebrow per three sections on a page.
+ * Use a slot named "title" for rich headings (e.g. a highlighted word).
+ */
+interface Props {
+  id?: string;
+  eyebrow?: string;
+  title?: string;
+  intro?: string;
+  as?: "h1" | "h2" | "h3";
+  /** lg = section headline, md = sub-section, sm = compact blocks. */
+  size?: "lg" | "md" | "sm";
+  align?: "start" | "center";
+  class?: string;
+}
+
+const { id, eyebrow, title, intro, as: Tag = "h2", size = "lg", align = "start", class: className } = Astro.props;
+
+const sizes = {
+  lg: "text-display-lg",
+  md: "text-display-md",
+  sm: "text-display-sm",
+};
+const hasActions = Astro.slots.has("actions");
+---
+
+<div
+  class:list={[
+    "flex flex-col gap-6",
+    hasActions && align === "start" && "md:flex-row md:items-end md:justify-between",
+    align === "center" && "items-center text-center",
+    className,
+  ]}
+>
+  <div class:list={["flex max-w-3xl flex-col gap-4", align === "center" && "items-center"]}>
+    {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+    <Tag id={id} class:list={[sizes[size], "text-fg"]}>
+      {Astro.slots.has("title") ? <slot name="title" /> : title}
+    </Tag>
+    {intro && <p class="text-lede max-w-2xl text-muted">{intro}</p>}
+    <slot />
+  </div>
+  {
+    hasActions && (
+      <div class="flex shrink-0 flex-wrap gap-3">
+        <slot name="actions" />
+      </div>
+    )
+  }
+</div>

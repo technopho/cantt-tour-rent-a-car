@@ -1,0 +1,700 @@
+/*
+ * Cantt Rent a Car: design tokens + base styles (Tailwind CSS 4).
+ * Tokens follow website/DESIGN.md. Dark is the brand mode (default); light applies under
+ * prefers-color-scheme: light with the same hierarchy. One theme per page, no section flips.
+ *
+ * Utility names you get from the tokens below:
+ *   bg-bg  bg-surface  bg-surface-2  border-line  border-line-strong  text-fg  text-muted
+ *   text-accent  bg-accent  bg-accent-soft  text-accent-fg  bg-accent-fill  text-accent-ink
+ *   text-whatsapp  font-display  font-sans  text-display-{2xl,xl,lg,md,sm}  text-lede  text-eyebrow
+ *   rounded-card (16px)  rounded-badge (8px)  rounded-full (pills)  max-w-site  pt-header
+ */
+
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------------------------------
+ * Self-hosted variable fonts (files from @fontsource-variable/*, hashed into /_astro/).
+ * Only the latin + latin-ext subsets are declared: the site is English / Roman Urdu, and the
+ * package's full index.css would add cyrillic, greek and vietnamese faces (two of them small
+ * enough for Vite to inline as base64 into this render-blocking stylesheet).
+ * BaseLayout preloads the two latin files; they must stay the same files as below.
+ * ---------------------------------------------------------------------------------------- */
+@font-face {
+  font-family: "Unbounded Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 900;
+  src: url("@fontsource-variable/unbounded/files/unbounded-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Unbounded Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 900;
+  src: url("@fontsource-variable/unbounded/files/unbounded-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Manrope Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("@fontsource-variable/manrope/files/manrope-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Manrope Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Fallback faces tuned to the real fonts' metrics (computed from the woff2 files) so the
+ * swap from Arial to Unbounded/Manrope does not shift layout (CLS budget 0.05).
+ * ---------------------------------------------------------------------------------------- */
+@font-face {
+  font-family: "Unbounded Fallback";
+  src: local("Arial"), local("Helvetica Neue"), local("Helvetica"), local("Roboto");
+  size-adjust: 134.44%;
+  ascent-override: 74.01%;
+  descent-override: 18.22%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Manrope Fallback";
+  src: local("Arial"), local("Helvetica Neue"), local("Helvetica"), local("Roboto");
+  size-adjust: 99.17%;
+  ascent-override: 107.49%;
+  descent-override: 30.25%;
+  line-gap-override: 0%;
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Raw tokens. Locked values from DESIGN.md, plus a few derived accessible variants:
+ *  --accent-fg    accent for SMALL text (links, eyebrows, prices). AA on bg, surface, surface-2.
+ *  --accent-fill  background for filled buttons. AA with --accent-ink (white).
+ *  The locked --accent itself is for icons, glows, large display text, borders and focus rings.
+ * ---------------------------------------------------------------------------------------- */
+:root {
+  color-scheme: dark;
+
+  --bg: #0b0d12;
+  --surface: #12151c;
+  --surface-2: #1a1e27;
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.36); /* form controls: 3:1 against surface */
+  --text: #eef0f3;
+  --muted: #9aa3b2;
+  --accent: #e8553d;
+  --accent-ink: #ffffff;
+
+  --accent-fg: #e8553d; /* 5.37:1 on bg, 4.61:1 on surface-2 */
+  --accent-fill: #cf472f; /* white text 4.57:1 */
+  --accent-fill-hover: #c4412a; /* white text 5.08:1 */
+  --accent-soft: rgb(232 85 61 / 0.14);
+  --whatsapp: #25d366; /* brand mark colour, 8.4:1 on surface-2 */
+
+  --shadow-tint: 222 47% 2%;
+  --grain-opacity: 0.045;
+  --header-bg: rgb(11 13 18 / 0.84);
+  --theme-color: #0b0d12;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+
+    --bg: #f3f4f6;
+    --surface: #ffffff;
+    --surface-2: #e9ebef;
+    --line: rgb(12 15 22 / 0.1);
+    --line-strong: rgb(12 15 22 / 0.48);
+    --text: #10131a;
+    --muted: #4b5363;
+    --accent: #c9432c;
+    --accent-ink: #ffffff;
+
+    --accent-fg: #b23a25; /* 5.41:1 on bg, 4.99:1 on surface-2 */
+    --accent-fill: #c9432c; /* white text 4.86:1 */
+    --accent-fill-hover: #b23a25; /* white text 5.96:1 */
+    --accent-soft: rgb(201 67 44 / 0.1);
+    --whatsapp: #128c4a; /* darker green keeps 3:1+ on light surfaces */
+
+    --shadow-tint: 222 25% 35%;
+    --grain-opacity: 0.03;
+    --header-bg: rgb(243 244 246 / 0.86);
+    --theme-color: #f3f4f6;
+  }
+}
+
+/* Static theme values (not colour-scheme dependent). */
+@theme {
+  /* Kill the default palette so every agent builds from the brand tokens only. */
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  --font-*: initial;
+  --font-display: "Unbounded Variable", "Unbounded Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope Variable", "Manrope Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Display scale (Unbounded, tight tracking). Pair with font-display (h1-h4 get it by default). */
+  --text-display-2xl: clamp(2.5rem, 1.15rem + 5.4vw, 6rem);
+  --text-display-2xl--line-height: 0.98;
+  --text-display-2xl--letter-spacing: -0.045em;
+  --text-display-xl: clamp(2.125rem, 1.25rem + 3.6vw, 4.5rem);
+  --text-display-xl--line-height: 1.02;
+  --text-display-xl--letter-spacing: -0.04em;
+  --text-display-lg: clamp(1.75rem, 1.15rem + 2.4vw, 3.25rem);
+  --text-display-lg--line-height: 1.06;
+  --text-display-lg--letter-spacing: -0.035em;
+  --text-display-md: clamp(1.375rem, 1.05rem + 1.3vw, 2.125rem);
+  --text-display-md--line-height: 1.12;
+  --text-display-md--letter-spacing: -0.03em;
+  --text-display-sm: clamp(1.0625rem, 0.95rem + 0.5vw, 1.375rem);
+  --text-display-sm--line-height: 1.25;
+  --text-display-sm--letter-spacing: -0.02em;
+
+  /* Text scale (Manrope). */
+  --text-lede: clamp(1.0625rem, 0.98rem + 0.4vw, 1.3125rem);
+  --text-lede--line-height: 1.55;
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-eyebrow--letter-spacing: 0.16em;
+
+  /* Shape system: pills for buttons/chips, 16px for cards/inputs/media, 8px for small badges. */
+  --radius-card: 1rem;
+  --radius-badge: 0.5rem;
+
+  --container-site: 87.5rem; /* 1400px */
+  --container-prose: 44rem;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  --animate-reveal-up: reveal-up 0.8s var(--ease-out) both;
+  --animate-fade-in: fade-in 0.6s var(--ease-out) both;
+
+}
+
+/* Colour utilities reference the live CSS variables so light/dark switch automatically. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-fill: var(--accent-fill);
+  --color-accent-fill-hover: var(--accent-fill-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-whatsapp: var(--whatsapp);
+
+  --shadow-soft: 0 1px 2px hsl(var(--shadow-tint) / 0.18), 0 12px 32px -12px hsl(var(--shadow-tint) / 0.45);
+  --shadow-lift: 0 2px 4px hsl(var(--shadow-tint) / 0.2), 0 24px 60px -20px hsl(var(--shadow-tint) / 0.55);
+}
+
+/* Keyframes shared by reveals and animate-* utilities. */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes reveal-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Base
+ * ---------------------------------------------------------------------------------------- */
+@layer base {
+  :root {
+    --header-h: 4rem;
+    --gutter: 1rem;
+    --section-space: clamp(4.5rem, 3rem + 6vw, 9rem);
+  }
+  @media (width >= 40rem) {
+    :root {
+      --gutter: 1.5rem;
+    }
+  }
+  @media (width >= 64rem) {
+    :root {
+      --header-h: 4.5rem;
+      --gutter: 2.5rem;
+    }
+  }
+
+  html {
+    /*
+     * Horizontal overflow guard. overflow on <html> is what propagates to the viewport, which lets
+     * body's own overflow-x: clip (below) actually clip. Without this, body's value is propagated
+     * instead, the body clips nothing, and one over-wide element (long URL, wide table, decorative
+     * layer) widens the layout viewport on mobile Chrome/Safari so the header CTAs fall off screen.
+     * clip (not hidden) keeps position: sticky working.
+     */
+    overflow-x: clip;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-padding-top: calc(var(--header-h) + 1rem);
+    hanging-punctuation: first last;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--bg);
+    color: var(--text);
+    font-size: 1rem;
+    line-height: 1.6;
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  p,
+  li,
+  dd,
+  figcaption {
+    text-wrap: pretty;
+  }
+
+  strong,
+  b {
+    font-weight: 700;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--accent) 38%, transparent);
+    color: var(--text);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Prices and counters line up. */
+  .tabular,
+  data,
+  time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  img,
+  video,
+  svg {
+    max-width: 100%;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html:not(.lenis) {
+      scroll-behavior: smooth;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Utilities
+ * ---------------------------------------------------------------------------------------- */
+
+/* Page container: max 1400px, 16px gutters on phones, 24px tablets, 40px desktop. */
+@utility container-site {
+  width: 100%;
+  max-width: var(--container-site);
+  margin-inline: auto;
+  padding-inline: max(var(--gutter), env(safe-area-inset-left)) max(var(--gutter), env(safe-area-inset-right));
+}
+
+/* Offset for content under the fixed header. */
+@utility pt-header {
+  padding-top: var(--header-h);
+}
+
+/* Vertical rhythm for sections. */
+@utility py-section {
+  padding-block: var(--section-space);
+}
+@utility pt-section {
+  padding-top: var(--section-space);
+}
+@utility pb-section {
+  padding-bottom: var(--section-space);
+}
+
+/* Small caps label above headings. Restraint rule: at most 1 eyebrow per 3 sections. */
+@utility eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--text-eyebrow);
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--accent-fg);
+}
+
+/* Hairline that fades out at both ends (road markings, dividers). */
+@utility rule-fade {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--line) 15%, var(--line) 85%, transparent);
+}
+
+/* Accessible visually-hidden text that becomes visible on focus (skip link). */
+@utility sr-only-focusable {
+  &:not(:focus):not(:focus-within) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* Hide scrollbars on horizontal scrollers (scroll-snap carousels) while keeping them scrollable. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Fixed film grain overlay (decorative). BaseLayout renders <div class="grain" aria-hidden="true">. */
+@utility grain {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 220px 220px;
+  mix-blend-mode: overlay;
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Scroll reveals
+ *  Usage: <div data-reveal>, data-reveal="fade" | "scale", optional data-reveal-delay="1|2|3".
+ *  Modern browsers: CSS scroll-driven animation (no JS). Others: an IntersectionObserver in
+ *  src/scripts/reveal.ts adds .is-revealed. Never put data-reveal on the H1 / LCP element.
+ * ---------------------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    [data-reveal] {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    [data-reveal="fade"] {
+      animation-name: fade-in;
+    }
+    [data-reveal="scale"] {
+      animation-name: reveal-scale;
+    }
+    [data-reveal-delay="1"] {
+      animation-range: entry 8% entry 63%;
+    }
+    [data-reveal-delay="2"] {
+      animation-range: entry 16% entry 71%;
+    }
+    [data-reveal-delay="3"] {
+      animation-range: entry 24% entry 79%;
+    }
+  }
+
+  @supports not (animation-timeline: view()) {
+    .js [data-reveal] {
+      transition:
+        opacity 0.8s var(--ease-out),
+        transform 0.8s var(--ease-out);
+    }
+    .js [data-reveal]:not(.is-revealed) {
+      opacity: 0;
+      transform: translate3d(0, 28px, 0);
+    }
+    .js [data-reveal="fade"]:not(.is-revealed) {
+      transform: none;
+    }
+    .js [data-reveal="scale"]:not(.is-revealed) {
+      transform: scale(0.96);
+    }
+    .js [data-reveal-delay="1"] {
+      transition-delay: 90ms;
+    }
+    .js [data-reveal-delay="2"] {
+      transition-delay: 180ms;
+    }
+    .js [data-reveal-delay="3"] {
+      transition-delay: 270ms;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Cross-document view transitions (progressive enhancement, no client router).
+ * ---------------------------------------------------------------------------------------- */
+@view-transition {
+  navigation: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: 180ms var(--ease-in-out) both vt-fade-out;
+  }
+  ::view-transition-new(root) {
+    animation: 380ms var(--ease-out) 60ms both vt-rise-in;
+  }
+}
+
+/* Header and FAB stay put while the page underneath changes. */
+.site-header {
+  view-transition-name: site-header;
+}
+.whatsapp-fab {
+  view-transition-name: whatsapp-fab;
+}
+::view-transition-group(site-header),
+::view-transition-group(whatsapp-fab) {
+  animation-duration: 0s;
+}
+
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-rise-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Lenis (smooth scroll on fine-pointer desktop only; see src/scripts/smooth-scroll.ts)
+ * ---------------------------------------------------------------------------------------- */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+.lenis [data-lenis-prevent],
+.lenis [data-lenis-prevent-wheel],
+.lenis [data-lenis-prevent-touch] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* Scroll lock while the mobile menu dialog is open. */
+html:has(dialog[open][data-scroll-lock]) {
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Components that are easier to express in CSS than in utilities
+ * ---------------------------------------------------------------------------------------- */
+@layer components {
+  /* Long-form markdown (Prose.astro). */
+  .prose-site {
+    --prose-gap: 1.25em;
+    max-width: var(--container-prose);
+    color: var(--muted);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+
+    & > * + * {
+      margin-top: var(--prose-gap);
+    }
+    & :where(h2, h3, h4) {
+      color: var(--text);
+      scroll-margin-top: calc(var(--header-h) + 1.5rem);
+    }
+    & :where(h2) {
+      margin-top: 2.4em;
+      font-size: var(--text-display-md);
+      line-height: var(--text-display-md--line-height);
+      letter-spacing: var(--text-display-md--letter-spacing);
+    }
+    & :where(h3) {
+      margin-top: 2em;
+      font-size: var(--text-display-sm);
+      line-height: var(--text-display-sm--line-height);
+      letter-spacing: var(--text-display-sm--letter-spacing);
+    }
+    & :where(h4) {
+      margin-top: 1.75em;
+      font-family: var(--font-sans);
+      font-size: 1.0625rem;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    & :where(h2 + *, h3 + *, h4 + *) {
+      margin-top: 0.75em;
+    }
+    & :where(strong) {
+      color: var(--text);
+    }
+    & :where(a) {
+      color: var(--accent-fg);
+      font-weight: 600;
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.2em;
+      transition: text-decoration-color 0.2s var(--ease-out);
+    }
+    & :where(a:hover) {
+      text-decoration-thickness: 2px;
+    }
+    & :where(ul, ol) {
+      padding-left: 1.25em;
+    }
+    & :where(ul) {
+      list-style: none;
+    }
+    & :where(ul > li) {
+      position: relative;
+    }
+    & :where(ul > li)::before {
+      content: "";
+      position: absolute;
+      left: -1.05em;
+      top: 0.78em;
+      width: 0.45em;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--accent);
+    }
+    & :where(ol) {
+      list-style: decimal;
+    }
+    & :where(ol > li)::marker {
+      color: var(--accent-fg);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    & :where(li + li) {
+      margin-top: 0.5em;
+    }
+    & :where(blockquote) {
+      border-left: 2px solid var(--accent);
+      padding-left: 1.25em;
+      color: var(--text);
+      font-size: 1.125em;
+    }
+    & :where(hr) {
+      height: 1px;
+      border: 0;
+      background: var(--line);
+      margin-block: 2.5em;
+    }
+    & :where(table) {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95em;
+      font-variant-numeric: tabular-nums;
+    }
+    & :where(th, td) {
+      text-align: left;
+      padding: 0.7em 0.9em;
+      border-bottom: 1px solid var(--line);
+    }
+    & :where(th) {
+      color: var(--text);
+      font-weight: 700;
+    }
+    & :where(code) {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      padding: 0.15em 0.4em;
+      border-radius: var(--radius-badge);
+      background: var(--surface-2);
+      color: var(--text);
+    }
+    & :where(img) {
+      border-radius: var(--radius-card);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Reduced motion: everything collapses to its final, static state.
+ * ---------------------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

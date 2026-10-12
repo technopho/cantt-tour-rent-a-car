@@ -1,0 +1,260 @@
+---
+/**
+ * /cars/<model-slug>/: one page per catalog model. H1 "<Make> <Model> on rent in Lahore", gallery,
+ * spec cards, catalog rates (with driver / self drive), "best for" links, staff description,
+ * TripComposer (sticky side panel on desktop, inline on phones), related models and model FAQs.
+ * JSON-LD: Car + Offer (carOfferSchema), BreadcrumbList (Breadcrumbs). The templated model FAQs repeat
+ * on every car page, so they carry no FAQPage markup (see FaqList.astro).
+ */
+import type { GetStaticPaths } from "astro";
+import Breadcrumbs, { type Crumb } from "@/components/Breadcrumbs.astro";
+import Button from "@/components/Button.astro";
+import CarCard from "@/components/CarCard.astro";
+import Container from "@/components/Container.astro";
+import FaqList from "@/components/FaqList.astro";
+import HeroTrails from "@/components/HeroTrails.astro";
+import Icon from "@/components/Icon.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import PriceTag from "@/components/PriceTag.astro";
+import Prose from "@/components/Prose.astro";
+import SampleFleetNote from "@/components/SampleFleetNote.astro";
+import Section from "@/components/Section.astro";
+import SectionHeading from "@/components/SectionHeading.astro";
+import BestFor from "@/components/fleet/BestFor.astro";
+import ModelGallery from "@/components/fleet/ModelGallery.astro";
+import ModelRates from "@/components/fleet/ModelRates.astro";
+import QuotePanel from "@/components/fleet/QuotePanel.astro";
+import SpecGrid from "@/components/fleet/SpecGrid.astro";
+import { categoryLinkText } from "@/components/fleet/category-copy";
+import {
+  CITY_DAY_HOURS,
+  assertNoFleetSlugCollisions,
+  carName,
+  categoryLabel,
+  goesOutstation,
+  hasFourWheelDrive,
+  modelFaqs,
+  modelMetaDescription,
+  modelMetaTitle,
+  modelUseCases,
+  modelWhatsappMessage,
+} from "@/components/fleet/fleet-data";
+import { renderCatalogMarkdown } from "@/components/fleet/markdown";
+import { site } from "@/config/site";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getCategories, getModels, modelYears, transmissionLabel, type CatalogModel } from "@/lib/catalog";
+import { toComposerModels } from "@/lib/composer";
+import { whatsappUrl } from "@/lib/links";
+import { carOfferSchema } from "@/lib/schema";
+import { urls } from "@/lib/urls";
+
+export const getStaticPaths = (async () => {
+  const [models, allCategories] = await Promise.all([getModels(), getCategories({ includeEmpty: true })]);
+  assertNoFleetSlugCollisions(models, allCategories);
+  return models.map((model) => ({ params: { slug: model.slug }, props: { model } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  model: CatalogModel;
+}
+
+const { model } = Astro.props;
+const [models, categories, allCategories] = await Promise.all([getModels(), getCategories(), getCategories({ includeEmpty: true })]);
+
+const category = categories.find((c) => c.slug === model.category);
+const categoryName = category?.name ?? categoryLabel(model.category, allCategories);
+const categoryHref = category ? urls.category(category.slug) : undefined;
+const name = carName(model);
+const years = modelYears(model);
+const wd = model.rates.withDriver;
+const sd = model.rates.selfDrive;
+
+const byPrice = (a: CatalogModel, b: CatalogModel) => a.rates.fromPrice - b.rates.fromPrice;
+const others = models.filter((m) => m.slug !== model.slug);
+const related = [
+  ...others.filter((m) => m.category === model.category),
+  ...others
+    .filter((m) => m.category !== model.category)
+    .sort((a, b) => Math.abs(a.rates.fromPrice - model.rates.fromPrice) - Math.abs(b.rates.fromPrice - model.rates.fromPrice)),
+].slice(0, 4);
+const northernPick =
+  others.filter((m) => goesOutstation(m) && hasFourWheelDrive(m)).sort(byPrice)[0] ??
+  others.filter((m) => m.category === "suv").sort(byPrice)[0] ??
+  null;
+
+const faqs = modelFaqs(model, { northernPick });
+const composerModels = toComposerModels(models, allCategories);
+const descriptionHtml = renderCatalogMarkdown(model.description);
+const hasBestFor = modelUseCases(model).length > 0;
+/** Sections in the main column (specs, rates, best for, about, FAQ): the sticky quote column spans all of them. */
+const mainRows = hasBestFor ? 5 : 4;
+
+const crumbs: Crumb[] = [{ label: "Fleet", href: urls.cars() }];
+if (categoryHref) crumbs.push({ label: categoryName, href: categoryHref });
+crumbs.push({ label: name });
+
+const cover = model.images[0];
+const ogImage = cover ? { src: cover.src, width: cover.width, height: cover.height, alt: cover.alt || name } : undefined;
+const whatsappMessage = modelWhatsappMessage(model);
+const metaLine = [model.variant, years, `${model.seats} seats`, transmissionLabel(model.transmission)].filter(Boolean).join(" · ");
+const sectionHead = "scroll-mt-[calc(var(--header-h)+1.5rem)]";
+---
+
+<BaseLayout
+  title={modelMetaTitle(model)}
+  description={modelMetaDescription(model, categoryName)}
+  image={ogImage}
+  whatsappMessage={whatsappMessage}
+  overlayHeader
+>
+  <JsonLd slot="jsonld" data={carOfferSchema(model, { categoryName })} />
+
+  <section class="relative isolate overflow-hidden border-b border-line pt-[calc(var(--header-h)+2rem)] pb-12 md:pt-[calc(var(--header-h)+3rem)] md:pb-16">
+    <HeroTrails />
+    <Container class="relative">
+      <Breadcrumbs items={crumbs} />
+      <div class="mt-7 grid gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-center lg:gap-14">
+        <div class="flex min-w-0 flex-col">
+          <h1 class="text-fg">
+            <span class="block text-display-lg">{name}</span>{" "}
+            <span class="mt-2 block text-display-sm font-medium text-muted">on rent in Lahore</span>
+          </h1>
+          <p class="mt-4 text-sm text-muted">{metaLine}</p>
+          <p class="text-lede mt-5 max-w-xl text-muted">{model.shortDescription}</p>
+
+          <div class="mt-8 flex flex-wrap items-end gap-x-10 gap-y-5">
+            {
+              wd && (
+                <div>
+                  <p class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] text-muted">
+                    <Icon name="ph:steering-wheel" size={14} class="text-accent" />
+                    With driver
+                  </p>
+                  <PriceTag amount={wd.daily} from={false} size="xl" class="mt-1.5" />
+                  <p class="text-xs text-muted">{CITY_DAY_HOURS} hour city day</p>
+                </div>
+              )
+            }
+            {
+              sd && (
+                <div>
+                  <p class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] text-muted">
+                    <Icon name="ph:key" size={14} class="text-accent" />
+                    Self drive
+                  </p>
+                  <PriceTag amount={sd.daily} from={false} size="xl" class="mt-1.5" />
+                  <p class="text-xs text-muted">24 hours, you drive</p>
+                </div>
+              )
+            }
+          </div>
+
+          <div class="mt-8 flex flex-wrap gap-3" data-fab-hide>
+            <Button href="#quote" size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+            <Button
+              href={whatsappUrl(whatsappMessage)}
+              variant="secondary"
+              size="lg"
+              icon="simple-icons:whatsapp"
+              iconClass="text-whatsapp"
+              external
+            >
+              {site.cta.whatsapp.label}
+            </Button>
+          </div>
+        </div>
+
+        <ModelGallery model={model} categoryName={categoryName} priority />
+      </div>
+    </Container>
+  </section>
+
+  <Container class="py-[calc(var(--section-space)*0.7)]">
+    <div class="grid gap-x-12 gap-y-16 md:gap-y-20 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem] xl:gap-x-16">
+      <section id="specs" aria-labelledby="specs-title" class:list={["min-w-0 lg:col-start-1", sectionHead]}>
+        <SectionHeading id="specs-title" size="md" title={`${model.model} specs and features`} />
+        <SpecGrid model={model} categoryName={categoryName} categoryHref={categoryHref} class="mt-8" />
+      </section>
+
+      <section id="rates" aria-labelledby="rates-title" class:list={["min-w-0 lg:col-start-1", sectionHead]}>
+        <SectionHeading
+          id="rates-title"
+          size="md"
+          title={`${name} rental rates in Lahore`}
+          intro={wd && sd
+            ? "Book it with one of our drivers or drive it yourself. Fuel, motorway tolls and parking are paid separately either way."
+            : wd
+              ? "Booked with one of our drivers. Fuel, motorway tolls and parking are paid separately."
+              : "Rented for self drive. Fuel, motorway tolls and parking are paid separately."}
+        />
+        <ModelRates model={model} class="mt-8" />
+        <SampleFleetNote class="mt-6" />
+      </section>
+
+      <aside
+        id="quote"
+        aria-labelledby="quote-title"
+        class="min-w-0 scroll-mt-[calc(var(--header-h)+1rem)] lg:col-start-2 lg:row-start-1 lg:[grid-row-end:span_var(--main-rows)]"
+        style={`--main-rows: ${mainRows}`}
+      >
+        <QuotePanel model={model} composerModels={composerModels} sticky />
+      </aside>
+
+      {
+        hasBestFor && (
+          <section id="best-for" aria-labelledby="best-for-title" class:list={["min-w-0 lg:col-start-1", sectionHead]}>
+            <SectionHeading id="best-for-title" size="md" title={`What the ${model.model} is best for`} />
+            <BestFor model={model} class="mt-8" />
+          </section>
+        )
+      }
+
+      <section id="about" aria-labelledby="about-title" class:list={["min-w-0 lg:col-start-1", sectionHead]}>
+        <SectionHeading id="about-title" size="md" title={`About the ${name}`} />
+        {descriptionHtml ? <Prose html={descriptionHtml} class="mt-6" /> : <p class="mt-6 text-muted">{model.shortDescription}</p>}
+        <ul class="mt-8 flex flex-wrap gap-2 text-sm">
+          {
+            categoryHref && category && (
+              <li>
+                <a href={categoryHref} class="inline-flex h-10 items-center gap-2 rounded-full border border-line px-4 font-medium text-fg transition-colors hover:bg-surface">
+                  {categoryLinkText(category)}
+                  <Icon name="ph:arrow-right" size={14} class="text-muted" />
+                </a>
+              </li>
+            )
+          }
+          <li>
+            <a href={urls.rates()} class="inline-flex h-10 items-center gap-2 rounded-full border border-line px-4 font-medium text-fg transition-colors hover:bg-surface">
+              Rent a car rates in Lahore
+              <Icon name="ph:arrow-right" size={14} class="text-muted" />
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <section id="faq" aria-labelledby="faq-title" class:list={["min-w-0 lg:col-start-1", sectionHead]}>
+        <SectionHeading id="faq-title" size="md" title={`${model.model} rental questions`} />
+        <FaqList faqs={faqs} exclusive id={`faq-${model.slug}`} class="mt-6" />
+      </section>
+    </div>
+  </Container>
+
+  {
+    related.length > 0 && (
+      <Section id="related" labelledby="related-title" divider>
+        <SectionHeading id="related-title" title={`Other cars like the ${model.model}`} size="md">
+          <Button slot="actions" href={urls.cars()} variant="secondary" iconRight="ph:arrow-right">
+            See the full fleet
+          </Button>
+        </SectionHeading>
+        <ul class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {related.map((m, i) => (
+            <li data-reveal data-reveal-delay={i % 4 ? String(Math.min(3, i % 4)) : undefined}>
+              <CarCard model={m} categoryName={categoryLabel(m.category, allCategories)} variant="compact" headingLevel="h3" />
+            </li>
+          ))}
+        </ul>
+      </Section>
+    )
+  }
+</BaseLayout>

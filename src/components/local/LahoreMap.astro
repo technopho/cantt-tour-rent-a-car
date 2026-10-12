@@ -1,0 +1,403 @@
+---
+/**
+ * Stylised (not to scale) SVG map of Lahore: River Ravi, the canal, the Ring Road, key
+ * destinations (airport, railway station, Kalma Chowk, the M-2 entries, Wagah) and the eight
+ * areas we serve. Zero client JS of its own.
+ *
+ *   <LahoreMap mode="index" />                                       areas hub (dots link to area pages)
+ *   <LahoreMap mode="locator" highlight="dha-lahore" distances={d} />  area page: this area + drive lines
+ *
+ * The SVG is decorative for assistive tech (aria-hidden): every fact it shows is also in the
+ * page text. Locator lines "draw" from the area outwards with a transform-only animation
+ * (non-scaling stroke + scale from the start point), triggered once by an IntersectionObserver;
+ * static without JS and under prefers-reduced-motion.
+ */
+import { AREA_GEO, CANAL, MAP_SIZE, POIS, RAVI, RING_ROAD, RING_ROAD_SOUTH, pathFrom, poiForLabel, project, type LabelSide, type Point } from "./geo";
+
+interface Distance {
+  to: string;
+  km: number;
+  minutes: number;
+}
+
+interface Props {
+  mode?: "index" | "locator";
+  /** Area slug to emphasise (locator mode). */
+  highlight?: string;
+  /** Drive times from the highlighted area; lines are drawn to the matching destinations. */
+  distances?: Distance[];
+  /** Unique id prefix when two maps share a page. */
+  uid?: string;
+  class?: string;
+}
+
+const { mode = "index", highlight, distances = [], uid = "lm", class: className } = Astro.props;
+
+const S = MAP_SIZE;
+const area = highlight ? AREA_GEO.find((a) => a.slug === highlight) : undefined;
+const origin = area ? project(area.lat, area.lng) : null;
+
+function labelAt(p: Point, side: LabelSide, gap = 13): { x: number; y: number; anchor: "start" | "end" | "middle" } {
+  switch (side) {
+    case "left":
+      return { x: p.x - gap, y: p.y + 5, anchor: "end" };
+    case "top":
+      return { x: p.x, y: p.y - gap, anchor: "middle" };
+    case "bottom":
+      return { x: p.x, y: p.y + gap + 12, anchor: "middle" };
+    default:
+      return { x: p.x + gap, y: p.y + 5, anchor: "start" };
+  }
+}
+
+const pois = POIS.map((poi) => {
+  const p = project(poi.lat, poi.lng);
+  const d = distances.find((dist) => poiForLabel(dist.to)?.key === poi.key);
+  const minutes = d?.minutes ?? null;
+  const l = labelAt(p, poi.side, poi.offMap ? 16 : 11);
+  // Two-line labels (name + minutes) above a marker move up by one line so they clear it.
+  if (poi.side === "top" && minutes !== null) l.y -= 18;
+  return { ...poi, p, l, minutes };
+});
+
+const areas = AREA_GEO.map((a) => {
+  const p = project(a.lat, a.lng);
+  return { ...a, p, l: labelAt(p, a.side, 14), active: a.slug === highlight };
+});
+
+/** Lines from the highlighted area to each destination that has a drive time. */
+const lines =
+  origin && mode === "locator"
+    ? pois
+        .filter((poi) => poi.minutes !== null)
+        .sort((a, b) => (a.minutes ?? 0) - (b.minutes ?? 0))
+        .map((poi, i) => ({ key: poi.key, x2: poi.p.x, y2: poi.p.y, i }))
+    : [];
+
+const ringNorth = pathFrom(RING_ROAD);
+const ringSouth = pathFrom(RING_ROAD_SOUTH);
+const canal = pathFrom(CANAL);
+const ravi = pathFrom(RAVI);
+const canalLabel = project(31.545, 74.336);
+const raviLabel = project(31.56, 74.205);
+// Along the eastern Ring Road, rotated with the road, clear of the Wagah and airport labels.
+const ringLabel = project(31.56, 74.447);
+---
+
+<figure
+  class:list={["lahore-map relative isolate overflow-hidden rounded-card border border-line bg-surface", className]}
+  data-lahore-map
+  data-mode={mode}
+  data-draw={lines.length ? "" : undefined}
+>
+  <svg viewBox={`0 0 ${S} ${S}`} class="block h-auto w-full" aria-hidden="true" focusable="false">
+    <defs>
+      <pattern id={`${uid}-grid`} width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M40 0H0V40" fill="none" class="lm-grid" />
+      </pattern>
+      <radialGradient id={`${uid}-glow`} cx="50%" cy="50%" r="50%">
+        <stop offset="0%" class="lm-glow-stop-a" />
+        <stop offset="100%" class="lm-glow-stop-b" />
+      </radialGradient>
+    </defs>
+
+    <rect width={S} height={S} fill={`url(#${uid}-grid)`} />
+    {origin && <circle cx={origin.x} cy={origin.y} r="150" fill={`url(#${uid}-glow)`} />}
+
+    {/* River, canal, ring road */}
+    <path d={ravi} class="lm-river" />
+    <path d={canal} class="lm-canal" />
+    <path d={ringNorth} class="lm-ring" />
+    <path d={ringSouth} class="lm-ring lm-ring--planned" />
+    <text x={raviLabel.x} y={raviLabel.y} class="lm-feature" transform={`rotate(48 ${raviLabel.x} ${raviLabel.y})`}>River Ravi</text>
+    <text x={canalLabel.x - 4} y={canalLabel.y - 8} class="lm-feature" transform={`rotate(38 ${canalLabel.x} ${canalLabel.y})`}>Canal</text>
+    <text x={ringLabel.x + 7} y={ringLabel.y} class="lm-feature" transform={`rotate(90 ${ringLabel.x + 7} ${ringLabel.y})`}>Ring Road</text>
+
+    {/* Drive-time lines (locator) */}
+    {
+      origin &&
+        lines.map((line) => (
+          <line
+            x1={origin.x}
+            y1={origin.y}
+            x2={line.x2}
+            y2={line.y2}
+            class="lm-line"
+            vector-effect="non-scaling-stroke"
+            style={`transform-origin: ${origin.x}px ${origin.y}px; --i: ${line.i}`}
+          />
+        ))
+    }
+
+    {/* Destinations */}
+    {
+      pois.map((poi) => (
+        <g class:list={["lm-poi", poi.minutes !== null && "lm-poi--timed"]}>
+          {poi.offMap ? (
+            <path d={`M${poi.p.x - 6} ${poi.p.y - 7} L${poi.p.x + 2} ${poi.p.y} L${poi.p.x - 6} ${poi.p.y + 7}`} class="lm-arrow" />
+          ) : (
+            <rect x={poi.p.x - 4.5} y={poi.p.y - 4.5} width="9" height="9" rx="2" transform={`rotate(45 ${poi.p.x} ${poi.p.y})`} class="lm-poi-mark" />
+          )}
+          <text x={poi.l.x} y={poi.l.y} text-anchor={poi.l.anchor} class="lm-poi-label">
+            {poi.short ? (
+              <>
+                <tspan class="lm-full">{poi.label}</tspan>
+                <tspan class="lm-short">{poi.short}</tspan>
+              </>
+            ) : (
+              poi.label
+            )}
+            {poi.minutes !== null && (
+              <tspan class="lm-poi-time" x={poi.l.x} dy="1.2em">
+                {poi.minutes} min
+              </tspan>
+            )}
+          </text>
+        </g>
+      ))
+    }
+
+    {/* Areas */}
+    {
+      areas.map((a) => {
+        const dot = (
+          <>
+            {a.active && <circle cx={a.p.x} cy={a.p.y} r="9" class="lm-pulse" />}
+            <circle cx={a.p.x} cy={a.p.y} r={a.active ? 8 : 6} class="lm-dot" />
+            <text x={a.l.x} y={a.l.y} text-anchor={a.l.anchor} class="lm-area-label">
+              {a.label}
+            </text>
+          </>
+        );
+        return mode === "index" ? (
+          <a href={`/areas/${a.slug}/`} tabindex="-1" class="lm-area" data-area-dot={a.slug}>
+            {dot}
+          </a>
+        ) : (
+          <g class:list={["lm-area", a.active && "is-current"]}>{dot}</g>
+        );
+      })
+    }
+  </svg>
+  <figcaption class="flex items-center justify-between gap-4 border-t border-line px-4 py-3 text-xs text-muted">
+    <span>Stylised map, not to scale.</span>
+    {lines.length > 0 && <span class="tabular">Drive times are approximate, normal traffic.</span>}
+  </figcaption>
+</figure>
+
+<style>
+  .lahore-map svg {
+    font-family: var(--font-sans);
+  }
+  .lm-grid {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+  .lm-glow-stop-a {
+    stop-color: var(--accent);
+    stop-opacity: 0.16;
+  }
+  .lm-glow-stop-b {
+    stop-color: var(--accent);
+    stop-opacity: 0;
+  }
+  .lm-river {
+    fill: none;
+    stroke: color-mix(in oklab, var(--text) 9%, transparent);
+    stroke-width: 14;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .lm-canal {
+    fill: none;
+    stroke: color-mix(in oklab, var(--text) 26%, transparent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .lm-ring {
+    fill: none;
+    stroke: color-mix(in oklab, var(--text) 20%, transparent);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .lm-ring--planned {
+    stroke-dasharray: 2 7;
+  }
+  .lm-feature {
+    fill: var(--muted);
+    font-size: 12px;
+    font-style: italic;
+    opacity: 0.75;
+  }
+  .lm-poi-mark {
+    fill: var(--bg);
+    stroke: var(--muted);
+    stroke-width: 1.5;
+  }
+  .lm-arrow {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .lm-poi-label {
+    fill: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .lm-poi--timed .lm-poi-mark {
+    stroke: var(--text);
+  }
+  .lm-poi--timed .lm-poi-label {
+    fill: var(--text);
+  }
+  .lm-poi-time {
+    fill: var(--accent-fg);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .lm-dot {
+    fill: var(--surface-2);
+    stroke: var(--line-strong);
+    stroke-width: 1.5;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition:
+      transform 0.35s var(--ease-out),
+      fill 0.25s var(--ease-out),
+      stroke 0.25s var(--ease-out);
+  }
+  .lm-area-label {
+    fill: var(--muted);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    transition: fill 0.25s var(--ease-out);
+  }
+  .lm-area.is-current .lm-dot,
+  .lm-area.is-active .lm-dot {
+    fill: var(--accent);
+    stroke: var(--accent);
+  }
+  .lm-area.is-current .lm-area-label,
+  .lm-area.is-active .lm-area-label {
+    fill: var(--text);
+  }
+  .lm-area.is-active .lm-dot {
+    transform: scale(1.45);
+  }
+  [data-mode="index"] .lm-dot {
+    fill: color-mix(in oklab, var(--accent) 22%, var(--surface-2));
+    stroke: color-mix(in oklab, var(--accent) 70%, transparent);
+  }
+  [data-mode="index"] .lm-area-label {
+    fill: var(--text);
+  }
+  [data-mode="locator"] .lm-area:not(.is-current) {
+    opacity: 0.55;
+  }
+  .lm-area.is-current .lm-area-label {
+    font-size: 17px;
+  }
+  .lm-pulse {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .lm-line {
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    stroke-dasharray: 1 5;
+    stroke-linecap: round;
+    opacity: 0.85;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .lm-pulse {
+      animation: lm-pulse 2.6s var(--ease-out) infinite;
+    }
+    :global(.js) [data-draw] .lm-line {
+      opacity: 0;
+      transform: scale(0);
+      transition:
+        transform 1.2s var(--ease-out),
+        opacity 0.4s var(--ease-out);
+      transition-delay: calc(var(--i, 0) * 140ms + 150ms);
+    }
+    :global(.js) [data-draw].is-drawn .lm-line {
+      opacity: 0.85;
+      transform: none;
+    }
+  }
+
+  .lm-short {
+    display: none;
+  }
+  /* Phones: bigger labels, fewer and shorter. */
+  @media (width < 48rem) {
+    .lm-full {
+      display: none;
+    }
+    .lm-short {
+      display: inline;
+    }
+    .lm-area-label {
+      font-size: 21px;
+    }
+    .lm-area.is-current .lm-area-label {
+      font-size: 23px;
+    }
+    .lm-poi-label {
+      font-size: 17px;
+    }
+    .lm-poi:not(.lm-poi--timed) .lm-poi-label,
+    .lm-feature {
+      display: none;
+    }
+    [data-mode="locator"] .lm-area:not(.is-current) .lm-area-label {
+      display: none;
+    }
+  }
+
+  @keyframes lm-pulse {
+    0% {
+      opacity: 0.7;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(3.2);
+    }
+  }
+</style>
+
+<script>
+  // Draw the locator lines once the map scrolls into view (transform/opacity only).
+  function initLahoreMaps() {
+    const maps = document.querySelectorAll<HTMLElement>("[data-lahore-map][data-draw]:not(.is-drawn)");
+    if (!maps.length) return;
+    if (!("IntersectionObserver" in window) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      maps.forEach((m) => m.classList.add("is-drawn"));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.classList.add("is-drawn");
+          io.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.35 },
+    );
+    maps.forEach((m) => io.observe(m));
+    document.addEventListener("astro:before-swap", () => io.disconnect(), { once: true });
+  }
+  initLahoreMaps();
+</script>

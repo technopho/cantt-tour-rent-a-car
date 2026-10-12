@@ -1,0 +1,91 @@
+---
+/**
+ * Big typographic index of car types, each row linking to /cars/<category>/ with the catalog
+ * description, model count, seat range and "from" price.
+ *
+ *   <CategoryIndex categories={categories} models={models} />
+ *   <CategoryIndex categories={others} models={models} size="sm" />   (compact "other types" list)
+ */
+import Icon from "@/components/Icon.astro";
+import PriceTag from "@/components/PriceTag.astro";
+import type { CatalogCategory, CatalogModel } from "@/lib/catalog-types";
+import { urls } from "@/lib/urls";
+import { lowest, seatRange } from "./fleet-data";
+
+interface Props {
+  categories: CatalogCategory[];
+  models: CatalogModel[];
+  size?: "lg" | "sm";
+  headingLevel?: "h2" | "h3";
+  class?: string;
+}
+
+const { categories, models, size = "lg", headingLevel: Heading = "h3", class: className } = Astro.props;
+
+const rows = categories
+  .map((c) => {
+    const list = models.filter((m) => m.category === c.slug);
+    return { ...c, count: list.length, from: lowest(list, (m) => m.rates.fromPrice), seats: seatRange(list) };
+  })
+  .filter((r) => r.count > 0);
+const isLg = size === "lg";
+---
+
+<ol class:list={["border-t border-line", className]}>
+  {
+    rows.map((row, i) => (
+      <li class="category-row group relative isolate border-b border-line">
+        <div
+          class:list={[
+            "grid items-baseline gap-x-8 gap-y-2",
+            isLg ? "py-6 md:grid-cols-[2.5rem_minmax(0,0.9fr)_minmax(0,1.3fr)_auto] md:py-8" : "py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center",
+          ]}
+        >
+          {isLg && (
+            <span class="tabular font-display text-sm font-medium text-muted" aria-hidden="true">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+          )}
+          <Heading class:list={["text-fg transition-colors duration-300 group-hover:text-accent-fg", isLg ? "text-display-md" : "text-display-sm"]}>
+            <a href={urls.category(row.slug)} class="outline-none after:absolute after:inset-0 after:z-10 after:content-[''] focus-visible:after:rounded-card focus-visible:after:outline-2 focus-visible:after:outline-accent">
+              {row.name}
+            </a>
+          </Heading>
+          {isLg && row.description && <p class="max-w-xl text-muted">{row.description}</p>}
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted md:justify-end">
+            <span>
+              {row.count} {row.count === 1 ? "model" : "models"}
+              {row.seats && ` · ${row.seats}`}
+            </span>
+            <PriceTag amount={row.from} size="sm" />
+            <span
+              class="hidden size-9 place-items-center rounded-full border border-line transition-[background-color,border-color,color] duration-300 group-hover:border-transparent group-hover:bg-accent-fill group-hover:text-accent-ink md:grid"
+              aria-hidden="true"
+            >
+              <Icon name="ph:arrow-right" size={16} />
+            </span>
+          </div>
+        </div>
+      </li>
+    ))
+  }
+</ol>
+
+<style>
+  /* A tail-light sweep across the row on hover (transform only). */
+  .category-row::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(90deg, var(--accent-soft), transparent 70%);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.6s var(--ease-out);
+  }
+  @media (hover: hover) {
+    .category-row:hover::before {
+      transform: scaleX(1);
+    }
+  }
+</style>

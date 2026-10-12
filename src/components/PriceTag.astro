@@ -1,0 +1,60 @@
+---
+/**
+ * Price display: "from Rs 6,500/day" with tabular numerals. Amounts must come from the catalog.
+ *
+ *   <PriceTag amount={model.rates.fromPrice} />                   from Rs 3,500/day
+ *   <PriceTag amount={rates.selfDrive.monthly} unit="month" from={false} size="lg" />
+ *   <PriceTag amount={null} />                                    Price on request
+ */
+import { formatPKR, type PriceUnit } from "@/lib/format";
+
+interface Props {
+  amount: number | null | undefined;
+  unit?: PriceUnit | null;
+  /** Prefix "from". Default true. */
+  from?: boolean;
+  size?: "sm" | "md" | "lg" | "xl";
+  /** Small note after the price, e.g. "with driver". */
+  note?: string;
+  class?: string;
+}
+
+const { amount, unit = "day", from = true, size = "md", note, class: className } = Astro.props;
+
+const sizes = {
+  sm: "text-sm",
+  md: "text-base",
+  lg: "text-xl",
+  xl: "text-display-sm",
+};
+const unitWords: Record<PriceUnit, string> = {
+  day: "per day",
+  week: "per week",
+  month: "per month",
+  hour: "per hour",
+  night: "per night",
+  trip: "per trip",
+};
+---
+
+{
+  typeof amount === "number" ? (
+    <span class:list={["inline-flex flex-wrap items-baseline gap-x-1 tabular-nums", sizes[size], className]}>
+      {from && <span class="text-[0.78em] font-medium text-muted">from</span>}{" "}
+      <data value={amount} class="font-display font-semibold tracking-[-0.03em] text-fg">
+        {formatPKR(amount)}
+      </data>{" "}
+      {unit && (
+        <>
+          <span class="text-[0.78em] text-muted" aria-hidden="true">
+            /{unit}
+          </span>
+          <span class="sr-only">{unitWords[unit]}</span>
+        </>
+      )}{" "}
+      {note && <span class="text-[0.78em] text-muted">{note}</span>}
+    </span>
+  ) : (
+    <span class:list={["font-medium text-muted", sizes[size], className]}>Price on request</span>
+  )
+}

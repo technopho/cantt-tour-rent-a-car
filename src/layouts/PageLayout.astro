@@ -1,0 +1,71 @@
+---
+/**
+ * Inner page layout: hero band (breadcrumbs + H1 + intro + optional actions) above the content.
+ *
+ *   <PageLayout
+ *     title="Wedding car rental in Lahore"           (SEO title, brand appended)
+ *     description="..."
+ *     h1="Wedding cars in Lahore"
+ *     intro="Decorated cars for the couple and matching cars for guests."
+ *     crumbs={[{ label: "Wedding car rental" }]}     (Home is added; last item = this page)
+ *   >
+ *     <Fragment slot="actions"><Button href="/quote/">Get a quote</Button></Fragment>
+ *     <Fragment slot="aside">...right column on desktop (image, price box)...</Fragment>
+ *     <JsonLd slot="jsonld" data={serviceSchema({...})} />
+ *     ...sections...
+ *   </PageLayout>
+ *
+ * Slots: default (content), "actions", "aside", "h1" (rich heading), "jsonld", "head".
+ */
+import Breadcrumbs, { type Crumb } from "@/components/Breadcrumbs.astro";
+import Container from "@/components/Container.astro";
+import HeroTrails from "@/components/HeroTrails.astro";
+import BaseLayout, { type Props as BaseProps } from "./BaseLayout.astro";
+
+interface Props extends Omit<BaseProps, "overlayHeader"> {
+  h1: string;
+  intro?: string;
+  /** Breadcrumb trail after Home. Defaults to [{ label: h1 }]. */
+  crumbs?: Crumb[];
+  /** Hide the animated light trails in the hero band. */
+  plainHero?: boolean;
+}
+
+const { h1, intro, crumbs, plainHero = false, ...baseProps } = Astro.props;
+const trail = crumbs ?? [{ label: h1 }];
+const hasAside = Astro.slots.has("aside");
+---
+
+<BaseLayout {...baseProps} overlayHeader>
+  <slot name="jsonld" slot="jsonld" />
+  <slot name="head" slot="head" />
+
+  <section class="relative isolate overflow-hidden border-b border-line pt-[calc(var(--header-h)+2rem)] pb-14 md:pt-[calc(var(--header-h)+3rem)] md:pb-20">
+    {!plainHero && <HeroTrails />}
+    <Container class:list={["relative", hasAside && "grid items-end gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]"]}>
+      <div class="flex flex-col">
+        <Breadcrumbs items={trail} />
+        <h1 class="mt-6 max-w-4xl text-display-xl text-fg">
+          {Astro.slots.has("h1") ? <slot name="h1" /> : h1}
+        </h1>
+        {intro && <p class="text-lede mt-5 max-w-2xl text-muted">{intro}</p>}
+        {
+          Astro.slots.has("actions") && (
+            <div class="mt-8 flex flex-wrap gap-3">
+              <slot name="actions" />
+            </div>
+          )
+        }
+      </div>
+      {
+        hasAside && (
+          <div class="relative">
+            <slot name="aside" />
+          </div>
+        )
+      }
+    </Container>
+  </section>
+
+  <slot />
+</BaseLayout>

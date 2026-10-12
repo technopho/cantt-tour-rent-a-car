@@ -1,0 +1,168 @@
+---
+/**
+ * /cars/ hub: "Cars for rent in Lahore". Every model from the catalog (filterable by type and
+ * service), trip-to-car advice, the type index, area links and an ItemList of model pages.
+ */
+import Button from "@/components/Button.astro";
+import Icon from "@/components/Icon.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import SampleFleetNote from "@/components/SampleFleetNote.astro";
+import Section from "@/components/Section.astro";
+import SectionHeading from "@/components/SectionHeading.astro";
+import CategoryIndex from "@/components/fleet/CategoryIndex.astro";
+import FleetBrowser from "@/components/fleet/FleetBrowser.astro";
+import TripMatcher from "@/components/fleet/TripMatcher.astro";
+import { CITY_DAY_HOURS, assertNoFleetSlugCollisions, carName, fitText, joinAnd, lowest, softLower } from "@/components/fleet/fleet-data";
+import { itemListSchema } from "@/components/fleet/fleet-schema";
+import { site } from "@/config/site";
+import PageLayout from "@/layouts/PageLayout.astro";
+import { getCatalogMeta, getCategories, getModels } from "@/lib/catalog";
+import { formatPKR } from "@/lib/format";
+import { whatsappUrl } from "@/lib/links";
+import { urls } from "@/lib/urls";
+
+const [models, categories, allCategories, catalogMeta] = await Promise.all([
+  getModels(),
+  getCategories(),
+  getCategories({ includeEmpty: true }),
+  getCatalogMeta(),
+]);
+assertNoFleetSlugCollisions(models, allCategories);
+
+const fleetFrom = lowest(models, (m) => m.rates.fromPrice);
+const wdFrom = lowest(models, (m) => m.rates.withDriver?.daily);
+const sdFrom = lowest(models, (m) => m.rates.selfDrive?.daily);
+const monthlyFrom = lowest(models, (m) => {
+  const v = Math.min(m.rates.selfDrive?.monthly ?? Infinity, m.rates.withDriver?.monthly ?? Infinity);
+  return Number.isFinite(v) ? v : null;
+});
+const minSeats = Math.min(...models.map((m) => m.seats));
+const maxSeats = Math.max(...models.map((m) => m.seats));
+
+const typeNames = categories.map((c) => softLower(c.name));
+const title = fitText(
+  ["Cars for Rent in Lahore: Sedans, SUVs, Vans and Wedding Cars", "Cars for Rent in Lahore with Driver or Self Drive", "Cars for Rent in Lahore"],
+  60,
+);
+const description = fitText(
+  [
+    `Every car we rent in Lahore with real daily rates: ${joinAnd(typeNames)}. With driver or self drive${fleetFrom ? `, from ${formatPKR(fleetFrom)}/day` : ""}.`,
+    `Every car we rent in Lahore with real daily rates. Sedans, SUVs, vans and wedding cars, with driver or self drive${fleetFrom ? `, from ${formatPKR(fleetFrom)}/day` : ""}.`,
+  ],
+  155,
+);
+
+const glance = [
+  wdFrom ? { label: "With driver", value: formatPKR(wdFrom), unit: `${CITY_DAY_HOURS} hour day`, icon: "ph:steering-wheel" } : null,
+  sdFrom ? { label: "Self drive", value: formatPKR(sdFrom), unit: "per day", icon: "ph:key" } : null,
+  monthlyFrom ? { label: "Monthly", value: formatPKR(monthlyFrom), unit: "per month", icon: "ph:calendar-check" } : null,
+  { label: "Seats", value: minSeats === maxSeats ? String(maxSeats) : `${minSeats} to ${maxSeats}`, unit: "per car", icon: "ph:users-three" },
+].filter((g): g is { label: string; value: string; unit: string; icon: string } => g !== null);
+
+const listSchema = itemListSchema({
+  name: "Cars for rent in Lahore",
+  url: urls.cars(),
+  items: models.map((m) => ({ name: carName(m), url: urls.car(m.slug) })),
+});
+---
+
+<PageLayout
+  title={title}
+  description={description}
+  h1="Cars for rent in Lahore"
+  intro="Every car in our fleet with its real daily rate. Book with a driver who knows Lahore, or drive yourself with a quick handover in Lahore Cantt."
+  crumbs={[{ label: "Fleet" }]}
+>
+  <JsonLd slot="jsonld" data={listSchema} />
+
+  <div slot="actions" class="flex flex-wrap gap-3" data-fab-hide>
+    <Button href={site.cta.quote.href} size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+    <Button href={whatsappUrl()} variant="secondary" size="lg" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
+      {site.cta.whatsapp.label}
+    </Button>
+  </div>
+
+  <Fragment slot="aside">
+    <div class="rounded-card border border-line bg-surface/80 p-5 backdrop-blur-md md:p-6">
+      <p class="text-sm font-semibold text-fg">Starting rates</p>
+      <dl class="mt-5 grid grid-cols-2 gap-x-6 gap-y-5">
+        {
+          glance.map((g) => (
+            <div class="flex flex-col gap-1">
+              <dt class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] text-muted">
+                <Icon name={g.icon} size={14} class="text-accent" />
+                {g.label}
+              </dt>
+              <dd class="tabular font-display text-[1.375rem] leading-tight font-semibold tracking-[-0.03em] text-fg">
+                {g.value}{" "}
+                <span class="block font-sans text-xs font-medium tracking-normal text-muted">{g.unit}</span>
+              </dd>
+            </div>
+          ))
+        }
+      </dl>
+      <a href={urls.rates()} class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-fg underline-offset-4 hover:underline">
+        Rent a car rates in Lahore
+        <Icon name="ph:arrow-right" size={15} />
+      </a>
+    </div>
+  </Fragment>
+
+  <Section id="fleet" labelledby="fleet-title" spacing="sm">
+    <h2 id="fleet-title" class="sr-only">All cars for rent</h2>
+    <FleetBrowser models={models} categories={categories} />
+
+    <div class="mt-10 flex flex-col gap-4 border-t border-line pt-6 text-sm text-muted md:flex-row md:items-center md:justify-between">
+      <p class="flex max-w-3xl gap-2.5">
+        <Icon name="ph:info" size={18} class="mt-0.5 shrink-0 text-accent" />
+        <span>
+          {catalogMeta.sample ? "" : "Prices come straight from our booking system. "}With a driver, a day is up to {CITY_DAY_HOURS} hours within Lahore. Fuel, motorway
+          tolls and parking are extra, and the final price is confirmed on WhatsApp before you book.
+        </span>
+      </p>
+      <Button href={urls.rates()} variant="secondary" size="sm" iconRight="ph:arrow-right" class="self-start md:self-auto">See every rate</Button>
+    </div>
+    <SampleFleetNote class="mt-6" />
+  </Section>
+
+  <Section id="which-car" labelledby="which-car-title" divider>
+    <SectionHeading
+      id="which-car-title"
+      eyebrow="Not sure which car?"
+      title="Which car for which trip"
+      intro="Practical picks for the trips Lahore families book most, from a quick airport run to a week in the north."
+    />
+    <TripMatcher models={models} class="mt-12" />
+  </Section>
+
+  <Section id="types" labelledby="types-title" divider>
+    <SectionHeading id="types-title" title="Browse by type" intro="Each type has its own page with rates, tips for Lahore and answers to common questions." />
+    <CategoryIndex categories={categories} models={models} class="mt-10" />
+  </Section>
+
+  <Section id="areas" labelledby="areas-title" spacing="sm" divider>
+    <div class="grid gap-6 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] md:items-start md:gap-12">
+      <div>
+        <h2 id="areas-title" class="text-display-sm text-fg">Pickup across Lahore</h2>
+        <p class="mt-3 text-muted">
+          Our base is in Lahore Cantt, so Cantt, DHA and the airport are quickest to reach. We also pick up from homes, offices and hotels across the city.
+        </p>
+      </div>
+      <ul class="flex flex-wrap gap-2">
+        {
+          site.areasServed.map((a) => (
+            <li>
+              <a
+                href={urls.area(a.slug)}
+                class="inline-flex h-10 items-center gap-2 rounded-full border border-line px-4 text-sm font-medium text-fg transition-colors hover:border-[color-mix(in_oklab,var(--text)_22%,transparent)] hover:bg-surface"
+              >
+                <Icon name="ph:map-pin" size={15} class="text-accent" />
+                Rent a car in {a.name}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </Section>
+</PageLayout>

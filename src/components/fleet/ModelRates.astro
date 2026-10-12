@@ -1,0 +1,202 @@
+---
+/**
+ * Rates block for a model page: "With driver" and "Self drive" panels (each only when offered),
+ * every row only when the catalog has the value, plus what is and is not included.
+ *
+ *   <ModelRates model={model} />
+ */
+import Icon from "@/components/Icon.astro";
+import PriceTag from "@/components/PriceTag.astro";
+import type { CatalogModel } from "@/lib/catalog-types";
+import { formatNumber, formatPKR } from "@/lib/format";
+import { urls } from "@/lib/urls";
+import { CITY_DAY_HOURS } from "./fleet-data";
+
+interface Props {
+  model: CatalogModel;
+  class?: string;
+}
+
+const { model, class: className } = Astro.props;
+const wd = model.rates.withDriver;
+const sd = model.rates.selfDrive;
+const night = model.rates.driverNightAllowance;
+
+interface Row {
+  label: string;
+  value: string;
+  note: string;
+}
+
+const driverRows: Row[] = wd
+  ? ([
+      wd.outstationDaily ? { label: "Outstation", value: formatPKR(wd.outstationDaily), note: "per day, outside Lahore" } : null,
+      wd.monthly ? { label: "Monthly", value: formatPKR(wd.monthly), note: "per month" } : null,
+      wd.overtimeHourly ? { label: "Overtime", value: formatPKR(wd.overtimeHourly), note: `per hour after ${CITY_DAY_HOURS} hours` } : null,
+      night ? { label: "Driver night allowance", value: formatPKR(night), note: "per night away from Lahore" } : null,
+    ] satisfies (Row | null)[]).filter((r): r is Row => r !== null)
+  : [];
+
+const selfRows: Row[] = sd
+  ? ([
+      sd.weekly ? { label: "Weekly", value: formatPKR(sd.weekly), note: "7 days" } : null,
+      sd.monthly ? { label: "Monthly", value: formatPKR(sd.monthly), note: "30 days" } : null,
+      sd.kmPerDay ? { label: "Kilometres included", value: `${formatNumber(sd.kmPerDay)} km`, note: "per day" } : null,
+      sd.securityDeposit ? { label: "Security deposit", value: formatPKR(sd.securityDeposit), note: "refundable" } : null,
+    ] satisfies (Row | null)[]).filter((r): r is Row => r !== null)
+  : [];
+
+const driverIncluded = [
+  "The car and a professional driver",
+  `Up to ${CITY_DAY_HOURS} hours a day within Lahore`,
+  "Pickup from your home, office, hotel or the airport",
+];
+const driverExcluded = [
+  "Fuel",
+  "Motorway tolls and parking",
+  wd?.overtimeHourly ? `Hours beyond ${CITY_DAY_HOURS} (overtime)` : `Hours beyond ${CITY_DAY_HOURS}`,
+  night ? "Driver night allowance on overnight trips" : null,
+].filter((x): x is string => Boolean(x));
+
+const selfIncluded = [
+  "The car, cleaned and checked before handover",
+  sd?.kmPerDay ? `${formatNumber(sd.kmPerDay)} km per day` : null,
+].filter((x): x is string => Boolean(x));
+const selfExcluded = [
+  "Fuel",
+  "Motorway tolls and parking",
+  sd?.kmPerDay ? "Extra kilometres, at the rate in your quote" : null,
+].filter((x): x is string => Boolean(x));
+
+const both = Boolean(wd && sd);
+---
+
+<div class={className}>
+  <div class:list={["grid gap-4", both ? "md:grid-cols-2" : "max-w-2xl"]}>
+    {
+      wd && (
+        <section class="flex flex-col rounded-card border border-line bg-surface p-5 md:p-7" aria-labelledby="rates-with-driver">
+          <div class="flex items-center gap-3">
+            <span class="grid size-10 place-items-center rounded-full bg-accent-soft text-accent" aria-hidden="true">
+              <Icon name="ph:steering-wheel" size={20} />
+            </span>
+            <h3 id="rates-with-driver" class="text-display-sm text-fg">
+              With driver
+            </h3>
+          </div>
+          <p class="mt-6">
+            <PriceTag amount={wd.daily} from={false} size="xl" />
+          </p>
+          <p class="mt-1 text-sm text-muted">City day: up to {CITY_DAY_HOURS} hours within Lahore</p>
+
+          {driverRows.length > 0 && (
+            <dl class="mt-6 divide-y divide-line border-y border-line">
+              {driverRows.map((r) => (
+                <div class="flex items-baseline justify-between gap-4 py-3">
+                  <dt class="text-[0.9375rem] text-fg">
+                    {r.label}{" "}
+                    {r.note && <span class="block text-xs text-muted">{r.note}</span>}
+                  </dt>
+                  <dd class="tabular font-display font-semibold tracking-[-0.02em] text-fg">{r.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          <div class="mt-6 grid gap-5 text-sm sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
+            <div>
+              <h4 class="font-sans text-xs font-bold uppercase tracking-[0.14em] text-muted">Included</h4>
+              <ul class="mt-3 flex flex-col gap-2">
+                {driverIncluded.map((t) => (
+                  <li class="flex gap-2 text-fg">
+                    <Icon name="ph:check" size={16} class="mt-0.5 text-accent" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 class="font-sans text-xs font-bold uppercase tracking-[0.14em] text-muted">Not included</h4>
+              <ul class="mt-3 flex flex-col gap-2">
+                {driverExcluded.map((t) => (
+                  <li class="flex gap-2 text-muted">
+                    <Icon name="ph:x" size={16} class="mt-0.5" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+      )
+    }
+
+    {
+      sd && (
+        <section class="flex flex-col rounded-card border border-line bg-surface p-5 md:p-7" aria-labelledby="rates-self-drive">
+          <div class="flex items-center gap-3">
+            <span class="grid size-10 place-items-center rounded-full bg-accent-soft text-accent" aria-hidden="true">
+              <Icon name="ph:key" size={20} />
+            </span>
+            <h3 id="rates-self-drive" class="text-display-sm text-fg">
+              Self drive
+            </h3>
+          </div>
+          <p class="mt-6">
+            <PriceTag amount={sd.daily} from={false} size="xl" />
+          </p>
+          <p class="mt-1 text-sm text-muted">Per 24 hours, you drive</p>
+
+          {selfRows.length > 0 && (
+            <dl class="mt-6 divide-y divide-line border-y border-line">
+              {selfRows.map((r) => (
+                <div class="flex items-baseline justify-between gap-4 py-3">
+                  <dt class="text-[0.9375rem] text-fg">
+                    {r.label}{" "}
+                    {r.note && <span class="block text-xs text-muted">{r.note}</span>}
+                  </dt>
+                  <dd class="tabular font-display font-semibold tracking-[-0.02em] text-fg">{r.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          <div class="mt-6 grid gap-5 text-sm sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
+            <div>
+              <h4 class="font-sans text-xs font-bold uppercase tracking-[0.14em] text-muted">Included</h4>
+              <ul class="mt-3 flex flex-col gap-2">
+                {selfIncluded.map((t) => (
+                  <li class="flex gap-2 text-fg">
+                    <Icon name="ph:check" size={16} class="mt-0.5 text-accent" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 class="font-sans text-xs font-bold uppercase tracking-[0.14em] text-muted">Not included</h4>
+              <ul class="mt-3 flex flex-col gap-2">
+                {selfExcluded.map((t) => (
+                  <li class="flex gap-2 text-muted">
+                    <Icon name="ph:x" size={16} class="mt-0.5" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <p class="mt-6 flex gap-2 rounded-badge bg-surface-2 px-3 py-2.5 text-sm text-muted">
+            <Icon name="ph:identification-card" size={18} class="mt-px shrink-0 text-accent" />
+            Bring your CNIC (or passport if visiting from abroad) and a valid driving licence.
+          </p>
+        </section>
+      )
+    }
+  </div>
+
+  <p class="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+    <Icon name="ph:info" size={16} class="text-accent" />
+    Rates come straight from our booking system. The final price for your dates is confirmed on WhatsApp before you book.
+    <a href={urls.rates()} class="font-semibold text-accent-fg underline-offset-4 hover:underline">Compare rates for every car</a>
+  </p>
+</div>

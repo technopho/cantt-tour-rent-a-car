@@ -1,0 +1,153 @@
+---
+/**
+ * "How outstation pricing works": 24-hour days, outstation day rate, driver night stay and food,
+ * fuel and tolls at actual cost, plus a worked example computed with estimateQuote() from the
+ * catalog (never hard-coded). For a city trip (Wagah) it explains the Lahore day booking instead.
+ *
+ *   <OutstationPricing models={withDriverModels} days={3} to="Murree" />
+ */
+import Icon from "@/components/Icon.astro";
+import PriceTag from "@/components/PriceTag.astro";
+import { ESTIMATE_DISCLAIMER, estimateQuote, modelName, type CatalogModel } from "@/lib/catalog";
+import type { TripType } from "@/lib/catalog-types";
+import { formatPKR, plural } from "@/lib/format";
+import { urls } from "@/lib/urls";
+import { cheapestOutstation, lowestNightAllowance } from "./pricing";
+
+interface Props {
+  models: CatalogModel[];
+  /** Typical trip length (24-hour days) for the worked example. */
+  days: number;
+  to?: string;
+  tripType?: TripType;
+  headingId?: string;
+  class?: string;
+}
+
+const { models, days, to, tripType = "outstation", headingId = "pricing-title", class: className } = Astro.props;
+const isCity = tripType !== "outstation";
+const cheapest = cheapestOutstation(models);
+const night = lowestNightAllowance(models);
+const exampleModel = cheapest?.model ?? models[0];
+const example = exampleModel
+  ? estimateQuote(exampleModel, { serviceType: "with_driver", tripType: isCity ? "within_city" : "outstation", days, nights: isCity ? 0 : Math.max(0, days - 1) })
+  : null;
+
+const cityRates = models.map((m) => m.rates.withDriver?.daily).filter((v): v is number => typeof v === "number");
+const cityFrom = cityRates.length ? Math.min(...cityRates) : null;
+
+const rules = isCity
+  ? [
+      {
+        icon: "ph:clock",
+        title: "A normal Lahore day booking",
+        text: "This trip stays inside Lahore, so it is usually booked as a city day with a driver. We confirm this in your quote.",
+        price: cityFrom,
+        unit: "day" as const,
+      },
+      {
+        icon: "ph:hourglass-medium",
+        title: "Standard duty hours",
+        text: "The day covers the driver's standard duty hours. If the evening runs late, extra hours are charged at the overtime rate shown for each car.",
+        price: null,
+        unit: null,
+      },
+      {
+        icon: "ph:gas-pump",
+        title: "Fuel and parking at actual cost",
+        text: "Fuel and any parking fees are paid at actual cost, never with a mark-up. Your quote says how fuel is handled.",
+        price: null,
+        unit: null,
+      },
+    ]
+  : [
+      {
+        icon: "ph:clock-countdown",
+        title: "Every 24 hours is one day",
+        text: "Outstation days are counted in 24-hour blocks from your pickup time, not by calendar date. Leave at 6 am Friday, back by 6 am Sunday: that is two days.",
+        price: null,
+        unit: null,
+      },
+      {
+        icon: "ph:road-horizon",
+        title: "The outstation day rate",
+        text: "Trips out of Lahore use each car's outstation rate with a driver. It covers the car and the driver for every 24-hour day.",
+        price: cheapest?.price ?? null,
+        unit: "day" as const,
+      },
+      {
+        icon: "ph:moon-stars",
+        title: "Driver night stay and food",
+        text: "For every night away from Lahore there is a fixed night allowance that covers the driver's stay and meals, so you never have to arrange them yourself.",
+        price: night,
+        unit: "night" as const,
+      },
+      {
+        icon: "ph:gas-pump",
+        title: "Fuel and tolls at actual cost",
+        text: "Fuel, motorway tolls (paid by M-Tag) and parking are charged at actual cost, with no mark-up. Your quote explains how they are settled.",
+        price: null,
+        unit: null,
+      },
+    ];
+---
+
+<div class:list={["grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:gap-16", className]}>
+  <ol class="flex flex-col">
+    {
+      rules.map((r, i) => (
+        <li class="grid grid-cols-[3rem_minmax(0,1fr)] gap-x-4 border-t border-line py-6 first:border-t-0 first:pt-0" data-reveal>
+          <span class="font-display text-[2rem] leading-none font-semibold tracking-[-0.05em] text-accent tabular" aria-hidden="true">
+            {String(i + 1).padStart(2, "0")}
+          </span>
+          <div class="flex flex-col gap-2">
+            <h3 class="flex items-center gap-2 text-display-sm text-fg">
+              <Icon name={r.icon} size={20} class="text-accent" />
+              {r.title}
+            </h3>
+            <p class="text-muted">{r.text}</p>
+            {typeof r.price === "number" && r.unit && <PriceTag amount={r.price} unit={r.unit} class="mt-1" />}
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+
+  {
+    example && example.ok && exampleModel && (
+      <aside class="self-start rounded-card border border-line bg-surface p-5 sm:p-6 lg:sticky lg:top-[calc(var(--header-h)+1.5rem)]" aria-labelledby={`${headingId}-example`}>
+        <p id={`${headingId}-example`} class="font-sans text-xs font-bold uppercase tracking-[0.16em] text-muted">
+          Worked example
+        </p>
+        <p class="mt-3 font-display text-display-sm text-fg">
+          {modelName(exampleModel)}, {plural(example.days, "day")}
+          {to ? ` to ${to}` : ""}
+        </p>
+        <div class="mt-5 overflow-x-auto">
+          <table class="w-full text-sm tabular">
+            <tbody>
+              {example.lines.map((l) => (
+                <tr class="border-b border-line">
+                  <th scope="row" class="py-3 pr-4 text-left font-medium text-muted">
+                    {l.label}
+                    <span class="block text-xs">
+                      {plural(l.quantity, l.unit)} x {formatPKR(l.rate)}
+                    </span>
+                  </th>
+                  <td class="py-3 text-right font-semibold whitespace-nowrap text-fg">{formatPKR(l.amount)}</td>
+                </tr>
+              ))}
+              <tr>
+                <th scope="row" class="pt-4 text-left font-semibold text-fg">Estimate before {isCity ? "fuel and parking" : "fuel and tolls"}</th>
+                <td class="pt-4 text-right font-display text-xl font-semibold tracking-[-0.03em] whitespace-nowrap text-fg">{formatPKR(example.total)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-5 text-xs leading-relaxed text-muted">
+          {ESTIMATE_DISCLAIMER} Live rates for every car are on our <a href={urls.rates()} class="font-semibold text-accent-fg underline underline-offset-2">rates page</a>.
+        </p>
+      </aside>
+    )
+  }
+</div>

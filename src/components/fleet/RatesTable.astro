@@ -1,0 +1,152 @@
+---
+/**
+ * Desktop rate table, grouped by category (one <tbody> per group). Wrapped in its own
+ * overflow-x-auto container because html/body clip horizontal overflow.
+ *
+ *   <RatesTable mode="driver" groups={[{ category, models }]} caption="With driver rates" />
+ *   <RatesTable mode="self" groups={groups} caption="Self drive rates" />
+ *   <RatesTable mode="summary" groups={[{ category, models }]} caption="SUV rates" hideGroupHeaders />
+ *
+ * driver  = city day (12 h), outstation day, month, overtime per hour, driver night allowance
+ * self    = day, week, month, refundable deposit, km per day
+ * summary = with driver day, outstation day, self drive day, self drive deposit
+ * Missing values read "On request"; a service a car does not offer reads "Not offered".
+ */
+import type { CatalogCategory, CatalogModel } from "@/lib/catalog-types";
+import { formatNumber, formatPKR } from "@/lib/format";
+import { urls } from "@/lib/urls";
+import { CITY_DAY_HOURS, carName } from "./fleet-data";
+
+type Mode = "driver" | "self" | "summary";
+
+interface Group {
+  category: CatalogCategory;
+  models: CatalogModel[];
+}
+
+interface Props {
+  mode: Mode;
+  groups: Group[];
+  caption: string;
+  hideGroupHeaders?: boolean;
+  class?: string;
+}
+
+const { mode, groups, caption, hideGroupHeaders = false, class: className } = Astro.props;
+
+type Cell = { kind: "money"; value: number } | { kind: "km"; value: number } | { kind: "none"; text: string };
+
+interface Column {
+  label: string;
+  sub: string;
+  get: (m: CatalogModel) => Cell;
+}
+
+const money = (v: number | null | undefined, offered: boolean): Cell =>
+  !offered ? { kind: "none", text: "Not offered" } : typeof v === "number" ? { kind: "money", value: v } : { kind: "none", text: "On request" };
+
+const COLUMNS: Record<Mode, Column[]> = {
+  driver: [
+    { label: "City day", sub: `${CITY_DAY_HOURS} hours`, get: (m) => money(m.rates.withDriver?.daily, Boolean(m.rates.withDriver)) },
+    { label: "Outstation", sub: "per day", get: (m) => money(m.rates.withDriver?.outstationDaily, Boolean(m.rates.withDriver)) },
+    { label: "Monthly", sub: "per month", get: (m) => money(m.rates.withDriver?.monthly, Boolean(m.rates.withDriver)) },
+    { label: "Overtime", sub: "per hour", get: (m) => money(m.rates.withDriver?.overtimeHourly, Boolean(m.rates.withDriver)) },
+    { label: "Night stay", sub: "driver, per night", get: (m) => money(m.rates.driverNightAllowance, Boolean(m.rates.withDriver)) },
+  ],
+  self: [
+    { label: "Daily", sub: "per day", get: (m) => money(m.rates.selfDrive?.daily, Boolean(m.rates.selfDrive)) },
+    { label: "Weekly", sub: "7 days", get: (m) => money(m.rates.selfDrive?.weekly, Boolean(m.rates.selfDrive)) },
+    { label: "Monthly", sub: "30 days", get: (m) => money(m.rates.selfDrive?.monthly, Boolean(m.rates.selfDrive)) },
+    { label: "Deposit", sub: "refundable", get: (m) => money(m.rates.selfDrive?.securityDeposit, Boolean(m.rates.selfDrive)) },
+    {
+      label: "Kilometres",
+      sub: "included per day",
+      get: (m) =>
+        !m.rates.selfDrive
+          ? { kind: "none", text: "Not offered" }
+          : m.rates.selfDrive.kmPerDay
+            ? { kind: "km", value: m.rates.selfDrive.kmPerDay }
+            : { kind: "none", text: "On request" },
+    },
+  ],
+  summary: [
+    { label: "With driver", sub: `${CITY_DAY_HOURS} hour day`, get: (m) => money(m.rates.withDriver?.daily, Boolean(m.rates.withDriver)) },
+    { label: "Outstation", sub: "with driver, per day", get: (m) => money(m.rates.withDriver?.outstationDaily, Boolean(m.rates.withDriver)) },
+    { label: "Self drive", sub: "per day", get: (m) => money(m.rates.selfDrive?.daily, Boolean(m.rates.selfDrive)) },
+    { label: "Deposit", sub: "self drive, refundable", get: (m) => money(m.rates.selfDrive?.securityDeposit, Boolean(m.rates.selfDrive)) },
+  ],
+};
+
+const visibleGroups = groups.filter((g) => g.models.length > 0);
+// Drop columns no listed car offers (e.g. self drive columns on a driver-only category), keeping at least one.
+const listed = visibleGroups.flatMap((g) => g.models);
+const notOffered = (cell: Cell) => cell.kind === "none" && cell.text === "Not offered";
+const offeredColumns = COLUMNS[mode].filter((c) => listed.some((m) => !notOffered(c.get(m))));
+const columns = offeredColumns.length > 0 ? offeredColumns : COLUMNS[mode];
+const minWidth = columns.length >= 5 ? "min-w-[46rem]" : columns.length >= 3 ? "min-w-[38rem]" : "min-w-[28rem]";
+---
+
+<div class:list={["overflow-x-auto rounded-card border border-line bg-surface", columns.length <= 3 && "max-w-4xl", className]} tabindex="0" role="region" aria-label={`${caption}, scrollable table`}>
+  <table class:list={["w-full border-collapse text-left text-[0.9375rem]", minWidth]}>
+    <caption class="sr-only">{caption}</caption>
+    <thead>
+      <tr class="border-b border-line">
+        <th scope="col" class="px-5 py-4 align-bottom text-xs font-bold uppercase tracking-[0.14em] text-muted">Car</th>
+        {
+          columns.map((c) => (
+            <th scope="col" class="px-4 py-4 text-right align-bottom">
+              <span class="block text-xs font-bold uppercase tracking-[0.14em] text-fg">{c.label}</span>{" "}
+              <span class="block text-xs font-medium text-muted">{c.sub}</span>
+            </th>
+          ))
+        }
+      </tr>
+    </thead>
+    {
+      visibleGroups.map((group) => (
+        <tbody>
+          {!hideGroupHeaders && (
+            <tr class="border-b border-line bg-surface-2/60">
+              <th scope="rowgroup" colspan={columns.length + 1} class="px-5 py-2.5">
+                <a
+                  href={urls.category(group.category.slug)}
+                  class="inline-flex items-center gap-2 text-sm font-bold text-fg underline-offset-4 hover:text-accent-fg hover:underline"
+                >
+                  {group.category.name}
+                </a>
+              </th>
+            </tr>
+          )}
+          {group.models.map((m) => (
+            <tr class="border-b border-line transition-colors last:border-b-0 hover:bg-surface-2/50">
+              <th scope="row" class="px-5 py-3.5 font-normal">
+                <a href={urls.car(m.slug)} class="font-semibold text-fg underline-offset-4 hover:text-accent-fg hover:underline">
+                  {carName(m)}
+                </a>{" "}
+                <span class="block text-xs text-muted">
+                  {[m.variant, `${m.seats} seats`].filter(Boolean).join(" · ")}
+                </span>
+              </th>
+              {columns.map((c) => {
+                const cell = c.get(m);
+                return (
+                  <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                    {cell.kind === "money" ? (
+                      <data value={cell.value} class="tabular font-display font-semibold tracking-[-0.02em] text-fg">
+                        {formatPKR(cell.value)}
+                      </data>
+                    ) : cell.kind === "km" ? (
+                      <span class="tabular font-semibold text-fg">{formatNumber(cell.value)} km</span>
+                    ) : (
+                      <span class="text-sm text-muted">{cell.text}</span>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      ))
+    }
+  </table>
+</div>

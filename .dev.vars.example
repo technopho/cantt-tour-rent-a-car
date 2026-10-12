@@ -1,0 +1,12 @@
+# Local secrets and overrides for `astro dev` / `astro preview` (workerd).
+# Copy to .dev.vars (git-ignored). Values here override "vars" in wrangler.jsonc locally.
+
+# Shared key the website sends as X-Internal-Key to the control panel.
+# Must match INTERNAL_API_KEY in control-panel/.dev.vars.
+INTERNAL_API_KEY=dev-internal-key-change-me
+
+# Cloudflare's documented always-pass TEST secret (pairs with site key 1x00000000000000000000AA).
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+
+# Local control panel (used because the CONTROL_PANEL service binding is not available locally).
+CONTROL_PANEL_URL=http://localhost:5173

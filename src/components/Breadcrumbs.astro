@@ -1,0 +1,50 @@
+---
+/**
+ * Visible breadcrumb trail + BreadcrumbList JSON-LD. "Home" is prepended automatically and the
+ * last item is the current page (no href needed).
+ *
+ *   <Breadcrumbs items={[{ label: "Fleet", href: "/cars/" }, { label: "Toyota Corolla Altis" }]} />
+ */
+import { breadcrumbSchema } from "@/lib/schema";
+import Icon from "./Icon.astro";
+import JsonLd from "./JsonLd.astro";
+
+export interface Crumb {
+  label: string;
+  href?: string;
+}
+
+interface Props {
+  items: Crumb[];
+  /** Emit BreadcrumbList JSON-LD. Default true. */
+  schema?: boolean;
+  class?: string;
+}
+
+const { items, schema = true, class: className } = Astro.props;
+const trail: Crumb[] = [{ label: "Home", href: "/" }, ...items];
+const lastIndex = trail.length - 1;
+---
+
+<nav aria-label="Breadcrumb" class={className}>
+  <ol class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted">
+    {
+      trail.map((crumb, i) => (
+        <li class="flex items-center gap-1.5">
+          {i > 0 && <Icon name="ph:caret-right" size={12} class="opacity-60" />}
+          {i < lastIndex && crumb.href ? (
+            <a href={crumb.href} class="underline-offset-4 transition-colors hover:text-fg hover:underline">
+              {crumb.label}
+            </a>
+          ) : (
+            <span aria-current={i === lastIndex ? "page" : undefined} class:list={[i === lastIndex && "text-fg"]}>
+              {crumb.label}
+            </span>
+          )}
+        </li>
+      ))
+    }
+  </ol>
+</nav>
+
+{schema && <JsonLd data={breadcrumbSchema(trail.map((c) => ({ name: c.label, url: c.href ?? Astro.url.pathname })))} />}

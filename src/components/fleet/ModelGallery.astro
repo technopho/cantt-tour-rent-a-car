@@ -1,0 +1,296 @@
+---
+/**
+ * Model page gallery.
+ *  - No photos: the branded CarVisual panel (no fake imagery).
+ *  - Photos: a scroll-snap track (swipe on phones) with prev/next, a counter and thumbnails, plus a
+ *    native <dialog> lightbox. Plain <img srcset> from R2 with width/height (no layout shift).
+ *    Only the first photo may be high priority (it is the page's LCP image).
+ *
+ * Without JS: the track still swipes/scrolls, thumbnails are #anchors and each photo links to the
+ * full-size file. The script only adds smooth paging, the active state and the lightbox.
+ *
+ *   <ModelGallery model={model} categoryName="SUVs" priority />
+ */
+import CarVisual from "@/components/CarVisual.astro";
+import Icon from "@/components/Icon.astro";
+import type { CatalogImage, CatalogModel } from "@/lib/catalog-types";
+import { carName } from "./fleet-data";
+
+interface Props {
+  model: CatalogModel;
+  /** Kept for API symmetry with CarVisual; the hero shows the category as a link instead. */
+  categoryName?: string;
+  priority?: boolean;
+  class?: string;
+}
+
+const { model, priority = false, class: className } = Astro.props;
+const name = carName(model);
+const images = model.images;
+const count = images.length;
+const sizes = "(min-width: 1400px) 760px, (min-width: 1024px) 55vw, 100vw";
+
+/** Largest rendition from a "url 480w, url 960w" srcset (falls back to src). */
+function largest(img: CatalogImage): string {
+  const candidates = img.srcset
+    .split(",")
+    .map((part) => part.trim().split(/\s+/))
+    .filter((p) => p[0])
+    .map(([url, w]) => ({ url, w: Number.parseInt(w ?? "0", 10) || 0 }));
+  candidates.sort((a, b) => b.w - a.w);
+  return candidates[0]?.url ?? img.src;
+}
+---
+
+{
+  count === 0 ? (
+    <div class:list={["relative", className]}>
+      <CarVisual model={model} decorative sizes={sizes} class="shadow-soft" />
+    </div>
+  ) : (
+    <div class:list={["model-gallery relative", className]} data-gallery>
+      <div class="relative overflow-hidden rounded-card bg-surface-2 shadow-soft">
+        <ul
+          class="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth scrollbar-none"
+          data-gallery-track
+          data-lenis-prevent
+          aria-label={`Photos of the ${name}`}
+          tabindex={count > 1 ? 0 : undefined}
+        >
+          {images.map((img, i) => (
+            <li
+              id={`photo-${i + 1}`}
+              class="relative aspect-[16/10] w-full shrink-0 snap-center"
+              aria-label={count > 1 ? `Photo ${i + 1} of ${count}` : undefined}
+            >
+              <a href={largest(img)} class="group block size-full cursor-zoom-in" data-gallery-open={i} data-full={largest(img)}>
+                <img
+                  src={img.src}
+                  srcset={img.srcset || undefined}
+                  sizes={img.srcset ? sizes : undefined}
+                  width={img.width}
+                  height={img.height}
+                  alt={img.alt || `${name}, photo ${i + 1}`}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  fetchpriority={i === 0 && priority ? "high" : undefined}
+                  decoding={i === 0 ? "auto" : "async"}
+                  class="size-full object-cover transition-transform duration-700 ease-(--ease-out) group-hover:scale-[1.02]"
+                />
+                <span class="sr-only">View larger</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+
+        <span class="pointer-events-none absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-badge border border-line bg-bg/70 px-2 py-1 text-xs font-semibold text-fg backdrop-blur-sm">
+          <Icon name="ph:magnifying-glass-plus" size={14} />
+          {count > 1 ? (
+            <span class="tabular" data-gallery-count>
+              1 / {count}
+            </span>
+          ) : (
+            "View larger"
+          )}
+        </span>
+
+        {count > 1 && (
+          <div class="absolute right-3 bottom-3 flex gap-2">
+            <button
+              type="button"
+              class="grid size-10 place-items-center rounded-full border border-line bg-bg/70 text-fg backdrop-blur-sm transition-[background-color,transform] hover:bg-bg active:scale-95"
+              data-gallery-prev
+              aria-label="Previous photo"
+            >
+              <Icon name="ph:caret-left" size={18} />
+            </button>
+            <button
+              type="button"
+              class="grid size-10 place-items-center rounded-full border border-line bg-bg/70 text-fg backdrop-blur-sm transition-[background-color,transform] hover:bg-bg active:scale-95"
+              data-gallery-next
+              aria-label="Next photo"
+            >
+              <Icon name="ph:caret-right" size={18} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {count > 1 && (
+        <ul class="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-6" aria-label="Choose a photo">
+          {images.map((img, i) => (
+            <li>
+              <a
+                href={`#photo-${i + 1}`}
+                class="block aspect-[16/10] overflow-hidden rounded-badge border border-line opacity-60 transition-opacity hover:opacity-100 aria-[current=true]:border-accent aria-[current=true]:opacity-100"
+                data-gallery-go={i}
+                aria-current={i === 0 ? "true" : undefined}
+                aria-label={`Show photo ${i + 1}`}
+              >
+                <img
+                  src={img.src}
+                  srcset={img.srcset || undefined}
+                  sizes="120px"
+                  width={img.width}
+                  height={img.height}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  class="size-full object-cover"
+                />
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <dialog
+        class="gallery-lightbox m-auto h-dvh max-h-dvh w-full max-w-none bg-transparent p-0 backdrop:bg-black/85 backdrop:backdrop-blur-sm"
+        aria-label={`Photos of the ${name}`}
+        data-gallery-dialog
+        data-scroll-lock
+        closedby="any"
+      >
+        <div class="relative grid h-full place-items-center p-4 md:p-10" data-gallery-stage>
+          <img data-gallery-full alt="" class="max-h-full w-auto max-w-full rounded-card object-contain" />
+          <button
+            type="button"
+            class="absolute top-4 right-4 grid size-11 place-items-center rounded-full border border-white/15 bg-black/60 text-white"
+            data-gallery-close
+            aria-label="Close photo viewer"
+            autofocus
+          >
+            <Icon name="ph:x" size={20} />
+          </button>
+          {count > 1 && (
+            <>
+              <button
+                type="button"
+                class="absolute top-1/2 left-4 grid size-11 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-black/60 text-white"
+                data-gallery-dialog-prev
+                aria-label="Previous photo"
+              >
+                <Icon name="ph:caret-left" size={20} />
+              </button>
+              <button
+                type="button"
+                class="absolute top-1/2 right-4 grid size-11 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-black/60 text-white"
+                data-gallery-dialog-next
+                aria-label="Next photo"
+              >
+                <Icon name="ph:caret-right" size={20} />
+              </button>
+            </>
+          )}
+        </div>
+      </dialog>
+    </div>
+  )
+}
+
+<script>
+  const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const lock = (locked: boolean) => window.dispatchEvent(new CustomEvent("cantt:scroll-lock", { detail: { locked } }));
+
+  document.querySelectorAll<HTMLElement>("[data-gallery]").forEach((gallery) => {
+    const track = gallery.querySelector<HTMLElement>("[data-gallery-track]");
+    if (!track) return;
+    const slides = [...track.children] as HTMLElement[];
+    const openers = [...gallery.querySelectorAll<HTMLAnchorElement>("[data-gallery-open]")];
+    const thumbs = [...gallery.querySelectorAll<HTMLAnchorElement>("[data-gallery-go]")];
+    const counter = gallery.querySelector<HTMLElement>("[data-gallery-count]");
+    const dialog = gallery.querySelector<HTMLDialogElement>("[data-gallery-dialog]");
+    const full = gallery.querySelector<HTMLImageElement>("[data-gallery-full]");
+    const total = slides.length;
+    let index = 0;
+
+    const setActive = (i: number) => {
+      index = i;
+      if (counter) counter.textContent = `${i + 1} / ${total}`;
+      thumbs.forEach((t, n) => (n === i ? t.setAttribute("aria-current", "true") : t.removeAttribute("aria-current")));
+    };
+
+    const go = (i: number) => {
+      const next = (i + total) % total;
+      track.scrollTo({ left: slides[next].offsetLeft, behavior: reduced() ? "auto" : "smooth" });
+      setActive(next);
+    };
+
+    if ("IntersectionObserver" in window && total > 1) {
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) setActive(slides.indexOf(entry.target as HTMLElement));
+          }
+        },
+        { root: track, threshold: 0.6 },
+      );
+      slides.forEach((s) => io.observe(s));
+    }
+
+    gallery.querySelector("[data-gallery-prev]")?.addEventListener("click", () => go(index - 1));
+    gallery.querySelector("[data-gallery-next]")?.addEventListener("click", () => go(index + 1));
+    thumbs.forEach((thumb, i) =>
+      thumb.addEventListener("click", (event) => {
+        event.preventDefault();
+        go(i);
+      }),
+    );
+    track.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        go(index + 1);
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        go(index - 1);
+      }
+    });
+
+    if (!dialog || !full) return;
+    const show = (i: number) => {
+      index = (i + total) % total;
+      const opener = openers[index];
+      const img = opener?.querySelector("img");
+      full.src = opener?.dataset.full ?? img?.currentSrc ?? "";
+      full.alt = img?.alt ?? "";
+      setActive(index);
+    };
+
+    openers.forEach((opener, i) =>
+      opener.addEventListener("click", (event) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+        event.preventDefault();
+        show(i);
+        dialog.showModal();
+        lock(true);
+      }),
+    );
+    dialog.addEventListener("close", () => {
+      lock(false);
+      go(index);
+      // Return focus to the photo now on show (the dialog restores focus to the original opener).
+      requestAnimationFrame(() => openers[index]?.focus({ preventScroll: true }));
+    });
+    dialog.addEventListener("click", (event) => {
+      const target = event.target as HTMLElement;
+      if (target === dialog || target.matches("[data-gallery-stage]") || target.closest("[data-gallery-close]")) dialog.close();
+    });
+    dialog.querySelector("[data-gallery-dialog-prev]")?.addEventListener("click", () => show(index - 1));
+    dialog.querySelector("[data-gallery-dialog-next]")?.addEventListener("click", () => show(index + 1));
+    dialog.addEventListener("keydown", (event) => {
+      if (total < 2) return;
+      if (event.key === "ArrowRight") show(index + 1);
+      if (event.key === "ArrowLeft") show(index - 1);
+    });
+  });
+</script>
+
+<style>
+  .gallery-lightbox[open] {
+    animation: lightbox-in 0.3s var(--ease-out);
+  }
+  @keyframes lightbox-in {
+    from {
+      opacity: 0;
+    }
+  }
+</style>

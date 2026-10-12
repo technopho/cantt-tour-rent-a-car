@@ -1,0 +1,125 @@
+---
+/**
+ * Root layout for every page: <head> (SEO, OG, fonts, sitewide JSON-LD), skip link, Header,
+ * <main>, Footer, WhatsApp FAB, grain overlay and the tiny motion bootstrap.
+ *
+ *   <BaseLayout title="Wedding car rental in Lahore" description="...">
+ *     <JsonLd slot="jsonld" data={serviceSchema({...})} />
+ *     <link slot="head" rel="preload" as="image" href="/hero-poster.avif" />
+ *     ...page content...
+ *   </BaseLayout>
+ *
+ * The header is fixed. By default <main> gets top padding equal to the header height; pass
+ * overlayHeader when the first section is a full-bleed hero that handles the offset itself
+ * (use class "pt-header" or more on it).
+ */
+import "@/styles/global.css";
+import unboundedLatin from "@fontsource-variable/unbounded/files/unbounded-latin-wght-normal.woff2?url";
+import manropeLatin from "@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url";
+import Footer from "@/components/Footer.astro";
+import Header from "@/components/Header.astro";
+import JsonLd from "@/components/JsonLd.astro";
+import WhatsAppFab from "@/components/WhatsAppFab.astro";
+import { site } from "@/config/site";
+import { getPriceRange } from "@/lib/catalog";
+import { autoRentalBusiness, priceRangeLabel, websiteSchema } from "@/lib/schema";
+import { buildSeo, type SeoInput } from "@/lib/seo";
+
+export interface Props extends SeoInput {
+  /** First section sits under the fixed header (full-bleed heroes). Default false. */
+  overlayHeader?: boolean;
+  /** Lenis smooth scroll on capable desktops. Default true. */
+  smoothScroll?: boolean;
+  /** Fixed film-grain overlay. Default true. */
+  grain?: boolean;
+  /** Hide the footer's closing CTA band (e.g. on /quote/). */
+  hideFooterCta?: boolean;
+  /** Hide the floating WhatsApp button. */
+  hideFab?: boolean;
+  /** Prefilled WhatsApp message for the FAB on this page. */
+  whatsappMessage?: string;
+  class?: string;
+}
+
+const {
+  overlayHeader = false,
+  smoothScroll = true,
+  grain = true,
+  hideFooterCta = false,
+  hideFab = false,
+  whatsappMessage,
+  class: className,
+  ...seoInput
+} = Astro.props;
+
+const origin = (Astro.site?.href ?? site.url).replace(/\/+$/, "");
+const seo = buildSeo(seoInput, Astro.url.pathname, origin);
+const priceRange = priceRangeLabel(await getPriceRange());
+---
+
+<!doctype html>
+<html lang="en-PK" dir="ltr" data-smooth-scroll={smoothScroll ? "on" : "off"}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{seo.title}</title>
+    <meta name="description" content={seo.description} />
+    <link rel="canonical" href={seo.canonical} />
+    <meta name="robots" content={seo.robots} />
+
+    <link rel="preload" href={unboundedLatin} as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href={manropeLatin} as="font" type="font/woff2" crossorigin="anonymous" />
+
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+
+    {Object.entries(seo.og).map(([property, content]) => <meta property={property} content={content} />)}
+    {Object.entries(seo.article).map(([property, content]) => <meta property={property} content={content} />)}
+    {Object.entries(seo.twitter).map(([name, content]) => <meta name={name} content={content} />)}
+
+    <script is:inline>
+      document.documentElement.classList.add("js");
+    </script>
+
+    <JsonLd data={[autoRentalBusiness({ priceRange }), websiteSchema()]} />
+    <slot name="jsonld" />
+    <slot name="head" />
+  </head>
+  <body class:list={["min-h-dvh bg-bg text-fg", className]}>
+    <a
+      href="#main"
+      class="sr-only-focusable fixed top-3 left-3 z-[100] rounded-full bg-accent-fill px-5 py-3 font-semibold text-accent-ink shadow-lift"
+    >
+      Skip to content
+    </a>
+
+    <Header />
+
+    <main id="main" tabindex="-1" class:list={["outline-none", !overlayHeader && "pt-header"]}>
+      <slot />
+    </main>
+
+    <Footer hideCta={hideFooterCta} />
+
+    {
+      !hideFab && (
+        <aside aria-label="Quick contact">
+          <WhatsAppFab message={whatsappMessage} />
+        </aside>
+      )
+    }
+    {grain && <div class="grain" aria-hidden="true" />}
+
+    <script>
+      import "@/scripts/bootstrap";
+    </script>
+  </body>
+</html>
