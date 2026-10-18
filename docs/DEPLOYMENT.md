@@ -6,8 +6,8 @@ You will end up with:
 
 | Address | What | Cloudflare product |
 |---|---|---|
-| `canttrentacar.com` (+ `www`) | Public website | Worker `cantt-website` (static assets) |
-| `admin.canttrentacar.com` | Control panel | Worker `cantt-control-panel` + D1 + R2, protected by Cloudflare Access |
+| `canttrentacar.com` (+ `www`) | Public website | Worker `cantt-tour-rent-a-car` (static assets) |
+| `admin.canttrentacar.com` | Control panel | Worker `cantt-tour-rent-control-panel` + D1 + R2, protected by Cloudflare Access |
 | `media.canttrentacar.com` | Car photos + website catalog | R2 bucket `cantt-media` (public custom domain) |
 
 Replace `canttrentacar.com` everywhere with your real domain.
@@ -26,14 +26,16 @@ Replace `canttrentacar.com` everywhere with your real domain.
 
 ## 2. Control panel: database and storage
 
-From the `control-panel` folder:
+**Already done on the admin@technopho.com account (18 Oct 2026):** D1 database `cantt-db` created in the Asia-Pacific region (closest to Pakistan), its id is in `control-panel/wrangler.jsonc`, all migrations are applied and the base data (chart of accounts, expense categories, default money accounts) is loaded. R2 buckets `cantt-media` and `cantt-private` exist. Skip to the custom domain below.
+
+On a different Cloudflare account, from the `control-panel` folder:
 
 ```bash
 npm install
-npx wrangler d1 create cantt-db
+npx wrangler d1 create cantt-db --location apac
 ```
 
-Copy the `database_id` it prints into `control-panel/wrangler.jsonc` (replace the zeros). Then:
+Copy the `database_id` it prints into `control-panel/wrangler.jsonc`. Then:
 
 ```bash
 npx wrangler r2 bucket create cantt-media
@@ -42,7 +44,7 @@ npm run db:migrate:remote
 npm run db:seed:remote
 ```
 
-`db:seed:remote` only loads the chart of accounts, expense categories and default money accounts (no demo data).
+`db:seed:remote` only loads the chart of accounts, expense categories and default money accounts (no demo data). After any future schema change, run `npm run db:migrate:remote` before (or right after) the new code deploys.
 
 In the dashboard: **R2 → cantt-media → Settings → Custom Domains → Connect domain** → `media.canttrentacar.com`. Leave `cantt-private` with **no** public access.
 
@@ -62,7 +64,17 @@ npx wrangler secret put INTERNAL_API_KEY     # any long random string; the websi
 npx wrangler secret put RESEND_API_KEY       # from resend.com (step 6)
 npx wrangler secret put BREVO_API_KEY        # optional fallback, from brevo.com
 npx wrangler secret put DEPLOY_HOOK_URL      # website deploy hook (step 8)
+npx wrangler secret put CRON_SECRET          # daily jobs key, see "Daily jobs" below (openssl rand -hex 32)
 ```
+
+### Daily jobs (expired holds, overdue installments, depreciation, staff digest...)
+
+The free plan allows only **5 cron triggers per Cloudflare account**, and the admin@technopho.com account already uses all 5 for other Workers, so the control panel does not use native cron triggers (`"triggers": { "crons": [] }` in `wrangler.jsonc`). Instead:
+
+1. **GitHub Actions (free):** `.github/workflows/daily-jobs.yml` in the control panel repository runs every day at 05:05 Pakistan time and calls `POST /api/public/cron/<group>` for each job group. In the GitHub repository go to **Settings → Secrets and variables → Actions** and add `CRON_SECRET` (the same value as the Worker secret) and `PANEL_URL` (`https://admin.canttrentacar.com`). Until both exist the workflow skips itself. You can also run it by hand from the **Actions** tab.
+2. **Catch-up:** if a day's jobs did not run (GitHub delays, a missing secret), the panel runs them when staff open it, one group per page load.
+
+On a Cloudflare account with free cron slots you can switch to native triggers instead: put the four expressions listed in `worker/cron.ts` into `triggers.crons`.
 
 Deploy:
 
@@ -70,7 +82,7 @@ Deploy:
 npm run deploy
 ```
 
-Then **Workers & Pages → cantt-control-panel → Settings → Domains & Routes → Add → Custom domain** → `admin.canttrentacar.com`.
+Then **Workers & Pages → cantt-tour-rent-control-panel → Settings → Domains & Routes → Add → Custom domain** → `admin.canttrentacar.com`.
 
 ## 4. Protect the control panel with Cloudflare Access (free for up to 50 users)
 
@@ -92,7 +104,7 @@ Then **Workers & Pages → cantt-control-panel → Settings → Domains & Routes
 From the `website` folder, edit `src/config/site.ts` with the real phone, WhatsApp, address, hours and social links (every placeholder is listed in `PLACEHOLDER_FIELDS`). Then in `website/wrangler.jsonc`:
 
 - set `SITE_URL` to your domain
-- uncomment the `services` binding to `cantt-control-panel` (the control panel must already be deployed)
+- uncomment the `services` binding to `cantt-tour-rent-control-panel` (the control panel must already be deployed)
 
 Before launch, the owner must confirm (or change) the values marked "CHOSEN DEFAULT" in `website/src/components/services/terms.ts`: the city day window, the self drive handover place, the self drive outstation rule, fuel with a driver, the wedding season and the wedding peak days. Every page reads them from that file and states them as fact.
 
@@ -112,7 +124,7 @@ npm install
 npm run deploy
 ```
 
-**Workers & Pages → cantt-website → Settings → Domains & Routes** → add custom domains `canttrentacar.com` and `www.canttrentacar.com`. Add a **Redirect Rule** (Rules → Redirect Rules) from `www` to the apex (301) so there is one canonical address.
+**Workers & Pages → cantt-tour-rent-a-car → Settings → Domains & Routes** → add custom domains `canttrentacar.com` and `www.canttrentacar.com`. Add a **Redirect Rule** (Rules → Redirect Rules) from `www` to the apex (301) so there is one canonical address.
 
 ## 6. Email
 
@@ -131,7 +143,7 @@ npm run deploy
 ## 8. Automatic website rebuilds when you publish from the control panel
 
 1. Push the project to a private GitHub repository.
-2. **Workers & Pages → cantt-website → Settings → Builds → Connect** your repository, root directory `website`, build command `npm run build`, deploy command `npx wrangler deploy`.
+2. **Workers & Pages → cantt-tour-rent-a-car → Settings → Builds → Connect** your repository, root directory `website`, build command `npm run build`, deploy command `npx wrangler deploy`.
 3. Build variables: `SITE_URL=https://canttrentacar.com`, `CATALOG_URL=https://media.canttrentacar.com/catalog/v1.json`, `CATALOG_REQUIRED=true`, `PUBLIC_TURNSTILE_SITE_KEY=<site key>`. `CATALOG_REQUIRED=true` makes a build fail instead of silently publishing the sample fleet and its placeholder prices when the catalog cannot be fetched, so press **Control panel → Settings → Website → Publish** once (it works before the deploy hook exists) so `catalog/v1.json` is in R2 before you connect the build.
 4. **Deploy hooks → Create** → copy the URL → in `control-panel`: `npx wrangler secret put DEPLOY_HOOK_URL`.
 
@@ -163,6 +175,9 @@ npx wrangler d1 export cantt-db --remote --output=backup-$(date +%F).sql
 Run it at night (it briefly pauses other database requests), encrypt the file (it contains customer CNIC numbers and phone numbers), and keep it somewhere private.
 
 ## 12. Free-plan limits to keep in mind
+
+**Important:** free-plan limits are per Cloudflare **account**, not per Worker. The admin@technopho.com account currently hosts about 32 Workers, and they all share the daily request quota, D1 reads/writes, the 10 GB of R2 storage and the 5 cron triggers. For a business system like this, a separate free Cloudflare account just for Cantt Rent a Car is the safer choice: the numbers below would then belong to Cantt alone.
+
 
 | Limit (free) | Our usage at 30–80 cars | What happens if exceeded |
 |---|---|---|

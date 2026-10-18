@@ -28,7 +28,7 @@ The public website **never** shows live availability and **never** creates booki
 - **R2 free: 10 GB.** Every image is resized/compressed to WebP **in the browser** before upload. No originals kept. Handover photos are deleted after the deposit is settled (unless flagged).
 - **Cloudflare Images: not used** (5k transform/month cap). Variants are generated at upload.
 - **KV: not used** (1k writes/day). Counters live in D1.
-- **Cron: 1 cron per app**, which dispatches internally by time.
+- **Daily jobs without cron slots:** the free plan allows 5 cron triggers per account (all used by other Workers on the current account), so the 4 job groups in `control-panel/worker/cron.ts` run via `POST /api/public/cron/:group` (GitHub Actions, `X-Cron-Key`) with a catch-up on `GET /api/me`; each group runs in its own invocation and at most once per UTC day (operation_locks `cron:<date>:<group>`).
 - **Email: Resend free (100/day) → Brevo free fallback.** Staff alerts go through the free `send_email` binding to verified addresses. Only confirmations/invoices are emailed to customers; reminders go via wa.me links sent by staff.
 
 ## 3. Control panel conventions
@@ -103,7 +103,7 @@ control-panel/
 ```
 website/
   astro.config.mjs      output: 'static', adapter: cloudflare({ imageService: 'compile' }), site: SITE_URL
-  wrangler.jsonc        Worker "cantt-website", static assets, service binding CONTROL_PANEL
+  wrangler.jsonc        Worker "cantt-tour-rent-a-car", static assets, service binding CONTROL_PANEL
   src/
     config/site.ts      Business NAP, phones, WhatsApp, social links, areas served — the ONE place to edit
     lib/catalog.ts      Loads catalog (CATALOG_URL → fallback sample) + helpers

@@ -15,7 +15,7 @@
 //   TURNSTILE_SECRET_KEY  Cloudflare Turnstile secret for verifying quote form tokens
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "cantt-website",
+  "name": "cantt-tour-rent-a-car",
   "main": "@astrojs/cloudflare/entrypoints/server",
   "compatibility_date": "2026-09-15",
   "compatibility_flags": ["nodejs_compat"],
@@ -49,9 +49,9 @@
   }
 
   // Service binding to the control panel Worker (quote requests go Worker to Worker, no public hop).
-  // Enable AFTER "cantt-control-panel" has been deployed at least once:
+  // Enable AFTER "cantt-tour-rent-control-panel" has been deployed at least once:
   // `wrangler deploy` fails if the target Worker does not exist yet.
   // "services": [
-  //   { "binding": "CONTROL_PANEL", "service": "cantt-control-panel" }
+  //   { "binding": "CONTROL_PANEL", "service": "cantt-tour-rent-control-panel" }
   // ]
 }
