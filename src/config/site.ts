@@ -68,14 +68,13 @@ export const site = {
 
   phones: [
     {
-      // TODO(owner): real primary phone number.
-      e164: "+923000000000",
-      display: "0300 0000000",
+      e164: "+923434899399",
+      display: "0343 4899399",
       label: "Bookings",
     },
   ],
-  // TODO(owner): WhatsApp Business number, digits only with country code (wa.me format).
-  whatsapp: "923000000000",
+  // WhatsApp number, digits only with country code (wa.me format). Same as the bookings phone.
+  whatsapp: "923434899399",
   // TODO(owner): real inbox on the final domain.
   email: "hello@canttrentacar.com",
 
