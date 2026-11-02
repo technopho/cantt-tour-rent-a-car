@@ -421,7 +421,8 @@ const count = String(frames.length).padStart(2, "0");
   .op-title {
     margin: 0;
     font-family: "Bodoni Moda Variable", var(--font-display);
-    font-weight: 400;
+    font-weight: var(--display-weight);
+    font-variation-settings: "opsz" var(--display-opsz);
     font-size: clamp(3.5rem, 11vw, 11rem);
     line-height: 0.95;
     letter-spacing: -0.01em;

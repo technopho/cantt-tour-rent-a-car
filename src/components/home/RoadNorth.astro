@@ -102,7 +102,8 @@ const others = routes.filter((route) => !northSlugs.has(route.slug));
   .road-title {
     margin: 0 0 clamp(2rem, 5vw, 4rem);
     font-family: "Bodoni Moda Variable", var(--font-display);
-    font-weight: 400;
+    font-weight: var(--display-weight);
+    font-variation-settings: "opsz" var(--display-opsz);
     font-size: clamp(3.25rem, 9.2vw, 9.5rem);
     line-height: 0.95;
     letter-spacing: -0.01em;

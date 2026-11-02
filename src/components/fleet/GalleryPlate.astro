@@ -170,7 +170,8 @@ const extraRates = detailed
   }
   .plate__name {
     font-family: var(--font-display);
-    font-weight: 400;
+    font-weight: var(--display-weight);
+    font-variation-settings: "opsz" var(--display-opsz);
     font-size: var(--name);
     line-height: 0.98;
     letter-spacing: -0.01em;
@@ -240,7 +241,8 @@ const extraRates = detailed
   }
   .plate-row__model {
     font-family: var(--font-display);
-    font-weight: 400;
+    font-weight: var(--display-weight);
+    font-variation-settings: "opsz" var(--display-opsz);
     font-size: clamp(2.75rem, 12vw, 3.5rem);
     line-height: 1;
     letter-spacing: -0.01em;

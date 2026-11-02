@@ -138,6 +138,11 @@
   --theme-color: #070708;
   --scrollbar: rgb(236 224 200 / 0.22);
 
+  /* Display type (Bodoni): a touch heavier than regular and a capped optical size, so hairlines stay
+     readable at headline sizes. One place to tune every heading. */
+  --display-weight: 500;
+  --display-opsz: 28;
+
   /* The one easing of the site: slow and heavy. */
   --ease-heavy: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-door: cubic-bezier(0.76, 0, 0.24, 1);
@@ -352,7 +357,8 @@
   h1,
   h2 {
     font-family: var(--font-display);
-    font-weight: 400;
+    font-weight: var(--display-weight);
+    font-variation-settings: "opsz" var(--display-opsz);
     line-height: 1.04;
     letter-spacing: -0.008em;
     text-wrap: balance;
@@ -534,10 +540,14 @@ img.photo-grade {
  * Scoped CSS that sets font-family itself is not guarded: keep Bodoni there at 48px and up, or set
  * font-variation-settings: "opsz" 14 under that.
  * ---------------------------------------------------------------------------------------- */
+/* Readability: the high-contrast display cut (opsz auto at 100px+) thins the hairlines to almost nothing,
+   which the owner found hard to read. A capped optical size and a touch more weight keep the Bodoni look
+   with sturdier strokes. The smaller rules below lower opsz further. */
 [class*="text-display-"],
 .font-display {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: var(--display-weight);
+  font-variation-settings: "opsz" var(--display-opsz);
 }
 [class*="text-display-"] em,
 .font-display em {
