@@ -1,8 +1,11 @@
 ---
 /**
- * Site footer (rendered by BaseLayout): closing CTA band, NAP exactly as site.ts, hours,
- * link columns (services, areas, routes, company) and small print. The CTA band carries
- * data-fab-hide so the floating WhatsApp button steps aside when it is on screen.
+ * Site footer (rendered by BaseLayout): closing CTA band, NAP exactly as site.ts, hours, link columns
+ * (services, areas, routes, company), small print, and a huge "Cantt" wordmark whose letters rise with the
+ * scroll. The CTA band carries data-fab-hide so the floating WhatsApp button steps aside when it is on screen.
+ * Licensed photos are credited on the pictures themselves, so no credit line is needed here.
+ * On phones the four link columns fold to their titles (native <details>, shipped open so every link reads with
+ * JS off and sits in the HTML; a tiny inline script folds them before first paint, as PhoneFold does).
  */
 import { formatOpeningHours, primaryPhone, site, socialLinks } from "@/config/site";
 import { mailtoUrl, mapsUrl, telUrl, whatsappUrl } from "@/lib/links";
@@ -31,76 +34,70 @@ const columns = [
 ];
 ---
 
-<footer class="relative isolate overflow-hidden border-t border-line bg-bg">
+<footer class="relative isolate overflow-hidden bg-bg">
   {
     !hideCta && (
-      <section aria-labelledby="footer-cta-title" class="relative" data-fab-hide>
+      <section aria-labelledby="footer-cta-title" class="relative border-t border-line" data-fab-hide>
         <div
-          class="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[70%] bg-[radial-gradient(60%_80%_at_50%_100%,color-mix(in_oklab,var(--accent)_16%,transparent),transparent_70%)]"
+          class="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-full bg-[radial-gradient(46%_70%_at_82%_100%,color-mix(in_oklab,var(--accent)_11%,transparent),transparent_72%)]"
           aria-hidden="true"
         />
-        <Container class="grid items-end gap-10 py-section lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <Container class="grid items-end gap-10 py-section lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           <div>
-            <h2 id="footer-cta-title" class="text-display-lg text-fg">
-              Gari chahiye? <span class="text-accent">We're on WhatsApp.</span>
+            <h2 id="footer-cta-title" class="text-display-xl text-fg" data-fx="lines">
+              Gari chahiye? We're on <em class="text-accent">WhatsApp.</em>
             </h2>
-            <p class="text-lede mt-5 max-w-xl text-muted">
+            <p class="text-lede mt-6 max-w-xl text-muted" data-fx="fade" data-delay="0.2">
               Tell us the car, the dates and where to pick you up. We reply with a clear price.
             </p>
           </div>
-          <div class="flex flex-wrap gap-3 lg:justify-end">
+          <div class="flex flex-wrap gap-3 lg:justify-end" data-fx="stagger" data-delay="0.25">
             <Button href={site.cta.quote.href} size="lg" iconRight="ph:arrow-right">
               {site.cta.quote.label}
             </Button>
-            <Button
-              href={whatsappUrl()}
-              variant="secondary"
-              size="lg"
-              icon="simple-icons:whatsapp"
-              iconClass="text-whatsapp"
-              external
-            >
+            <Button href={whatsappUrl()} variant="secondary" size="lg" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
               {site.cta.whatsapp.label}
             </Button>
-            <Button href={telUrl()} variant="ghost" size="lg" icon="ph:phone">
+            <Button href={telUrl()} variant="secondary" size="lg" icon="ph:phone" iconClass="text-accent">
               {site.cta.call.label}
             </Button>
           </div>
         </Container>
-        <div class="rule-fade mx-auto max-w-site" aria-hidden="true" />
       </section>
     )
   }
 
-  <Container class="grid gap-12 py-16 sm:grid-cols-2 lg:grid-cols-[1.35fr_repeat(4,minmax(0,1fr))] lg:gap-10">
-    <div class="flex flex-col gap-6 sm:col-span-2 lg:col-span-1">
+  <div class="h-px w-full bg-line" data-fx="rule" aria-hidden="true"></div>
+
+  <Container class="grid gap-14 py-20 sm:grid-cols-2 lg:grid-cols-[1.35fr_repeat(4,minmax(0,1fr))] lg:gap-12">
+    <div class="flex flex-col gap-7 sm:col-span-2 lg:col-span-1">
       <Logo size="lg" />
       <p class="max-w-xs text-sm text-muted">{site.tagline}</p>
 
       <address class="flex flex-col gap-3 text-sm not-italic text-muted">
-        <span class="font-semibold text-fg">{site.name}</span>
-        <a href={mapsUrl()} class="flex gap-2.5 transition-colors hover:text-fg" target="_blank" rel="noopener noreferrer">
-          <Icon name="ph:map-pin" size={18} class="mt-0.5 text-accent" />
+        <span class="font-medium text-fg">{site.name}</span>
+        <a href={mapsUrl()} class="flex gap-3 transition-colors duration-500 hover:text-fg" target="_blank" rel="noopener noreferrer">
+          <Icon name="ph:map-pin" size={16} class="mt-1 text-accent" />
           <span>
             {[a.street, a.area, a.city].filter(Boolean).join(", ")}
             <br />
             {`${[a.region, a.postalCode].filter(Boolean).join(" ")}, ${a.countryName}`}
           </span>
         </a>
-        <a href={telUrl()} class="flex items-center gap-2.5 transition-colors hover:text-fg">
-          <Icon name="ph:phone" size={18} class="text-accent" />
+        <a href={telUrl()} class="flex items-center gap-3 transition-colors duration-500 hover:text-fg">
+          <Icon name="ph:phone" size={16} class="text-accent" />
           <span class="tabular">{primaryPhone.display}</span>
         </a>
-        <a href={whatsappUrl()} class="flex items-center gap-2.5 transition-colors hover:text-fg" target="_blank" rel="noopener noreferrer">
-          <Icon name="simple-icons:whatsapp" size={16} class="mx-px text-whatsapp" />
+        <a href={whatsappUrl()} class="flex items-center gap-3 transition-colors duration-500 hover:text-fg" target="_blank" rel="noopener noreferrer">
+          <Icon name="simple-icons:whatsapp" size={15} class="mx-px text-whatsapp" />
           <span>{site.cta.whatsapp.label}</span>
         </a>
-        <a href={mailtoUrl()} class="flex items-center gap-2.5 break-all transition-colors hover:text-fg">
-          <Icon name="ph:envelope-simple" size={18} class="text-accent" />
+        <a href={mailtoUrl()} class="flex items-center gap-3 break-all transition-colors duration-500 hover:text-fg">
+          <Icon name="ph:envelope-simple" size={16} class="text-accent" />
           <span>{site.email}</span>
         </a>
-        <span class="flex gap-2.5">
-          <Icon name="ph:clock" size={18} class="mt-0.5 text-accent" />
+        <span class="flex gap-3">
+          <Icon name="ph:clock" size={16} class="mt-1 text-accent" />
           <span>{hours.map((line) => <span class="block">{line}</span>)}</span>
         </span>
       </address>
@@ -114,7 +111,7 @@ const columns = [
                   href={s.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-flex size-10 items-center justify-center rounded-full border border-line text-muted transition-colors hover:border-line-strong hover:text-fg"
+                  class="inline-flex size-10 items-center justify-center border border-line text-muted transition-colors duration-500 hover:border-line-strong hover:text-fg"
                 >
                   <Icon name={s.icon} size={16} label={s.label} />
                 </a>
@@ -125,26 +122,158 @@ const columns = [
       }
     </div>
 
-    {
-      columns.map((col) => (
-        <nav aria-label={col.title}>
-          <h2 class="font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">{col.title}</h2>
-          <ul class="mt-4 flex flex-col gap-2.5 text-sm">
-            {col.links.map((link) => (
-              <li>
-                <a href={link.href} class="text-muted transition-colors hover:text-fg">
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      ))
-    }
+    <div class="foot-cols grid sm:col-span-2 sm:grid-cols-2 lg:col-span-4 lg:grid-cols-4">
+      {
+        columns.map((col) => (
+          <nav aria-label={col.title}>
+            <details class="foot-col" open data-phone-fold>
+              <summary class="foot-col__summary">
+                <h2 class="label font-sans text-accent-fg">{col.title}</h2>
+                <span class="foot-col__mark" aria-hidden="true" />
+              </summary>
+              <ul class="foot-col__list flex flex-col gap-2 text-sm">
+                {col.links.map((link) => (
+                  <li>
+                    <a href={link.href} class="link-draw inline-block text-muted transition-colors duration-500 hover:text-fg">
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </nav>
+        ))
+      }
+    </div>
+    <script is:inline>
+      (function () {
+        try {
+          if (!window.matchMedia("(max-width: 47.99rem)").matches) return;
+        } catch (e) {
+          return;
+        }
+        var folds = document.querySelectorAll("details.foot-col:not([data-folded])");
+        for (var i = 0; i < folds.length; i++) {
+          folds[i].open = false;
+          folds[i].setAttribute("data-folded", "");
+        }
+      })();
+    </script>
   </Container>
 
-  <Container class="flex flex-col gap-2 border-t border-line py-6 text-xs text-muted md:flex-row md:items-center md:justify-between">
-    <p>&copy; {year} {site.legalName}. All rights reserved.</p>
+  <Container class="flex flex-col gap-2 border-t border-line py-6 text-xs leading-relaxed text-muted lg:flex-row lg:items-start lg:justify-between lg:gap-10">
+    <p class="shrink-0">&copy; {year} {site.legalName}. All rights reserved.</p>
     <p>Prices on this site are estimates. Our team confirms the final price before you book.</p>
   </Container>
+
+  {/* Cinematic sign-off. The site name is already in the address above, so this is decoration. */}
+  <div class="relative overflow-clip select-none" aria-hidden="true">
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-[40%] bg-[radial-gradient(38%_100%_at_50%_100%,color-mix(in_oklab,var(--ember)_22%,transparent),transparent_75%)]"></div>
+    <p class="footer-word text-center font-display" data-fx="wordmark">Cantt</p>
+  </div>
 </footer>
+
+<script>
+  // Turned or resized past phone width: the titles stop being buttons there, so every column must be open.
+  window.matchMedia("(min-width: 48rem)").addEventListener("change", (event) => {
+    if (event.matches) for (const fold of document.querySelectorAll<HTMLDetailsElement>("details.foot-col")) fold.open = true;
+  });
+</script>
+
+<style>
+  /* Phones: each column is a row with a hairline and a plus; tap to open. */
+  .foot-cols {
+    gap: 0;
+    border-top: 1px solid var(--line);
+  }
+  .foot-col {
+    border-bottom: 1px solid var(--line);
+  }
+  .foot-col__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 3.25rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .foot-col__summary::-webkit-details-marker {
+    display: none;
+  }
+  .foot-col__summary:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 4px;
+  }
+  .foot-col__mark {
+    position: relative;
+    width: 0.75rem;
+    height: 0.75rem;
+    flex: none;
+  }
+  .foot-col__mark::before,
+  .foot-col__mark::after {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto;
+    height: 1px;
+    background: var(--accent);
+    transition: transform 0.6s var(--ease-heavy);
+  }
+  .foot-col__mark::after {
+    transform: rotate(90deg);
+  }
+  .foot-col[open] .foot-col__mark::after {
+    transform: rotate(0deg);
+  }
+  .foot-col[open] .foot-col__list {
+    margin-top: 0.25rem;
+    padding-bottom: 1.25rem;
+  }
+  /* From 768px up the columns are simply open, the titles plain labels. */
+  @media (width >= 48rem) {
+    .foot-cols {
+      gap: 3.5rem 3rem;
+      border-top: 0;
+    }
+    .foot-col {
+      border-bottom: 0;
+    }
+    .foot-col__summary {
+      display: block;
+      min-height: 0;
+      cursor: default;
+      pointer-events: none;
+    }
+    .foot-col__mark {
+      display: none;
+    }
+    .foot-col[open] .foot-col__list {
+      margin-top: 1.25rem;
+      padding-bottom: 0;
+    }
+  }
+
+  .footer-word {
+    /* "Cantt" set this tight in Bodoni is about 2.3em wide, so this runs nearly edge to edge at any width. */
+    font-size: 41vw;
+    line-height: 0.82;
+    letter-spacing: -0.035em;
+    margin-bottom: -0.012em;
+    padding-top: 0.04em;
+    white-space: nowrap;
+  }
+  /* Polished: ivory at the crown, sinking into the floor. On the whole word before it is split, per
+     letter after: background-clip does not reach through the letters' own masks. */
+  .footer-word:not([data-fx-on]),
+  .footer-word :global(.fx-char) {
+    background-image: linear-gradient(180deg, var(--text) 26%, color-mix(in oklab, var(--text) 36%, transparent) 66%, color-mix(in oklab, var(--text) 6%, transparent) 92%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .footer-word :global(.fx-char-mask) {
+    padding-block: 0.04em 0.1em;
+    margin-block: -0.04em -0.1em;
+  }
+</style>

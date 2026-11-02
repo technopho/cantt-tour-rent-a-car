@@ -2,6 +2,7 @@
 /**
  * Route page (/routes/lahore-to-<city>/): an outstation road trip from Lahore.
  * Content: src/content/routes/<slug>.md (+ src/components/local/route-meta.ts).
+ * Layout: road image hero, route facts in large type, stop-by-stop line, then the guide in a reading column.
  * Prices: catalog only (outstation day rate, driver night allowance, worked estimate).
  * JSON-LD: TouristTrip + Service (both linked to the AutoRental @id), BreadcrumbList. FAQs are visible
  * only (no FAQPage: see FaqList.astro). FAQ answers may use {{key}} tokens from terms.ts.
@@ -9,9 +10,7 @@
 import { getCollection, render } from "astro:content";
 import Button from "@/components/Button.astro";
 import FaqList from "@/components/FaqList.astro";
-import Icon from "@/components/Icon.astro";
 import JsonLd from "@/components/JsonLd.astro";
-import Prose from "@/components/Prose.astro";
 import SampleFleetNote from "@/components/SampleFleetNote.astro";
 import Section from "@/components/Section.astro";
 import SectionHeading from "@/components/SectionHeading.astro";
@@ -20,7 +19,10 @@ import OutstationPricing from "@/components/local/OutstationPricing.astro";
 import QuoteBand from "@/components/local/QuoteBand.astro";
 import RouteLine from "@/components/local/RouteLine.astro";
 import RouteLinks from "@/components/local/RouteLinks.astro";
-import RouteTicket from "@/components/local/RouteTicket.astro";
+import Interlude from "@/components/local/Interlude.astro";
+import Reading from "@/components/local/Reading.astro";
+import RouteFacts from "@/components/local/RouteFacts.astro";
+import { routePictures } from "@/components/local/plates";
 import { cheapestOutstation, modelsOrFallback, withDriverOnly } from "@/components/local/pricing";
 import { driveTimeWords, routeMeta } from "@/components/local/route-meta";
 import { destinationPlace } from "@/components/local/schema";
@@ -64,6 +66,10 @@ const description = data.metaDescription;
 // Policy wording (fuel, etc.) comes from terms.ts via {{key}} tokens.
 const faqs = data.faqs.map((f) => ({ q: fillTerms(f.q), a: fillTerms(f.a) }));
 
+// The road photo of the destination leads, then places on the way and Lahore. No fleet car among them: the
+// recommended cars below carry their own pictures. The quote band never reuses the hero.
+const { hero, reading: readingPlates, closing, band } = routePictures(data.slug, meta.region);
+
 const tripJson = touristTripSchema({
   name: data.h1,
   description,
@@ -92,6 +98,9 @@ const serviceJson = serviceSchema({
   intro={intro}
   crumbs={[{ label: "Outstation routes", href: urls.routes() }, { label: `Lahore to ${data.to}` }]}
   whatsappMessage={waMessage}
+  heroImage={hero.img}
+  heroCaption={hero.caption}
+  heroPosition={hero.position}
 >
   <JsonLd slot="jsonld" data={[tripJson, serviceJson]} />
 
@@ -102,57 +111,51 @@ const serviceJson = serviceSchema({
     </Button>
   </Fragment>
 
-  <Fragment slot="aside">
-    <RouteTicket
-      to={meta.short === data.to ? data.to : meta.short}
-      code={meta.code}
-      km={data.distanceKm}
-      hours={data.driveHours}
-      timeNote={meta.timeNote}
-      via={viaShort}
-      season={meta.season}
-      fromPrice={headlinePrice}
-      fromModel={isCity ? undefined : cheapest ? modelName(cheapest.model) : undefined}
-      priceLabel={isCity ? "City day with driver" : "Outstation with driver"}
-    />
-  </Fragment>
+
+  <RouteFacts
+    class="mt-10 md:mt-16"
+    to={meta.short === data.to ? data.to : meta.short}
+    km={data.distanceKm}
+    hours={data.driveHours}
+    timeNote={meta.timeNote}
+    days={meta.typicalDays}
+    via={viaShort}
+    season={meta.season}
+    fromPrice={headlinePrice}
+    fromModel={isCity ? undefined : cheapest ? modelName(cheapest.model) : undefined}
+    priceLabel={isCity ? "City day with driver" : "Outstation with driver"}
+  />
 
   <Section id="route" labelledby="route-title">
-    <div class="grid gap-12 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-12 lg:gap-20">
+    <div class="grid gap-16 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-24">
       <div>
-        <SectionHeading id="route-title" title="The route, stop by stop" size="md" intro="The usual way our drivers take. On the day, they adjust for traffic, weather and road works." />
-        <RouteLine to={data.to} stops={data.stops} roads={roads} class="mt-10" />
+        <SectionHeading id="route-title" title="The route, stop by stop" intro="The usual way our drivers take. On the day, they adjust for traffic, weather and road works." />
+        <RouteLine to={data.to} stops={data.stops} roads={roads} class="mt-12" />
       </div>
-      <div class="flex flex-col gap-0 self-start rounded-card border border-line bg-surface">
-        <h2 class="border-b border-line px-6 py-5 font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">Before you go</h2>
-        <dl class="divide-y divide-line">
+      <div class="flex flex-col self-start md:sticky md:top-[calc(var(--header-h)+2rem)]">
+        <h2 class="label text-muted">Before you go</h2>
+        <dl class="mt-5 border-t border-line" data-fx="stagger">
           {
             data.bestSeason && (
-              <div class="relative py-5 pr-6 pl-15.5">
-                <dt class="font-semibold text-fg">
-                  <Icon name="ph:sun-horizon" size={22} class="absolute top-5.5 left-6 text-accent" />Best time to go
-                </dt>
-                <dd class="mt-1.5 text-sm leading-relaxed text-muted">{data.bestSeason}</dd>
+              <div class="border-b border-line py-7">
+                <dt class="text-display-sm text-fg">Best time to go</dt>
+                <dd class="mt-3 max-w-[60ch] leading-relaxed text-muted">{data.bestSeason}</dd>
               </div>
             )
           }
           {
             data.roadAdvice && (
-              <div class="relative py-5 pr-6 pl-15.5">
-                <dt class="font-semibold text-fg">
-                  <Icon name="ph:road-horizon" size={22} class="absolute top-5.5 left-6 text-accent" />Road and weather
-                </dt>
-                <dd class="mt-1.5 text-sm leading-relaxed text-muted">{data.roadAdvice}</dd>
+              <div class="border-b border-line py-7">
+                <dt class="text-display-sm text-fg">Road and weather</dt>
+                <dd class="mt-3 max-w-[60ch] leading-relaxed text-muted">{data.roadAdvice}</dd>
               </div>
             )
           }
           {
             data.tollNote && (
-              <div class="relative py-5 pr-6 pl-15.5">
-                <dt class="font-semibold text-fg">
-                  <Icon name="ph:receipt" size={22} class="absolute top-5.5 left-6 text-accent" />Tolls
-                </dt>
-                <dd class="mt-1.5 text-sm leading-relaxed text-muted">{data.tollNote}</dd>
+              <div class="border-b border-line py-7">
+                <dt class="text-display-sm text-fg">Tolls</dt>
+                <dd class="mt-3 max-w-[60ch] leading-relaxed text-muted">{data.tollNote}</dd>
               </div>
             )
           }
@@ -162,48 +165,34 @@ const serviceJson = serviceSchema({
   </Section>
 
   <Section id="guide" aria-label={`Lahore to ${data.to} travel guide`} divider>
-    <div class="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-20">
-      <Prose>
-        <Content />
-      </Prose>
-      <aside class="flex flex-col gap-4 lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:self-start" aria-label="Trip at a glance">
-        <div class="rounded-card border border-line bg-surface p-5">
-          <p class="font-sans text-xs font-bold uppercase tracking-[0.16em] text-muted">At a glance</p>
-          <ul class="mt-4 flex flex-col gap-3 text-sm">
-            <li class="flex items-center gap-2.5 text-fg tabular">
-              <Icon name="ph:path" size={18} class="text-accent" />
-              About {formatKm(data.distanceKm)} from Lahore
-            </li>
-            <li class="flex items-center gap-2.5 text-fg tabular">
-              <Icon name="ph:clock" size={18} class="text-accent" />
-              About {formatDriveTime(data.driveHours)} driving{meta.timeNote ? `, ${meta.timeNote}` : ""}
-            </li>
-            <li class="flex items-center gap-2.5 text-fg tabular">
-              <Icon name="ph:calendar-check" size={18} class="text-accent" />
-              Typical trip: {meta.typicalDays} {meta.typicalDays === 1 ? "day" : "days"}
-            </li>
-          </ul>
-        </div>
-        {
-          meta.region === "north" && (
-            <a href={urls.guide("lahore-to-northern-areas-road-trip-guide")} class="group flex items-center justify-between gap-4 rounded-card border border-line p-5 transition-colors hover:bg-surface">
-              <span class="text-sm font-semibold text-fg">Northern areas road trip guide</span>
-              <Icon name="ph:arrow-right" size={18} class="text-muted transition-transform group-hover:translate-x-1" />
-            </a>
-          )
-        }
-        <a href={urls.areas()} class="group flex items-center justify-between gap-4 rounded-card border border-line p-5 transition-colors hover:bg-surface">
-          <span class="flex flex-col gap-1">
-            <span class="text-sm font-semibold text-fg">Pickup areas in Lahore</span>
-            <span class="text-xs text-muted">Cantt, DHA, Gulberg, Johar Town and more</span>
-          </span>
-          <Icon name="ph:arrow-right" size={18} class="shrink-0 text-muted transition-transform group-hover:translate-x-1" />
-        </a>
-        <a href={urls.rates()} class="group flex items-center justify-between gap-4 rounded-card border border-line p-5 transition-colors hover:bg-surface">
-          <span class="text-sm font-semibold text-fg">Live rates for every car</span>
-          <Icon name="ph:arrow-right" size={18} class="text-muted transition-transform group-hover:translate-x-1" />
-        </a>
+    <div class="grid gap-14 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-20">
+      <aside class="order-2 flex flex-col lg:sticky lg:top-[calc(var(--header-h)+2rem)] lg:order-1 lg:self-start" aria-label="Trip at a glance">
+        <p class="label text-muted">At a glance</p>
+        <ul class="mt-4 flex flex-col border-t border-line text-[0.9375rem] text-fg tabular">
+          <li class="border-b border-line py-3">About {formatKm(data.distanceKm)} from Lahore</li>
+          <li class="border-b border-line py-3">About {formatDriveTime(data.driveHours)} driving{meta.timeNote ? `, ${meta.timeNote}` : ""}</li>
+          <li class="border-b border-line py-3">Typical trip: {meta.typicalDays} {meta.typicalDays === 1 ? "day" : "days"}</li>
+        </ul>
+        <ul class="mt-8 flex flex-col gap-4 text-[0.9375rem]">
+          {
+            meta.region === "north" && (
+              <li>
+                <a href={urls.guide("lahore-to-northern-areas-road-trip-guide")} class="link-draw text-accent-fg">Northern areas road trip guide</a>
+              </li>
+            )
+          }
+          <li>
+            <a href={urls.areas()} class="link-draw text-accent-fg">Pickup areas in Lahore</a>
+            <span class="mt-1 block text-sm text-muted">Cantt, DHA, Gulberg, Johar Town and more</span>
+          </li>
+          <li>
+            <a href={urls.rates()} class="link-draw text-accent-fg">Live rates for every car</a>
+          </li>
+        </ul>
       </aside>
+      <Reading class="order-1 lg:order-2" html={entry.rendered?.html} slug={data.slug} plates={readingPlates} every={1}>
+        <Content />
+      </Reading>
     </div>
   </Section>
 
@@ -224,19 +213,21 @@ const serviceJson = serviceSchema({
             See the full fleet
           </Button>
         </SectionHeading>
-        <OutstationCars models={recommended} categories={categories} rate={isCity ? "city" : "outstation"} class="mt-10" />
+        <OutstationCars models={recommended} categories={categories} rate={isCity ? "city" : "outstation"} class="mt-12" />
         <SampleFleetNote class="mt-8" />
       </Section>
     )
   }
 
-  <Section id="pricing" labelledby="pricing-title" divider>
+  <Interlude plate={closing} height="mid" />
+
+  <Section id="pricing" labelledby="pricing-title">
     <SectionHeading
       id="pricing-title"
       title={isCity ? "How pricing works for this trip" : "How outstation pricing works"}
       intro={isCity ? "Simple and upfront. Your quote lists every item before you confirm." : "Four simple rules, the same for every outstation trip. Your quote lists every item before you confirm."}
     />
-    <OutstationPricing models={recommended} days={meta.typicalDays} to={meta.short} tripType={meta.tripType} class="mt-12" />
+    <OutstationPricing models={recommended} days={meta.typicalDays} to={meta.short} tripType={meta.tripType} class="mt-14" />
   </Section>
 
   <QuoteBand
@@ -246,21 +237,24 @@ const serviceJson = serviceSchema({
     defaultTripType={meta.tripType}
     defaultDestination={data.to}
     whatsappMessage={waMessage}
+    plate={band}
   />
 
   {
     faqs.length > 0 && (
-      <Section id="faq" labelledby="faq-title" width="narrow" divider>
-        <SectionHeading id="faq-title" title={`Lahore to ${data.to}: questions`} size="md" />
-        <FaqList faqs={faqs} exclusive id={`faq-${data.slug}`} class="mt-10" />
+      <Section id="faq" labelledby="faq-title" divider>
+        <div class="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
+          <SectionHeading id="faq-title" title={`Lahore to ${data.to}: questions`} size="md" />
+          <FaqList faqs={faqs} exclusive id={`faq-${data.slug}`} />
+        </div>
       </Section>
     )
   }
 
-  <Section id="more-routes" labelledby="more-routes-title" divider spacing="sm">
-    <SectionHeading id="more-routes-title" title="More road trips from Lahore" size="md">
+  <Section id="more-routes" labelledby="more-routes-title" divider>
+    <SectionHeading id="more-routes-title" title="More road trips from Lahore">
       <Button slot="actions" href={urls.routes()} variant="ghost" iconRight="ph:arrow-right">All routes</Button>
     </SectionHeading>
-    <RouteLinks routes={routes} exclude={data.slug} limit={6} class="mt-8" />
+    <RouteLinks routes={routes} exclude={data.slug} limit={6} class="mt-12" />
   </Section>
 </PageLayout>

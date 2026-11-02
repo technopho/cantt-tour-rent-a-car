@@ -8,11 +8,13 @@
  *   import { startSmoothScroll, stopSmoothScroll, resumeSmoothScroll, scrollToTarget } from "@/scripts/smooth-scroll";
  *
  * Elements that need native wheel scrolling (modals, maps, horizontal lists) can opt out with
- * data-lenis-prevent. Other scripts can pause scrolling with
+ * data-lenis-prevent or data-lenis-prevent-wheel. An opted-out element only keeps the gestures it can use:
+ * a vertical wheel over a horizontal table goes on scrolling the page (passWheelThrough below).
+ * Other scripts can pause scrolling with
  * window.dispatchEvent(new CustomEvent("cantt:scroll-lock", { detail: { locked: true } })).
  */
 import Lenis from "lenis";
-import { canSmoothScroll } from "./capabilities";
+import { afterPreloader, canSmoothScroll } from "./capabilities";
 import { whenGsap } from "./scroll-bus";
 
 type Gsap = typeof import("gsap").gsap;
@@ -22,6 +24,38 @@ let lenis: Lenis | null = null;
 let rafId = 0;
 let gsapTick: ((time: number) => void) | null = null;
 let gsapRef: Gsap | null = null;
+
+const OPTED_OUT = "[data-lenis-prevent], [data-lenis-prevent-wheel]";
+
+/** This element, or one of its ancestors, can still move vertically in the wheel's direction. */
+function canScrollVertically(from: Element, deltaY: number): boolean {
+  for (let el: Element | null = from; el && el !== document.body; el = el.parentElement) {
+    const { overflowY } = getComputedStyle(el);
+    if (overflowY !== "auto" && overflowY !== "scroll") continue;
+    if (deltaY > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 1) return true;
+  }
+  return false;
+}
+
+/**
+ * Lenis gives up on any wheel event that starts inside an opted-out element, so a vertical wheel over a
+ * horizontal table had nothing to scroll and the page stopped dead. When the element under the cursor cannot
+ * use the gesture, the page takes it through Lenis, with the same easing as everywhere else.
+ * Returns false when it has handled the event. Sideways wheels, Shift+wheel and open dialogs stay native.
+ */
+function passWheelThrough({ deltaX, deltaY, event }: { deltaX: number; deltaY: number; event: Event }): boolean {
+  if (!(event instanceof WheelEvent) || !lenis || lenis.isStopped) return true;
+  if (event.ctrlKey || event.shiftKey || Math.abs(deltaY) <= Math.abs(deltaX)) return true;
+  const target = event.target;
+  const box = target instanceof Element ? target.closest<HTMLElement>(OPTED_OUT) : null;
+  if (!box || box.closest("dialog[open]")) return true;
+  // A popup list that really scrolls and asks for containment keeps it at its ends.
+  if (getComputedStyle(box).overscrollBehaviorY === "contain" && box.scrollHeight > box.clientHeight) return true;
+  if (canScrollVertically(box === target ? box : (target as Element), deltaY)) return true;
+  if (event.cancelable) event.preventDefault();
+  lenis.scrollTo(lenis.targetScroll + deltaY, { programmatic: false, lerp: lenis.options.lerp });
+  return false;
+}
 
 function ownLoop(time: number) {
   lenis?.raf(time);
@@ -41,13 +75,20 @@ export function startSmoothScroll(): Lenis | null {
 
   lenis = new Lenis({
     autoRaf: false,
-    lerp: 0.11,
+    lerp: 0.09,
     wheelMultiplier: 0.95,
     smoothWheel: true,
     syncTouch: false,
     anchors: { offset: -80 },
+    virtualScroll: passWheelThrough,
     prevent: (node) => node instanceof HTMLElement && (node.closest("dialog[open]") !== null || node.hasAttribute("data-lenis-prevent")),
   });
+
+  // The preloader holds the page: stay stopped until it is gone.
+  if (!window.__canttPreloaderDone) {
+    lenis.stop();
+    afterPreloader(() => lenis?.start());
+  }
 
   rafId = requestAnimationFrame(ownLoop);
   window.addEventListener("cantt:scroll-lock", onScrollLock);

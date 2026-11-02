@@ -1,37 +1,39 @@
 ---
 /**
- * Home page. Ten sections, each a different layout family (DESIGN.md "Signature experiences"):
- *  1. Night-drive hero (WebGL on capable devices, poster otherwise)
- *  2. Trip composer band (quote island)
- *  3. The garage (pinned horizontal pan + Flip filters on desktop, scroll-snap on phones)
- *  4. Services bento
- *  5. Outstation route map (lines draw on scroll)
- *  6. How renting works (sticky stack)
- *  7. Neighbourhood index
- *  8. Why Cantt (editorial split, real facts only)
- *  9. FAQ (FAQPage JSON-LD)
- * 10. Final CTA (the footer CTA band is hidden here to avoid repeating it)
+ * Home page (DESIGN.md "Signature experiences"):
+ *  1. The opening: five full-bleed frames on a pinned stage, changed by strip-light sweeps and garage-door
+ *     wipes as the visitor scrolls, the H1 on the first. Pictures only, no 3D.
+ *  2. The Collection: pinned horizontal gallery, highest rate first, every other model as a quiet link
+ *  3. The Road North: particle terrain, the route to Skardu, every stop a real link. The site's only 3D, so it
+ *     comes early, right after the cars
+ *  4. Trip composer band (quote island), framed by a picture
+ *  5. Occasions: image columns that open on hover or tap, every service page linked
+ *  6. How renting works: a three-step strip
+ *  7. Pickup areas: marquee and a compact list of every area
+ *  8. Why Cantt: one statement beside one picture (real facts only)
+ *  9. FAQ: closed accordions (FAQPage JSON-LD)
+ * 10. Final CTA: full-bleed closing scene (the footer CTA band is hidden here to avoid repeating it)
  * The layout adds AutoRental + WebSite JSON-LD; every price and count comes from the catalog.
  */
 import { getCollection } from "astro:content";
 import AreaIndex from "@/components/home/AreaIndex.astro";
+import Collection from "@/components/home/Collection.astro";
 import ComposerBand from "@/components/home/ComposerBand.astro";
 import FinalCta from "@/components/home/FinalCta.astro";
-import Garage from "@/components/home/Garage.astro";
 import HomeFaq from "@/components/home/HomeFaq.astro";
 import HomeHero from "@/components/home/HomeHero.astro";
 import HowItWorks from "@/components/home/HowItWorks.astro";
-import RoutesMap from "@/components/home/RoutesMap.astro";
-import ServicesBento from "@/components/home/ServicesBento.astro";
+import Occasions from "@/components/home/Occasions.astro";
+import RoadNorth from "@/components/home/RoadNorth.astro";
 import WhyCantt from "@/components/home/WhyCantt.astro";
-import { fleetFacts, homeFaqs, homeRoutes } from "@/components/home/home-data";
+import { fleetFacts, homeFaqs, homeRoutes, sceneOrModel, sceneOrStill, splitCollection } from "@/components/home/home-data";
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { getCategories, getFeaturedModels, getModels, modelName } from "@/lib/catalog";
+import { getCategories, getModels } from "@/lib/catalog";
 import { toComposerModels } from "@/lib/composer";
+import { scene } from "@/lib/media";
 
-const [models, featured, categories, routeEntries] = await Promise.all([
+const [models, categories, routeEntries] = await Promise.all([
   getModels(),
-  getFeaturedModels(),
   getCategories(),
   getCollection("routes"),
 ]);
@@ -47,24 +49,30 @@ const routes = homeRoutes(
   })),
 );
 const faqs = homeFaqs(facts);
-const showcase = featured[0] ?? models[0];
-const showcaseCategory = categories.find((c) => c.slug === showcase.category)?.name;
+// Why Cantt shows the S-Class or the Prado, else the top of the gallery. Null-safe: images may not exist yet.
+const { gallery } = splitCollection(models);
+const whyCar = ["mercedes-s-class", "toyota-prado"].flatMap((slug) => gallery.filter((c) => c.model.slug === slug))[0] ?? gallery[0];
+// The opening ends on the first of these night scenes that exists; the closing scene takes the other one, so the
+// page does not open and close on the same picture.
+const closingScenes = ["lahore-night", "badshahi"].filter((name) => scene(name)).slice(1);
 ---
 
 <BaseLayout
-  title="Rent a Car in Lahore with Driver or Self Drive"
-  description="Rent a car in Lahore with a driver or self drive. Sedans, SUVs, vans and wedding cars from Lahore Cantt for airport runs, weddings and outstation trips."
+  title="Luxury Rent a Car in Lahore with Driver or Self Drive"
+  description="Luxury rent a car in Lahore with a driver or self drive. Luxury sedans, SUVs and wedding cars from Lahore Cantt for airport runs, weddings and the north."
   overlayHeader
   hideFooterCta
+  preloadMedia
 >
-  <HomeHero facts={facts} />
-  <ComposerBand models={composerModels} />
-  <Garage featured={featured} models={models} categories={categories} />
-  <ServicesBento models={models} facts={facts} />
-  <RoutesMap routes={routes} />
-  <HowItWorks exampleModel={modelName(showcase)} />
+  <HomeHero />
+  <Collection models={models} categories={categories} />
+  <RoadNorth routes={routes} />
+  <!-- Not a fleet car: the Collection has just shown every one of them. -->
+  <ComposerBand models={composerModels} image={sceneOrStill(["cabin", "garage"], "trails", "62% 72%")} />
+  <Occasions models={models} />
+  <HowItWorks image={sceneOrModel(["garage"], "honda-civic", models, "50% 58%")} />
   <AreaIndex />
-  <WhyCantt facts={facts} model={showcase} categoryName={showcaseCategory} />
+  <WhyCantt facts={facts} model={whyCar?.model} image={whyCar?.image} />
   <HomeFaq faqs={faqs} />
-  <FinalCta />
+  <FinalCta image={sceneOrModel(closingScenes, "toyota-prado", models)} />
 </BaseLayout>

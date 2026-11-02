@@ -1,12 +1,12 @@
 ---
 /**
- * "Which car for which trip": rows of Lahore trip types, each with practical advice and up to three
- * matching models picked from the catalog (suitableFor tags, seats, four wheel drive).
+ * "Which car for which trip": accordion of Lahore trip types, each with practical advice and up to three
+ * matching models picked from the catalog (suitableFor tags, seats, four wheel drive). Native <details>,
+ * so all of it is in the HTML and works with JS off.
  * Rows without a matching model are skipped. Times are approximate.
  *
  *   <TripMatcher models={models} headingLevel="h3" />
  */
-import Icon from "@/components/Icon.astro";
 import { TERMS } from "@/components/services/terms";
 import type { CatalogModel } from "@/lib/catalog-types";
 import { formatPKR } from "@/lib/format";
@@ -102,54 +102,77 @@ const rows = [
   .filter((row) => row.picks.length > 0);
 ---
 
-<ol class:list={["border-t border-line", className]}>
+<div class:list={["border-t border-line", className]}>
   {
-    rows.map((row) => (
-      <li class="grid gap-6 border-b border-line py-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-12 md:py-10" data-reveal>
-        <div class="flex gap-4 md:gap-5">
-          <span class="grid size-11 shrink-0 place-items-center rounded-full bg-accent-soft text-accent" aria-hidden="true">
-            <Icon name={row.icon} size={22} />
-          </span>
-          <div class="min-w-0">
-            <Heading class="text-display-sm text-fg">{row.title}</Heading>
-            <p class="mt-3 max-w-xl leading-relaxed text-muted">{row.text}</p>
-            <a
-              href={row.link.href}
-              class="group/link mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-fg underline-offset-4 hover:underline"
-            >
+    rows.map((row, i) => (
+      <details class="trip-row group border-b border-line" open={i === 0}>
+        <summary class="flex cursor-pointer list-none items-start justify-between gap-6 py-7 md:py-9 [&::-webkit-details-marker]:hidden">
+          <Heading class="text-display-md text-fg transition-colors duration-700 group-hover:text-accent">{row.title}</Heading>
+          <span class="trip-row__mark relative mt-3 block size-5 shrink-0" aria-hidden="true"></span>
+        </summary>
+        <div class="grid gap-8 pb-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-16 md:pb-14">
+          <div>
+            <p class="max-w-xl leading-relaxed text-muted">{row.text}</p>
+            <a href={row.link.href} class="mt-5 inline-block text-sm text-accent-fg underline underline-offset-4">
               {row.link.label}
-              <Icon name="ph:arrow-right" size={15} class="transition-transform duration-300 group-hover/link:translate-x-0.5" />
             </a>
           </div>
+          <ul class="border-t border-line" aria-label={`Recommended cars: ${row.title}`}>
+            {row.picks.map((m) => (
+              <li class="border-b border-line">
+                <a href={urls.car(m.slug)} class="group/car flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-4">
+                  <span class="flex min-w-0 flex-col">
+                    <span class="text-[1.0625rem] font-medium text-fg transition-colors duration-500 group-hover/car:text-accent-fg">{carName(m)}</span>{" "}
+                    <span class="mt-0.5 text-xs text-muted">
+                      {m.seats} seats · {availabilityLabel(m)}
+                    </span>
+                  </span>{" "}
+                  <span class="tabular text-sm text-muted">
+                    from <strong class="font-medium text-fg">{formatPKR(m.rates.fromPrice)}</strong>/day
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
-        <ul class="flex flex-col gap-2 self-center" aria-label={`Recommended cars: ${row.title}`}>
-          {row.picks.map((m) => (
-            <li>
-              <a
-                href={urls.car(m.slug)}
-                class="group/car flex items-center justify-between gap-4 rounded-card border border-line bg-surface px-4 py-3.5 transition-[border-color,background-color,transform] duration-300 ease-(--ease-out) hover:border-[color-mix(in_oklab,var(--text)_18%,transparent)] hover:bg-surface-2 active:scale-[0.99]"
-              >
-                <span class="flex min-w-0 flex-col">
-                  <span class="font-semibold text-fg">{carName(m)}</span>{" "}
-                  <span class="text-xs text-muted">
-                    {m.seats} seats · {availabilityLabel(m)}
-                  </span>
-                </span>{" "}
-                <span class="flex shrink-0 items-center gap-3">
-                  <span class="tabular text-sm text-muted max-[380px]:hidden">
-                    from <strong class="font-display font-semibold tracking-[-0.02em] text-fg">{formatPKR(m.rates.fromPrice)}</strong>/day
-                  </span>
-                  <Icon
-                    name="ph:arrow-up-right"
-                    size={16}
-                    class="text-muted transition-[color,transform] duration-300 group-hover/car:-translate-y-px group-hover/car:translate-x-px group-hover/car:text-accent"
-                  />
-                </span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </li>
+      </details>
     ))
   }
-</ol>
+</div>
+
+<style>
+  .trip-row__mark::before,
+  .trip-row__mark::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--accent);
+    transition: transform 0.7s var(--ease-heavy);
+  }
+  .trip-row__mark::after {
+    transform: rotate(90deg);
+  }
+  details[open] > summary .trip-row__mark::after {
+    transform: rotate(0deg);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (interpolate-size: allow-keywords) {
+      .trip-row {
+        interpolate-size: allow-keywords;
+      }
+      .trip-row::details-content {
+        block-size: 0;
+        overflow-y: clip;
+        transition:
+          block-size 0.8s var(--ease-heavy),
+          content-visibility 0.8s allow-discrete;
+      }
+      .trip-row[open]::details-content {
+        block-size: auto;
+      }
+    }
+  }
+</style>

@@ -12,18 +12,20 @@
  */
 import { getCollection, render, type CollectionEntry } from "astro:content";
 import Button from "@/components/Button.astro";
-import CarCard from "@/components/CarCard.astro";
+import Container from "@/components/Container.astro";
 import FaqList from "@/components/FaqList.astro";
-import Icon from "@/components/Icon.astro";
 import JsonLd from "@/components/JsonLd.astro";
-import Prose from "@/components/Prose.astro";
 import SampleFleetNote from "@/components/SampleFleetNote.astro";
 import Section from "@/components/Section.astro";
 import SectionHeading from "@/components/SectionHeading.astro";
 import TripComposer from "@/components/quote/TripComposer.svelte";
+import GalleryList from "@/components/fleet/GalleryList.astro";
+import { afterCarList, modelVisual, pageVisuals } from "@/components/fleet/model-visual";
 import AreaRouteLinks from "@/components/services/AreaRouteLinks.astro";
 import GroupGuide from "@/components/services/GroupGuide.astro";
 import GuideLinks from "@/components/services/GuideLinks.astro";
+import GuideSplit from "@/components/services/GuideSplit.astro";
+import Interlude from "@/components/services/Interlude.astro";
 import OnThisPage from "@/components/services/OnThisPage.astro";
 import RatesTable from "@/components/services/RatesTable.astro";
 import RelatedServices from "@/components/services/RelatedServices.astro";
@@ -32,12 +34,14 @@ import ServiceIncluded from "@/components/services/ServiceIncluded.astro";
 import ServiceJourney from "@/components/services/ServiceJourney.astro";
 import SpecStrip from "@/components/services/SpecStrip.astro";
 import { cardModelFor, getServiceExtra, modelsForService } from "@/components/services/service-data";
+import { serviceScenes } from "@/components/services/service-visuals";
 import { fillTerms } from "@/components/services/terms";
 import { formatOpeningHours, getService, primaryPhone, site } from "@/config/site";
 import PageLayout from "@/layouts/PageLayout.astro";
 import { ESTIMATE_DISCLAIMER, getCatalogMeta, getCategories, getModels } from "@/lib/catalog";
 import { toComposerModels } from "@/lib/composer";
 import { formatDate } from "@/lib/format";
+import { heroFor } from "@/lib/media";
 import { telUrl, whatsappUrl } from "@/lib/links";
 import { serviceSchema } from "@/lib/schema";
 import { urls } from "@/lib/urls";
@@ -61,6 +65,14 @@ const [allModels, categories, catalogMeta] = await Promise.all([getModels(), get
 const fitting = modelsForService(allModels, extra, d.recommendedModels);
 const featured = fitting.slice(0, extra.limit);
 const shortRange = featured.length <= 2;
+// The hero is the layout's choice for this path (heroFor, captioned there). Interludes: the service's other
+// scenes, then the cars that fit it, never repeating the hero.
+const heroImg = heroFor(Astro.url.pathname);
+// Never a picture already on the page: not the hero, and not a car the gallery above already shows.
+// The first interlude comes right after the list of cars, so it shows no vehicle (afterCarList).
+const interludes = afterCarList(
+  pageVisuals(serviceScenes(d.slug), fitting.filter((m) => !featured.includes(m)), [heroImg, ...featured.map((m) => modelVisual(m)?.img)]),
+);
 const heroPrice = extra.heroPrice(fitting);
 const categoryName = (slug: string) => categories.find((c) => c.slug === slug)?.name;
 
@@ -101,6 +113,7 @@ const jsonLd = serviceSchema({
   crumbs={[{ label: extra.label }]}
   whatsappMessage={extra.whatsappMessage}
   modifiedTime={d.updatedAt}
+  hideFooterCta
 >
   <JsonLd slot="jsonld" data={jsonLd} />
 
@@ -119,51 +132,45 @@ const jsonLd = serviceSchema({
     <Button href={telUrl()} variant="ghost" size="lg" icon="ph:phone">{site.cta.call.label}</Button>
   </div>
 
-  <ServiceHeroPanel
-    slot="aside"
-    amount={heroPrice.amount}
-    unit={heroPrice.unit}
-    note={heroPrice.note}
-    modeLabel={extra.modeLabel}
-    modelCount={fitting.length}
-  />
+  <Container class="pt-10 md:pt-14">
+    <ServiceHeroPanel
+      amount={heroPrice.amount}
+      unit={heroPrice.unit}
+      note={heroPrice.note}
+      modeLabel={extra.modeLabel}
+      modelCount={fitting.length}
+    />
+  </Container>
 
   <SpecStrip items={highlights} label={`Why book ${serviceName.toLowerCase()} with us`} />
 
   <!-- Cars for this service, live from the catalog -->
-  <Section id="cars" labelledby="cars-title">
+  <Section id="cars" labelledby="cars-title" class="pt-0!">
     <SectionHeading id="cars-title" title={extra.cars.title} intro={extra.cars.intro}>
-      <Button slot="actions" href={urls.cars()} variant="secondary" iconRight="ph:arrow-right">See the full fleet</Button>
+      <a slot="actions" href={urls.cars()} class="link-draw text-sm text-fg">See the full fleet</a>
     </SectionHeading>
-    {/* A short range (1 or 2 models, e.g. a Hiace and a Coaster) gets wide cards with both rates instead of a sparse 3 column grid. */}
-    <ul class:list={["mt-12 grid", shortRange ? "gap-6" : "gap-x-6 gap-y-12 md:grid-cols-2 lg:grid-cols-3"]}>
-      {
-        featured.map((model, i) => (
-          <li data-reveal data-reveal-delay={i % 3 ? String(i % 3) : undefined}>
-            <CarCard model={cardModelFor(model, d.serviceType)} categoryName={categoryName(model.category)} variant={shortRange ? "wide" : "default"} />
-          </li>
-        ))
-      }
-    </ul>
+    <GalleryList
+      models={featured.map((model) => cardModelFor(model, d.serviceType))}
+      categoryName={(model) => categoryName(model.category)}
+      detailed={shortRange}
+      class="mt-14 md:mt-20"
+    />
     <SampleFleetNote class="mt-10" />
   </Section>
 
-  <!-- Long-form guide (markdown body) with an on-page index -->
-  <Section as="div" id="guide" divider>
-    <div class="grid gap-12 lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-20">
-      <Prose class="[&>:first-child]:mt-0">
-        <Content />
-      </Prose>
+  <Interlude visual={interludes[0]} />
+
+  <!-- Long-form guide (markdown body), cut at each H2 into an open lead and accordions -->
+  <Section as="div" id="guide">
+    <div class="grid gap-12 lg:grid-cols-[minmax(0,3fr)_minmax(0,9fr)] lg:gap-16">
       <aside class="hidden lg:block" aria-label="Page tools">
-        <div class="sticky top-[calc(var(--header-h)+2rem)] flex flex-col gap-10">
+        <div class="sticky top-[calc(var(--header-h)+2rem)]">
           <OnThisPage items={toc} sticky={false} />
-          <div class="rounded-card border border-line bg-surface p-5">
-            <p class="font-display text-display-sm text-fg">Know your dates?</p>
-            <p class="mt-2 text-sm text-muted">Get an estimate in under a minute. We confirm on WhatsApp.</p>
-            <Button href="#plan" size="sm" class="mt-4" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
-          </div>
         </div>
       </aside>
+      <GuideSplit>
+        <Content />
+      </GuideSplit>
     </div>
   </Section>
 
@@ -171,28 +178,27 @@ const jsonLd = serviceSchema({
 
   {
     extra.groupGuide && (
-      <Section id="seats" labelledby="seats-title" divider>
+      <Section id="seats" labelledby="seats-title" class="pt-0!">
         <GroupGuide models={allModels} headingId="seats-title" />
       </Section>
     )
   }
 
+  <Interlude visual={interludes[1]} />
+
   <!-- Rates from the catalog -->
-  <Section id="rates" labelledby="rates-title" divider>
+  <Section id="rates" labelledby="rates-title">
     <SectionHeading id="rates-title" title={extra.rates.title} intro={extra.rates.intro} />
-    <div class="mt-10">
+    <div class="mt-12 md:mt-16">
       <RatesTable models={fitting} columns={extra.rates.columns} categories={categories} caption={extra.rates.title} id="rates-table" />
     </div>
-    <p class="mt-5 flex max-w-3xl gap-2.5 text-sm leading-relaxed text-muted">
-      <Icon name="ph:info" size={18} class="mt-0.5 text-accent" />
-      <span>
-        Prices in Pakistani rupees from our rate list of <time datetime={catalogMeta.generatedAt}>{formatDate(catalogMeta.generatedAt)}</time>.{" "}
-        {ESTIMATE_DISCLAIMER} Every car is on our <a href={urls.rates()} class="font-semibold text-accent-fg underline underline-offset-4">full rate list</a>, and the terms are on our <a href={urls.policies()} class="font-semibold text-accent-fg underline underline-offset-4">rental policies</a> page.
-      </span>
+    <p class="mt-6 max-w-3xl text-sm leading-relaxed text-muted">
+      Prices in Pakistani rupees from our rate list of <time datetime={catalogMeta.generatedAt}>{formatDate(catalogMeta.generatedAt)}</time>.{" "}
+      {ESTIMATE_DISCLAIMER} Every car is on our <a href={urls.rates()} class="text-accent-fg underline underline-offset-4">full rate list</a>, and the terms are on our <a href={urls.policies()} class="text-accent-fg underline underline-offset-4">rental policies</a> page.
     </p>
   </Section>
 
-  <Section id="included" labelledby="included-title" divider>
+  <Section id="included" labelledby="included-title" class="pt-0!">
     <ServiceIncluded
       inclusions={inclusions}
       exclusions={exclusions}
@@ -206,25 +212,16 @@ const jsonLd = serviceSchema({
   <Section id="plan" labelledby="plan-title" tone="surface">
     <div class="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start lg:gap-16">
       <div>
-        <h2 id="plan-title" class="text-display-lg text-fg">Plan your trip</h2>
+        <h2 id="plan-title" class="text-display-lg text-fg" data-fx="lines">Plan your trip</h2>
         <p class="text-lede mt-5 max-w-lg text-muted">
           Pick the car and the dates to see an estimate from our current rates. We reply on WhatsApp with the confirmed price and the driver or handover details.
         </p>
-        <ul class="mt-8 flex flex-col gap-4 text-[0.9375rem] text-muted">
-          <li class="flex gap-3">
-            <Icon name="ph:clock" size={20} class="mt-0.5 text-accent" />
-            <span>Office hours: {formatOpeningHours().join("; ")}. WhatsApp messages are welcome any time.</span>
+        <ul class="mt-10 max-w-lg border-t border-line text-[0.9375rem] leading-relaxed text-muted">
+          <li class="border-b border-line py-4">Office hours: {formatOpeningHours().join("; ")}. WhatsApp messages are welcome any time.</li>
+          <li class="border-b border-line py-4">
+            Prefer to talk? <a href={telUrl()} class="text-fg underline underline-offset-4 tabular-nums">{primaryPhone.display}</a>
           </li>
-          <li class="flex gap-3">
-            <Icon name="ph:phone" size={20} class="mt-0.5 text-accent" />
-            <span>
-              Prefer to talk? <a href={telUrl()} class="font-semibold text-fg underline underline-offset-4 tabular-nums">{primaryPhone.display}</a>
-            </span>
-          </li>
-          <li class="flex gap-3">
-            <Icon name="ph:shield-check" size={20} class="mt-0.5 text-accent" />
-            <span>No payment online. Nothing is booked until you confirm on WhatsApp.</span>
-          </li>
+          <li class="border-b border-line py-4">No payment online. Nothing is booked until you confirm on WhatsApp.</li>
         </ul>
       </div>
       <div>
@@ -245,19 +242,23 @@ const jsonLd = serviceSchema({
 
   {
     faqs.length > 0 && (
-      <Section id="faq" labelledby="faq-title" width="narrow" divider>
-        <SectionHeading id="faq-title" title={`${extra.label}: your questions`} />
-        <FaqList faqs={faqs} schema exclusive id={`faq-${d.slug}`} class="mt-10" />
-        <p class="mt-8 text-sm text-muted">
-          More answers on deposits, payments, challans and cancellations in our <a href={urls.faq()} class="font-semibold text-accent-fg underline underline-offset-4">full FAQ</a>.
-        </p>
+      <Section id="faq" labelledby="faq-title" class="pt-0!">
+        <div class="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
+          <div class="lg:sticky lg:top-[calc(var(--header-h)+2rem)] lg:self-start">
+            <SectionHeading id="faq-title" title={`${extra.label}: your questions`} />
+            <p class="mt-6 max-w-md text-sm text-muted">
+              More answers on deposits, payments, challans and cancellations in our <a href={urls.faq()} class="text-accent-fg underline underline-offset-4">full FAQ</a>.
+            </p>
+          </div>
+          <FaqList faqs={faqs} schema exclusive id={`faq-${d.slug}`} />
+        </div>
       </Section>
     )
   }
 
-  <Section id="related" labelledby="related-title" divider>
+  <Section id="related" labelledby="related-title" class="pt-0!">
     <RelatedServices slugs={extra.related} headingId="related-title" />
-    <div class="mt-16 max-w-3xl md:mt-20">
+    <div class="mt-20 md:mt-28">
       <GuideLinks slugs={extra.guides} headingId="guides-title" />
     </div>
   </Section>

@@ -1,6 +1,6 @@
 ---
 /**
- * Inner page layout: hero band (breadcrumbs + H1 + intro + optional actions) above the content.
+ * Inner page layout: full-bleed PageHero (image, breadcrumbs, H1, intro, optional actions) above the content.
  *
  *   <PageLayout
  *     title="Wedding car rental in Lahore"           (SEO title, brand appended)
@@ -8,6 +8,7 @@
  *     h1="Wedding cars in Lahore"
  *     intro="Decorated cars for the couple and matching cars for guests."
  *     crumbs={[{ label: "Wedding car rental" }]}     (Home is added; last item = this page)
+ *     heroScene="wedding"                            (optional: a scene from src/data/media.json)
  *   >
  *     <Fragment slot="actions"><Button href="/quote/">Get a quote</Button></Fragment>
  *     <Fragment slot="aside">...right column on desktop (image, price box)...</Fragment>
@@ -16,10 +17,15 @@
  *   </PageLayout>
  *
  * Slots: default (content), "actions", "aside", "h1" (rich heading), "jsonld", "head".
+ * Hero image: heroImage, else heroScene, else heroFor(path), which chooses by the page's meaning (see
+ * src/lib/media.ts), so no page needs to ask for one. A real catalog photo goes in through heroImage.
+ * PageHero's dark plate only shows for plainHero. Every hero picture carries its small print from
+ * captionFor(image) ("Representative image" on an AI picture with a vehicle, a photographer credit on a
+ * licensed photo), unless the page passes heroCaption.
  */
 import Breadcrumbs, { type Crumb } from "@/components/Breadcrumbs.astro";
-import Container from "@/components/Container.astro";
-import HeroTrails from "@/components/HeroTrails.astro";
+import PageHero from "@/components/PageHero.astro";
+import { captionFor, heroFor, scene, type Img } from "@/lib/media";
 import BaseLayout, { type Props as BaseProps } from "./BaseLayout.astro";
 
 interface Props extends Omit<BaseProps, "overlayHeader"> {
@@ -27,45 +33,43 @@ interface Props extends Omit<BaseProps, "overlayHeader"> {
   intro?: string;
   /** Breadcrumb trail after Home. Defaults to [{ label: h1 }]. */
   crumbs?: Crumb[];
-  /** Hide the animated light trails in the hero band. */
+  /** No image in the hero, only the dark plate. */
   plainHero?: boolean;
+  /** Explicit hero image. */
+  heroImage?: Img;
+  /** Name of a scene in the media manifest. */
+  heroScene?: string;
+  /** Hero height. Default tall. */
+  heroHeight?: "tall" | "short";
+  /** Small print inside the hero for a heroImage or heroScene, e.g. "Representative image". Defaults to captionFor(image). */
+  heroCaption?: string;
+  /** object-position for the hero crop, e.g. a Plate's position. */
+  heroPosition?: string;
 }
 
-const { h1, intro, crumbs, plainHero = false, ...baseProps } = Astro.props;
+const { h1, intro, crumbs, plainHero = false, heroImage, heroScene, heroHeight = "tall", heroCaption, heroPosition, ...baseProps } = Astro.props;
 const trail = crumbs ?? [{ label: h1 }];
 const hasAside = Astro.slots.has("aside");
+const hasActions = Astro.slots.has("actions");
+const hasH1 = Astro.slots.has("h1");
+const chosen = heroImage ?? (heroScene ? scene(heroScene) : undefined);
+const fallback = chosen ? undefined : heroFor(Astro.url.pathname);
+const image = plainHero ? undefined : (chosen ?? fallback);
+// Every picture carries its small print, whoever chose it.
+const caption = image ? (heroCaption ?? captionFor(image)) : undefined;
 ---
 
 <BaseLayout {...baseProps} overlayHeader>
   <slot name="jsonld" slot="jsonld" />
   <slot name="head" slot="head" />
 
-  <section class="relative isolate overflow-hidden border-b border-line pt-[calc(var(--header-h)+2rem)] pb-14 md:pt-[calc(var(--header-h)+3rem)] md:pb-20">
-    {!plainHero && <HeroTrails />}
-    <Container class:list={["relative", hasAside && "grid items-end gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]"]}>
-      <div class="flex flex-col">
-        <Breadcrumbs items={trail} />
-        <h1 class="mt-6 max-w-4xl text-display-xl text-fg">
-          {Astro.slots.has("h1") ? <slot name="h1" /> : h1}
-        </h1>
-        {intro && <p class="text-lede mt-5 max-w-2xl text-muted">{intro}</p>}
-        {
-          Astro.slots.has("actions") && (
-            <div class="mt-8 flex flex-wrap gap-3">
-              <slot name="actions" />
-            </div>
-          )
-        }
-      </div>
-      {
-        hasAside && (
-          <div class="relative">
-            <slot name="aside" />
-          </div>
-        )
-      }
-    </Container>
-  </section>
+  <PageHero image={image} caption={caption} height={heroHeight} objectPosition={heroPosition}>
+    <Breadcrumbs slot="breadcrumb" items={trail} />
+    <Fragment slot="title">{hasH1 ? <slot name="h1" /> : h1}</Fragment>
+    {intro && <Fragment slot="sub">{intro}</Fragment>}
+    {hasActions && <Fragment slot="actions"><slot name="actions" /></Fragment>}
+    {hasAside && <Fragment slot="aside"><slot name="aside" /></Fragment>}
+  </PageHero>
 
   <slot />
 </BaseLayout>

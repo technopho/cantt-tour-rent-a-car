@@ -11,7 +11,6 @@
  *
  *   <QuotePanel model={model} composerModels={toComposerModels(models, categories)} sticky />
  */
-import Icon from "@/components/Icon.astro";
 import TripComposer from "@/components/quote/TripComposer.svelte";
 import type { ComposerModel } from "@/components/quote/types";
 import type { CatalogModel, TripType } from "@/lib/catalog-types";
@@ -41,9 +40,9 @@ const priceLine = [
 ---
 
 <div class:list={["quote-panel flex flex-col gap-4", sticky && "lg:sticky", className]} data-fab-hide data-quote-panel={sticky ? "sticky" : undefined}>
-  <div class="px-1">
-    <h2 id={headingId} class="text-display-sm text-fg">Get a price for the {model.model}</h2>
-    <p class="mt-2 text-sm text-muted">
+  <div>
+    <h2 id={headingId} class="text-[1.375rem] leading-snug font-medium text-fg">Get a price for the {model.model}</h2>
+    <p class="mt-2 text-sm leading-relaxed text-muted">
       {priceLine}. Pick your dates and trip, and we confirm availability and the final price on WhatsApp.
     </p>
   </div>
@@ -57,15 +56,33 @@ const priceLine = [
     compact
   />
 
-  <p class="flex items-start gap-2 px-1 text-xs leading-relaxed text-muted">
-    <Icon name="ph:shield-check" size={16} class="shrink-0 text-accent" />
-    No payment online. A quote request is not a booking: we confirm everything with you first.
-  </p>
+  <p class="text-xs leading-relaxed text-muted">No payment online. A quote request is not a booking: we confirm everything with you first.</p>
 </div>
 
 <style>
   .quote-panel[data-quote-panel="sticky"] {
     top: var(--quote-top, calc(var(--header-h) + 1.5rem));
+  }
+  /*
+   * The composer stays exactly as it is in logic; here it only gives up its box. On a model page the car is
+   * the subject, so the form sits on the page with a hairline above it instead of a raised panel.
+   */
+  .quote-panel :global(.trip-composer > div) {
+    border-width: 1px 0 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .quote-panel :global(.trip-composer > div > div[aria-hidden="true"]) {
+    display: none;
+  }
+  .quote-panel :global(.trip-composer > div > .grid > div:first-child) {
+    padding-inline: 0;
+  }
+  .quote-panel :global(.trip-composer aside[aria-label="Price estimate"]) {
+    padding-inline: 0;
+    border-radius: 0;
+    background: transparent;
   }
 </style>
 

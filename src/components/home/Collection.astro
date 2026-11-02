@@ -1,0 +1,761 @@
+---
+/**
+ * The Collection (DESIGN.md experience 4). Models with a real photo or an AI fleet image, highest
+ * daily rate first; every other model stays as a quiet link below, so the gallery grows by itself.
+ *
+ *  - Desktop with a fine pointer: the stage pins and vertical scroll pans the track. Each image wipes
+ *    in with clip-path and the huge names slide past the images at their own speed (ScrollTrigger
+ *    containerAnimation). data-cursor="View" on each car.
+ *  - Phones and tablets: a swipeable full-bleed stack, native scroll with snap points.
+ *  - Reduced motion, no JS, short desktop screens: the same panels on a native horizontal scroll.
+ * All links, names and specs are in the HTML. Nothing is hidden unless the script set data-mode.
+ */
+import Container from "@/components/Container.astro";
+import Icon from "@/components/Icon.astro";
+import SampleFleetNote from "@/components/SampleFleetNote.astro";
+import { fuelLabel, modelName, transmissionLabel } from "@/lib/catalog";
+import type { CatalogCategory, CatalogModel } from "@/lib/catalog-types";
+import { formatPKR, formatRate } from "@/lib/format";
+import { urls } from "@/lib/urls";
+import { splitCollection } from "./home-data";
+
+interface Props {
+  models: CatalogModel[];
+  categories: CatalogCategory[];
+}
+
+const { models, categories } = Astro.props;
+const { gallery, rest } = splitCollection(models);
+const total = String(gallery.length).padStart(2, "0");
+const types = categories.filter((c) => models.some((m) => m.category === c.slug));
+const spec = (m: CatalogModel) =>
+  `${m.seats} seats, ${transmissionLabel(m.transmission).toLowerCase()}, ${fuelLabel(m.fuel).toLowerCase()}. From ${formatRate(m.rates.fromPrice)}`;
+---
+
+<section id="collection" class:list={["coll", gallery.length === 0 && "coll--empty"]} aria-labelledby="collection-title" data-coll>
+  <div class="coll-stage" data-coll-stage>
+    <div class="coll-scroll" data-coll-scroll>
+      <div class="coll-track" data-coll-track>
+        <!-- The heading plays in as soon as it enters, so the screen under the opening's last frame is never empty.
+             data-fab-hide: the floating WhatsApp button waits until the first car is in (it would cover its small print). -->
+        <header class="coll-intro" data-fab-hide>
+          <h2 id="collection-title" class="coll-heading">
+            <span class="label coll-kicker">Cars on rent in Lahore</span>{" "}
+            <span class="coll-title" data-fx="lines" data-start="top bottom">The <em>collection</em></span>
+          </h2>
+          <p class="coll-lede" data-fx="fade" data-delay="0.2" data-start="top bottom">From the top of the garage down. Rates, seats and features are on each car's page.</p>
+        </header>
+
+        {
+          gallery.length > 0 && (
+            <ol class="coll-cars" data-coll-cars>
+              {gallery.map(({ model, image }, i) => (
+                <li class="coll-car" data-coll-car data-index={i} data-fab-hide>
+                  <a href={urls.car(model.slug)} class="coll-link" data-cursor="View">
+                    <span class="coll-frame" data-coll-frame>
+                      <img
+                        src={image.img.src}
+                        srcset={image.img.srcset || undefined}
+                        sizes={image.img.srcset ? "(min-width: 64rem) 66vw, 100vw" : undefined}
+                        width={image.img.width}
+                        height={image.img.height}
+                        alt={image.img.alt || modelName(model)}
+                        loading="lazy"
+                        decoding="async"
+                        class="coll-img"
+                        style={image.position ? `--focus:${image.position}` : undefined}
+                        data-coll-img
+                      />
+                    </span>
+                    {image.caption && <span class="coll-cap">{image.caption}</span>}
+                    <div class="coll-caption" data-coll-name>
+                      <h3 class="coll-name">
+                        <span class="label coll-make">{model.make}</span>
+                        <span class="coll-model">{model.model}</span>
+                      </h3>
+                      <p class="coll-spec">{spec(model)}</p>
+                    </div>
+                  </a>
+                </li>
+              ))}
+              <li class="coll-car coll-car--end">
+                <a href={urls.cars()} class="coll-end" data-cursor="View">
+                  <span class="coll-end__title">See all <em>cars</em></span>
+                  <span class="coll-end__text">Rates, seats, luggage and features for all {models.length} models in the fleet.</span>
+                  <Icon name="ph:arrow-right" size={36} class="text-accent" />
+                </a>
+              </li>
+            </ol>
+          )
+        }
+      </div>
+    </div>
+
+    {
+      gallery.length > 0 && (
+        <div class="coll-hud" aria-hidden="true">
+          <span class="coll-count tabular">
+            <span data-coll-count>01</span> / {total}
+          </span>
+          <span class="coll-bar">
+            <span class="coll-bar__fill" data-coll-bar />
+          </span>
+          <span class="coll-swipe">Swipe</span>
+        </div>
+      )
+    }
+  </div>
+
+  <Container class="coll-rest">
+    <div class="coll-rest__head">
+      <p class="label">{rest.length > 0 ? "Also in the garage" : "Browse the garage"}</p>
+      <SampleFleetNote />
+    </div>
+    {
+      rest.length > 0 && (
+        <ul class="coll-list" data-fx="stagger" data-stagger="0.04">
+          {rest.map((model) => (
+            <li>
+              <a href={urls.car(model.slug)} class="coll-row">
+                <span class="coll-row__name">{modelName(model)}</span>
+                <span class="coll-row__price tabular">from {formatPKR(model.rates.fromPrice)}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    <nav aria-label="Browse cars by type" class="coll-types">
+      <a href={urls.cars()} class="link-draw coll-types__all">See all cars</a>
+      {types.map((c) => <a href={urls.category(c.slug)} class="link-draw">{c.name}</a>)}
+    </nav>
+  </Container>
+</section>
+
+<style>
+  .coll {
+    position: relative;
+    overflow-anchor: none;
+  }
+
+  /* ---- Type and pieces shared by both layouts ---- */
+  .coll-kicker {
+    display: block;
+    color: var(--accent-fg);
+  }
+  .coll-title {
+    display: block;
+    margin-top: 1.25rem;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(3.75rem, 2.5rem + 6vw, 8rem);
+    line-height: 0.95;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .coll-lede {
+    margin-top: 1.5rem;
+    max-width: 24rem;
+    color: var(--muted);
+  }
+
+  .coll-link {
+    display: block;
+    color: var(--text);
+    outline: none;
+  }
+  .coll-link:focus-visible .coll-model {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--accent);
+    text-underline-offset: 0.08em;
+  }
+
+  .coll-frame {
+    display: block;
+    position: absolute;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .coll-img {
+    position: absolute;
+    top: 0;
+    left: -7%;
+    width: 114%;
+    max-width: none;
+    height: 100%;
+    object-fit: cover;
+    object-position: var(--focus, 50% 50%);
+    will-change: transform;
+  }
+  .coll-cap {
+    position: absolute;
+    z-index: 3;
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    color: rgb(242 236 224 / 0.72);
+  }
+  .coll-caption {
+    display: block;
+    position: absolute;
+    z-index: 2;
+    will-change: transform;
+  }
+  .coll-name {
+    margin: 0;
+    font: inherit;
+  }
+  .coll-make {
+    display: block;
+    margin-bottom: 0.75rem;
+    color: var(--accent-fg);
+  }
+  .coll-model {
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 0.92;
+    letter-spacing: -0.015em;
+    color: var(--text);
+    text-wrap: balance;
+  }
+  .coll-spec {
+    display: block;
+    margin-top: 1rem;
+    font-size: 0.9375rem;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .coll-end {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-start;
+    gap: 1.25rem;
+    color: var(--text);
+    outline: none;
+  }
+  .coll-end:focus-visible .coll-end__title {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--accent);
+  }
+  .coll-end__title {
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 2rem + 6vw, 8rem);
+    line-height: 0.95;
+    letter-spacing: -0.01em;
+  }
+  .coll-end__text {
+    max-width: 22rem;
+    color: var(--muted);
+  }
+
+  .coll-count {
+    font-size: 0.75rem;
+    letter-spacing: 0.22em;
+    color: var(--muted);
+  }
+  .coll-count span {
+    color: var(--text);
+  }
+  .coll-bar {
+    display: block;
+    position: relative;
+    height: 1px;
+    background: var(--line);
+  }
+  .coll-bar__fill {
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform: scaleX(var(--p, 0.04));
+    transform-origin: 0 50%;
+  }
+  .coll-swipe {
+    font-size: 0.6875rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ---- Phones and tablets: a swipeable full-bleed stack ---- */
+  @media (width < 64rem) {
+    .coll-intro {
+      padding: clamp(4.5rem, 14vw, 7rem) var(--gutter) 2.25rem;
+    }
+    .coll-cars {
+      display: flex;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+    .coll-cars::-webkit-scrollbar {
+      display: none;
+    }
+    .coll-car {
+      position: relative;
+      flex: 0 0 100%;
+      height: min(74svh, 46rem);
+      min-height: 26rem;
+      overflow: hidden;
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+    .coll-link {
+      position: relative;
+      height: 100%;
+    }
+    .coll-frame {
+      inset: 0;
+    }
+    .coll-frame::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgb(7 7 8 / 0.45) 0%, transparent 26%, transparent 42%, rgb(7 7 8 / 0.94) 100%);
+    }
+    .coll-cap {
+      top: 1rem;
+      right: var(--gutter);
+    }
+    .coll-caption {
+      left: var(--gutter);
+      right: var(--gutter);
+      bottom: 1.5rem;
+    }
+    .coll-model {
+      font-size: clamp(3.5rem, 18vw, 7.5rem);
+    }
+    .coll-spec {
+      margin-top: 0.75rem;
+      font-size: 0.875rem;
+    }
+    .coll-car--end {
+      padding: var(--gutter);
+      background: var(--surface);
+    }
+    .coll-hud {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.1rem var(--gutter);
+    }
+  }
+
+  /* ---- Reveal on swipe. data-mode is only ever set by the script, so JS off shows everything. ---- */
+  @media (prefers-reduced-motion: no-preference) {
+    .coll[data-mode="native"] .coll-frame {
+      transition: clip-path 1.3s var(--ease-door);
+    }
+    .coll[data-mode="native"] .coll-car:not(.is-in) .coll-frame {
+      clip-path: inset(0 0 0 100%);
+    }
+    .coll[data-mode="native"] .coll-caption {
+      transition: opacity 1s var(--ease-heavy) 0.25s;
+    }
+    .coll[data-mode="native"] .coll-car:not(.is-in) .coll-caption {
+      opacity: 0;
+    }
+    /* The small print arrives with its picture, never before it. */
+    .coll[data-mode="native"] .coll-cap {
+      transition: opacity 0.8s var(--ease-heavy) 0.35s;
+    }
+    .coll[data-mode="native"] .coll-car:not(.is-in) .coll-cap {
+      opacity: 0;
+    }
+  }
+
+  /* ---- Desktop: one viewport-tall band, the same before and after GSAP pins it (no jump) ---- */
+  @media (width >= 64rem) {
+    .coll-stage {
+      position: relative;
+      height: 100dvh;
+      min-height: 40rem;
+      overflow: clip;
+    }
+    .coll-scroll {
+      height: 100%;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+    }
+    .coll-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .coll[data-mode="pin"] .coll-scroll {
+      overflow: visible;
+    }
+    .coll-track {
+      display: flex;
+      width: max-content;
+      height: 100%;
+      will-change: transform;
+    }
+    .coll-intro {
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      width: clamp(28rem, 42vw, 48rem);
+      padding: var(--header-h) 5vw 15dvh max(var(--gutter), calc((100vw - var(--container-site)) / 2 + var(--gutter)));
+    }
+    .coll-cars {
+      display: flex;
+      height: 100%;
+    }
+    .coll-car {
+      position: relative;
+      flex: none;
+      width: clamp(44rem, 74vw, 96rem);
+      height: 100%;
+      margin-right: 7vw;
+    }
+    .coll-link {
+      position: absolute;
+      inset: 0;
+    }
+    .coll-frame {
+      top: 11dvh;
+      right: 0;
+      width: 84%;
+      height: 66dvh;
+    }
+    .coll-car:nth-child(even) .coll-frame {
+      top: 7dvh;
+      right: 9%;
+    }
+    .coll-frame::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 58%, rgb(7 7 8 / 0.6) 100%);
+    }
+    .coll-cap {
+      right: 0;
+      top: calc(77dvh + 0.625rem);
+    }
+    .coll-car:nth-child(even) .coll-cap {
+      top: calc(73dvh + 0.625rem);
+      right: 9%;
+    }
+    .coll-caption {
+      left: 3%;
+      right: 0;
+      bottom: 6dvh;
+    }
+    .coll-model {
+      font-size: clamp(5rem, 13.5vw, 15rem);
+    }
+    .coll-spec {
+      margin-top: 1.75rem;
+      padding-left: 0.35rem;
+    }
+    .coll-car--end {
+      display: flex;
+      width: clamp(30rem, 44vw, 48rem);
+      padding-block: var(--header-h) 15dvh;
+      margin-right: 0;
+    }
+    .coll-hud {
+      position: absolute;
+      inset: calc(var(--header-h) + 0.75rem) var(--gutter) auto auto;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      z-index: 3;
+    }
+    .coll-bar {
+      width: 9rem;
+    }
+    .coll-swipe {
+      display: none;
+    }
+    /* A fine pointer on a screen too short to pin: scrolling sideways is the way through. */
+    .coll:not([data-mode="pin"]) .coll-scroll {
+      scroll-snap-type: x proximity;
+    }
+    .coll:not([data-mode="pin"]) .coll-car {
+      scroll-snap-align: center;
+    }
+    .coll:not([data-mode="pin"]) .coll-intro {
+      scroll-snap-align: start;
+    }
+  }
+
+  .coll--empty .coll-stage {
+    height: auto;
+    min-height: 0;
+  }
+
+  /* ---- The rest of the fleet: quiet ---- */
+  .coll :global(.coll-rest) {
+    padding-block: clamp(2rem, 4vw, 3.5rem) clamp(3.5rem, 7vw, 6rem);
+  }
+  .coll-rest__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 2rem;
+    padding-bottom: 1rem;
+    color: var(--muted);
+  }
+  .coll-list {
+    display: grid;
+    border-top: 1px solid var(--line);
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @media (width >= 40rem) {
+    .coll-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 2.5rem;
+    }
+  }
+  @media (width >= 64rem) {
+    .coll-list {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      column-gap: 3.5rem;
+    }
+  }
+  .coll-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.8rem;
+    border-bottom: 1px solid var(--line);
+    color: var(--text);
+    transition: color 0.5s var(--ease-heavy);
+  }
+  .coll-row:hover {
+    color: var(--accent-fg);
+  }
+  .coll-row__price {
+    flex: none;
+    font-size: 0.8125rem;
+    color: var(--muted);
+  }
+  .coll-types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  .coll-types a {
+    transition: color 0.5s var(--ease-heavy);
+  }
+  .coll-types a:hover {
+    color: var(--text);
+  }
+  .coll-types__all {
+    color: var(--text);
+    font-weight: 500;
+  }
+</style>
+
+<script>
+  import { prefersReducedMotion, whenIdle } from "@/scripts/capabilities";
+  import { onPageAnimations } from "@/scripts/motion";
+
+  const PIN_QUERY = "(min-width: 64rem) and (min-height: 40rem) and (hover: hover) and (pointer: fine)";
+  /** Scroll distance per pixel of pan (below 1 = the track moves faster than the page). */
+  const PAN_RATIO = 0.8;
+
+  function initCollection(coll: HTMLElement) {
+    const stage = coll.querySelector<HTMLElement>("[data-coll-stage]");
+    const scroll = coll.querySelector<HTMLElement>("[data-coll-scroll]");
+    const track = coll.querySelector<HTMLElement>("[data-coll-track]");
+    const list = coll.querySelector<HTMLElement>("[data-coll-cars]");
+    const cars = [...coll.querySelectorAll<HTMLElement>("[data-coll-car]")];
+    const countEl = coll.querySelector<HTMLElement>("[data-coll-count]");
+    const barEl = coll.querySelector<HTMLElement>("[data-coll-bar]");
+    if (!stage || !scroll || !track || !list || cars.length === 0) return;
+
+    const reduced = prefersReducedMotion();
+    let lastIndex = -1;
+    const setProgress = (progress: number, index: number) => {
+      barEl?.style.setProperty("--p", String(Math.min(1, Math.max(0.04, progress))));
+      if (index !== lastIndex && countEl) {
+        countEl.textContent = String(index + 1).padStart(2, "0");
+        lastIndex = index;
+      }
+    };
+
+    /* ---- Native scrolling (touch, short screens, reduced motion): a depth shift while swiping ---- */
+    let pinned = false;
+    let frame = 0;
+    const scroller = () => (list.scrollWidth > list.clientWidth + 1 ? list : scroll);
+
+    const onSwipe = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (pinned) return;
+        const box = scroller();
+        const max = box.scrollWidth - box.clientWidth;
+        const rootBox = box.getBoundingClientRect();
+        let nearest = 0;
+        let best = Number.POSITIVE_INFINITY;
+        cars.forEach((car, i) => {
+          const rect = car.getBoundingClientRect();
+          const offset = (rect.left + rect.width / 2 - (rootBox.left + rootBox.width / 2)) / rect.width;
+          if (Math.abs(offset) < best) {
+            best = Math.abs(offset);
+            nearest = i;
+          }
+          if (reduced || Math.abs(offset) > 1.5) return;
+          const name = car.querySelector<HTMLElement>("[data-coll-name]");
+          const img = car.querySelector<HTMLElement>("[data-coll-img]");
+          if (name) name.style.transform = `translate3d(${(offset * 34).toFixed(2)}%, 0, 0)`;
+          if (img) img.style.transform = `translate3d(${(offset * -6).toFixed(2)}%, 0, 0)`;
+        });
+        setProgress(max > 0 ? box.scrollLeft / max : 0, nearest);
+      });
+    };
+    list.addEventListener("scroll", onSwipe, { passive: true });
+    scroll.addEventListener("scroll", onSwipe, { passive: true });
+
+    if (!reduced && "IntersectionObserver" in window) {
+      coll.dataset.mode = "native";
+      const seen = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-in");
+              seen.unobserve(entry.target);
+            }
+          }
+        },
+        { threshold: 0.3 },
+      );
+      cars.forEach((car) => seen.observe(car));
+      onSwipe();
+    }
+
+    /* ---- Pinned pan (desktop with a fine pointer, motion allowed) ---- */
+    if (reduced || !window.matchMedia(PIN_QUERY).matches) return;
+
+    let pinTrigger: { start: number; end: number } | null = null;
+
+    // The track moves by transform when pinned, so the browser cannot scroll a focused car into view
+    // by itself. Jump the page to the pan position that centres it (WCAG 2.4.11).
+    track.addEventListener("focusin", (event) => {
+      if (!pinTrigger) return;
+      const car = (event.target as Element).closest<HTMLElement>(".coll-car");
+      if (!car) return;
+      const max = Math.max(0, track.scrollWidth - scroll.clientWidth);
+      const left = car.getBoundingClientRect().left - track.getBoundingClientRect().left;
+      const x = Math.min(max, Math.max(0, left - (scroll.clientWidth - car.offsetWidth) / 2));
+      const top = Math.round(pinTrigger.start + (pinTrigger.end - pinTrigger.start) * (max ? x / max : 0));
+      if (Math.abs(window.scrollY - top) < 2) return;
+      import("@/scripts/smooth-scroll")
+        .then((m) => m.getLenis())
+        .catch(() => null)
+        .then((lenis) => {
+          if (lenis) lenis.scrollTo(top, { immediate: true, force: true });
+          else window.scrollTo({ top, behavior: "instant" });
+        });
+    });
+
+    whenIdle(() => {
+      onPageAnimations(
+        ({ gsap, ScrollTrigger }) => {
+          const mm = gsap.matchMedia();
+          mm.add(PIN_QUERY, () => {
+            pinned = true;
+            coll.dataset.mode = "pin";
+            cars.forEach((car) => {
+              car.querySelector<HTMLElement>("[data-coll-name]")?.style.removeProperty("transform");
+              car.querySelector<HTMLElement>("[data-coll-img]")?.style.removeProperty("transform");
+            });
+
+            const distance = () => Math.max(0, track.scrollWidth - scroll.clientWidth);
+            const pan = gsap.to(track, {
+              x: () => -distance(),
+              ease: "none",
+              scrollTrigger: {
+                trigger: coll,
+                pin: stage,
+                start: "top top",
+                end: () => `+=${Math.round(distance() * PAN_RATIO)}`,
+                scrub: true,
+                invalidateOnRefresh: true,
+                anticipatePin: 1,
+                refreshPriority: 1,
+                onUpdate(self) {
+                  // The car closest to the middle of the screen.
+                  const mid = window.innerWidth / 2;
+                  let nearest = 0;
+                  let best = Number.POSITIVE_INFINITY;
+                  cars.forEach((car, i) => {
+                    const rect = car.getBoundingClientRect();
+                    const d = Math.abs(rect.left + rect.width / 2 - mid);
+                    if (d < best) {
+                      best = d;
+                      nearest = i;
+                    }
+                  });
+                  setProgress(self.progress, nearest);
+                },
+              },
+            });
+            if (pan.scrollTrigger) pinTrigger = pan.scrollTrigger;
+
+            const nested = (el: Element | null, from: GSAPTweenVars, to: GSAPTweenVars, start: string, end: string, car: HTMLElement) => {
+              if (!el) return;
+              gsap.fromTo(el, from, {
+                ...to,
+                ease: "none",
+                scrollTrigger: { trigger: car, containerAnimation: pan, start, end, scrub: true },
+              });
+            };
+
+            cars.forEach((car) => {
+              // Image wipes open as the car comes in from the right.
+              nested(
+                car.querySelector("[data-coll-frame]"),
+                { clipPath: "inset(0% 0% 0% 100%)" },
+                { clipPath: "inset(0% 0% 0% 0%)" },
+                "left 100%",
+                "left 38%",
+                car,
+              );
+              // The picture drifts inside its frame; the name crosses it faster, the other way.
+              nested(car.querySelector("[data-coll-img]"), { xPercent: 5.5 }, { xPercent: -5.5 }, "left right", "right left", car);
+              nested(
+                car.querySelector("[data-coll-name]"),
+                { x: () => window.innerWidth * 0.14 },
+                { x: () => window.innerWidth * -0.04 },
+                "left right",
+                "right left",
+                car,
+              );
+            });
+
+            ScrollTrigger.sort();
+            ScrollTrigger.refresh();
+            return () => {
+              pinned = false;
+              pinTrigger = null;
+              coll.dataset.mode = "native";
+              onSwipe();
+            };
+          });
+          return () => {
+            mm.revert();
+          };
+        },
+        { scope: coll },
+      );
+    }, 1500);
+  }
+
+  const coll = document.querySelector<HTMLElement>("[data-coll]");
+  if (coll) initCollection(coll);
+</script>

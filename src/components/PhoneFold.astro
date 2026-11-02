@@ -1,0 +1,109 @@
+---
+/**
+ * A block that phones show folded and wider screens simply show. It ships open, so the content reads with JS
+ * off and is in the HTML for search; a tiny inline script folds it on phones before first paint. From 768px up
+ * the summary is hidden and the block is always open.
+ *
+ *   <PhoneFold summary="Included and not included">...lists...</PhoneFold>
+ */
+interface Props {
+  /** The line a phone visitor taps. */
+  summary: string;
+  class?: string;
+}
+
+const { summary, class: className } = Astro.props;
+---
+
+<details class:list={["phone-fold", className]} open data-phone-fold>
+  <summary class="phone-fold__summary">
+    <span>{summary}</span>
+    <span class="phone-fold__mark" aria-hidden="true"></span>
+  </summary>
+  <div class="phone-fold__body"><slot /></div>
+</details>
+<script is:inline>
+  (function () {
+    try {
+      if (!window.matchMedia("(max-width: 47.99rem)").matches) return;
+    } catch (e) {
+      return;
+    }
+    var folds = document.querySelectorAll("details[data-phone-fold]:not([data-folded])");
+    for (var i = 0; i < folds.length; i++) {
+      folds[i].open = false;
+      folds[i].setAttribute("data-folded", "");
+    }
+  })();
+</script>
+
+<script>
+  // Reveals inside a fold were measured while it was shut: measure again when it opens.
+  const folds = [...document.querySelectorAll<HTMLDetailsElement>("details[data-phone-fold]")];
+  for (const fold of folds) {
+    fold.addEventListener("toggle", () => {
+      if (fold.open) import("@/scripts/fx").then((m) => m.refreshFx(fold)).catch(() => {});
+    });
+  }
+  // Turned or resized past phone width: the summary is hidden there, so the block must be open.
+  window.matchMedia("(min-width: 48rem)").addEventListener("change", (event) => {
+    if (event.matches) for (const fold of folds) fold.open = true;
+  });
+</script>
+
+<style>
+  .phone-fold__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 3.5rem;
+    padding-block: 0.9rem;
+    border-block: 1px solid var(--line);
+    color: var(--text);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    list-style: none;
+  }
+  .phone-fold__summary::-webkit-details-marker {
+    display: none;
+  }
+  .phone-fold__summary:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 4px;
+  }
+  /* A plus that turns into a minus. */
+  .phone-fold__mark {
+    position: relative;
+    width: 0.875rem;
+    height: 0.875rem;
+    flex: none;
+  }
+  .phone-fold__mark::before,
+  .phone-fold__mark::after {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto;
+    height: 1px;
+    background: var(--accent);
+    transition: transform 0.6s var(--ease-heavy);
+  }
+  .phone-fold__mark::after {
+    transform: rotate(90deg);
+  }
+  .phone-fold[open] .phone-fold__mark::after {
+    transform: rotate(0deg);
+  }
+  .phone-fold[open] .phone-fold__body {
+    padding-top: 1.5rem;
+  }
+  @media (width >= 48rem) {
+    .phone-fold__summary {
+      display: none;
+    }
+    .phone-fold[open] .phone-fold__body {
+      padding-top: 0;
+    }
+  }
+</style>

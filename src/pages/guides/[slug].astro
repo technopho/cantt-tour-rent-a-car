@@ -1,14 +1,15 @@
 ---
 /**
  * Guide page (/guides/<slug>/): evergreen article with a table of contents, a live data block
- * from the catalog / site.ts, related links and Article JSON-LD (organisation as author).
+ * from the catalog / site.ts, image plates and pull quotes between sections, related links and Article JSON-LD (organisation as author).
  */
 import { getCollection, render } from "astro:content";
 import Button from "@/components/Button.astro";
-import Icon from "@/components/Icon.astro";
 import JsonLd from "@/components/JsonLd.astro";
-import Prose from "@/components/Prose.astro";
 import Section from "@/components/Section.astro";
+import Plate from "@/components/local/Plate.astro";
+import Reading from "@/components/local/Reading.astro";
+import { guidePlate, guidePool } from "@/components/local/plates";
 import GuideExtras from "@/components/local/GuideExtras.astro";
 import GuideToc from "@/components/local/GuideToc.astro";
 import { GUIDE_LINKS, guideExtra, guideReadMinutes, guideWordCount } from "@/components/local/guide-extras";
@@ -36,6 +37,10 @@ const toc = [...h2s.map((h) => ({ slug: h.slug, text: h.text })), ...(extra ? [{
 const links = GUIDE_LINKS[entry.id] ?? [];
 const others = (await getCollection("guides", ({ data: d }) => !d.draft)).filter((g) => g.id !== entry.id);
 const path = urls.guide(entry.id);
+const hero = guidePlate(entry.id);
+// Pictures between sections: never the hero, nor a picture already on a "More guides" card at the foot of the page.
+const onPage = new Set([hero.img.src, ...others.map((g) => guidePlate(g.id).img.src)]);
+const interludes = guidePool(entry.id).filter((p) => !onPage.has(p.img.src)).slice(0, 3);
 const shortTitle = data.title.replace(/\?$/, "").split(":")[0];
 ---
 
@@ -48,6 +53,9 @@ const shortTitle = data.title.replace(/\?$/, "").split(":")[0];
   type="article"
   publishedTime={data.publishedAt}
   modifiedTime={data.updatedAt}
+  heroImage={hero.img}
+  heroCaption={hero.caption}
+  heroPosition={hero.position}
 >
   <JsonLd
     slot="jsonld"
@@ -62,39 +70,36 @@ const shortTitle = data.title.replace(/\?$/, "").split(":")[0];
     })}
   />
 
+  <Fragment slot="h1"><span class="guide-title">{data.title}</span></Fragment>
+
   <Fragment slot="actions">
-    <ul class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
-      <li class="flex items-center gap-1.5">
-        <Icon name="ph:calendar-check" size={16} class="text-accent" />
+    <ul class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-fg/80">
+      <li>
         Updated <time datetime={isoDate(data.updatedAt)}>{formatDate(data.updatedAt)}</time>
       </li>
-      <li class="flex items-center gap-1.5">
-        <Icon name="ph:clock" size={16} class="text-accent" />
-        {minutes} min read
-      </li>
-      <li class="flex items-center gap-1.5">
-        <Icon name="ph:pen-nib" size={16} class="text-accent" />
-        By the {site.name} team
-      </li>
+      <li>{minutes} min read</li>
+      <li>By the {site.name} team</li>
     </ul>
   </Fragment>
 
-  <Section id="article" aria-label={data.title} spacing="md">
-    <div class="grid gap-10 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-16 xl:grid-cols-[16rem_minmax(0,44rem)_minmax(0,1fr)]">
-      <div class="lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:self-start">
+  <div class="read-progress" aria-hidden="true"></div>
+
+  <Section id="article" aria-label={data.title}>
+    <div class="grid gap-12 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-20">
+      <div class="lg:sticky lg:top-[calc(var(--header-h)+2rem)] lg:self-start">
         <GuideToc items={toc} />
       </div>
 
       <article class="guide-body min-w-0">
-        <Prose>
+        <Reading html={entry.rendered?.html} slug={entry.id} plates={interludes} every={2}>
           <Content />
-        </Prose>
+        </Reading>
 
         {extra && <GuideExtras extra={extra} />}
 
-        <div class="mt-16 flex flex-col gap-6 rounded-card border border-line bg-surface p-6 sm:p-8" data-fab-hide>
-          <p class="font-display text-display-sm text-fg">Need a car in Lahore?</p>
-          <p class="text-muted">Tell us the car, your dates and where to pick you up. We reply on WhatsApp with a clear price.</p>
+        <div class="mt-20 flex flex-col gap-5 border-t border-accent pt-8" data-fab-hide>
+          <p class="text-display-md text-fg" data-fx="lines">Need a car in Lahore?</p>
+          <p class="max-w-[52ch] text-muted">Tell us the car, your dates and where to pick you up. We reply on WhatsApp with a clear price.</p>
           <div class="flex flex-wrap gap-3">
             <Button href={urls.quote()} iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
             <Button href={whatsappUrl()} variant="secondary" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
@@ -105,16 +110,15 @@ const shortTitle = data.title.replace(/\?$/, "").split(":")[0];
 
         {
           links.length > 0 && (
-            <nav aria-labelledby="related-title" class="mt-12">
-              <h2 id="related-title" class="font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">
+            <nav aria-labelledby="related-title" class="mt-16">
+              <h2 id="related-title" class="label text-muted">
                 Related pages
               </h2>
-              <ul class="mt-4 grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-3">
+              <ul class="mt-4 grid border-t border-line sm:grid-cols-3 sm:gap-x-8">
                 {links.map((l) => (
-                  <li class="bg-bg">
-                    <a href={l.href} class="group flex h-full items-center justify-between gap-3 p-4 text-sm font-semibold text-fg transition-colors hover:bg-surface">
+                  <li class="border-b border-line">
+                    <a href={l.href} class="block py-4 text-fg transition-colors duration-500 hover:text-accent-fg">
                       {l.label}
-                      <Icon name="ph:arrow-right" size={16} class="shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
                     </a>
                   </li>
                 ))}
@@ -128,19 +132,17 @@ const shortTitle = data.title.replace(/\?$/, "").split(":")[0];
 
   {
     others.length > 0 && (
-      <Section id="more-guides" labelledby="more-guides-title" divider spacing="sm">
-        <h2 id="more-guides-title" class="text-display-md text-fg">
+      <Section id="more-guides" labelledby="more-guides-title" divider>
+        <h2 id="more-guides-title" class="text-display-lg text-fg" data-fx="lines">
           More guides
         </h2>
-        <ul class="mt-8 border-t border-line">
+        <ul class="mt-14 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-4">
           {others.map((g) => (
-            <li class="border-b border-line">
-              <a href={urls.guide(g.id)} class="group flex items-center justify-between gap-6 py-5">
-                <span class="flex flex-col gap-1">
-                  <span class="font-display text-display-sm text-fg transition-colors group-hover:text-accent-fg">{g.data.title}</span>
-                  <span class="text-sm text-muted">{g.data.excerpt}</span>
-                </span>
-                <Icon name="ph:arrow-right" size={18} class="shrink-0 text-muted transition-transform group-hover:translate-x-1" />
+            <li>
+              <a href={urls.guide(g.id)} class="group flex flex-col gap-5" data-cursor="Read">
+                <Plate plate={guidePlate(g.id)} ratio="aspect-[4/3]" sizes="(min-width: 64rem) 25vw, (min-width: 40rem) 50vw, 100vw" parallax={false} />
+                <span class="text-display-sm text-fg transition-colors duration-500 group-hover:text-accent-fg">{g.data.title}</span>
+                <span class="text-sm leading-relaxed text-muted">{g.data.excerpt}</span>
               </a>
             </li>
           ))}
@@ -151,10 +153,38 @@ const shortTitle = data.title.replace(/\?$/, "").split(":")[0];
 </PageLayout>
 
 <style>
+  .guide-title {
+    display: block;
+    font-size: clamp(2.5rem, 1.6rem + 3.4vw, 5.25rem);
+    line-height: 1.02;
+  }
   /* Wide markdown tables scroll inside the article (html/body clip horizontal overflow). */
   .guide-body :global(.prose-site table) {
     display: block;
     max-width: 100%;
     overflow-x: auto;
+  }
+  /* A brass hairline at the top of the screen tracks the reading position. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      .read-progress {
+        position: fixed;
+        inset: 0 0 auto;
+        z-index: 70;
+        height: 1px;
+        background: var(--accent);
+        transform-origin: 0 50%;
+        animation: read-progress linear both;
+        animation-timeline: scroll(root);
+      }
+    }
+  }
+  @keyframes read-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
   }
 </style>

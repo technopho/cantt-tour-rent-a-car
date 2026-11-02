@@ -1,9 +1,13 @@
 ---
 /**
- * Links to related service pages (descriptive anchors from site.ts). Hairline grid, no cards.
+ * Links to related service pages (descriptive anchors from site.ts): an index of rows on hairlines, each
+ * with a small picture when the page has one (the same picture its own hero uses), so rows with and
+ * without a picture still line up. The thumbnails' small print (captionFor) is gathered into one quiet line under
+ * the list, as a caption on each 10rem thumbnail would crowd the rows.
  */
 import Icon from "@/components/Icon.astro";
 import { getService, type ServiceSummary } from "@/config/site";
+import { REPRESENTATIVE, captionFor, heroFor } from "@/lib/media";
 import { urls } from "@/lib/urls";
 
 interface Props {
@@ -14,33 +18,56 @@ interface Props {
 
 const { slugs, headingId, title = "Other ways to rent with us" } = Astro.props;
 const services = slugs.map((s) => getService(s)).filter((s): s is ServiceSummary => Boolean(s));
-const lgCols = services.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3";
+// Thumbnails only show from 768px up, and so does their note.
+const notes = [...new Set(services.map((s) => heroFor(urls.service(s.slug))).map((img) => img && captionFor(img)).filter((c): c is string => Boolean(c)))];
+const note = notes.map((c) => (c === REPRESENTATIVE ? "Representative images" : c)).join(". ");
 ---
 
 {
   services.length > 0 && (
     <>
-      <h2 id={headingId} class="text-display-md text-fg">
+      <h2 id={headingId} class="text-display-lg text-fg" data-fx="lines">
         {title}
       </h2>
-      <ul class:list={["mt-8 grid gap-px overflow-hidden rounded-card border border-line bg-line md:grid-cols-2", lgCols]}>
-        {services.map((s) => (
-          <li class="bg-bg">
-            <a href={urls.service(s.slug)} class="group flex h-full flex-col gap-3 p-6 transition-colors duration-300 hover:bg-surface">
-              <Icon name={s.icon} size={24} class="text-accent" />
-              <span class="font-display text-[1.0625rem] leading-snug font-semibold tracking-[-0.02em] text-fg">
-                {s.name} in Lahore
-              </span>
-              <span class="text-sm leading-relaxed text-muted">{s.description}</span>
-              <Icon
-                name="ph:arrow-right"
-                size={18}
-                class="mt-auto pt-1 text-muted transition-[color,transform] duration-300 ease-(--ease-out) group-hover:translate-x-1 group-hover:text-accent"
-              />
-            </a>
-          </li>
-        ))}
+      <ul class="mt-12 border-t border-line">
+        {services.map((s) => {
+          const img = heroFor(urls.service(s.slug));
+          return (
+            <li class="border-b border-line">
+              <a href={urls.service(s.slug)} class="related-row group grid items-center gap-x-8 gap-y-2 py-6" data-cursor="View">
+                <span class="related-row__thumb relative hidden overflow-hidden bg-surface md:block" aria-hidden="true">
+                  {img && (
+                    <img src={img.src} srcset={img.srcset} sizes="10rem" width={img.width} height={img.height} alt="" loading="lazy" decoding="async" class="size-full object-cover transition-transform duration-[1600ms] ease-(--ease-out) group-hover:scale-105" />
+                  )}
+                </span>
+                <span class="text-display-sm text-fg transition-colors duration-700 group-hover:text-accent">{s.name} in Lahore</span>
+                <span class="text-sm leading-relaxed text-muted">{s.description}</span>
+                <Icon name="ph:arrow-right" size={18} class="hidden text-muted transition-[color,transform] duration-700 ease-(--ease-out) group-hover:translate-x-1 group-hover:text-accent md:block" />
+              </a>
+            </li>
+          );
+        })}
       </ul>
+      {note && <p class="mt-4 hidden text-right text-[0.625rem] leading-none tracking-[0.04em] text-muted md:block">{note}</p>}
     </>
   )
 }
+
+<style>
+  @media (width >= 48rem) {
+    .related-row {
+      grid-template-columns: 10rem minmax(0, 1.1fr) minmax(0, 1fr) auto;
+    }
+    .related-row__thumb {
+      aspect-ratio: 3 / 2;
+    }
+    /* No picture for this page: the cell stays, empty and quiet, so the names line up. */
+    .related-row__thumb:empty {
+      background: transparent;
+      border-top: 1px solid var(--line);
+      align-self: center;
+      height: 1px;
+      aspect-ratio: auto;
+    }
+  }
+</style>

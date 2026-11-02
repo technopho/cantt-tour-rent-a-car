@@ -12,3 +12,9 @@
 
 /favicon.svg
   Cache-Control: public, max-age=604800
+
+# Pictures are still being replaced under the same file names (licensed photos for AI stand-ins), so they
+# are not cached for a month yet: a day, then a background revalidation. Once file names carry a version or
+# content hash, this can go back to a long max-age.
+/media/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800

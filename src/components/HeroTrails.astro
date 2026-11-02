@@ -87,14 +87,13 @@ const { intensity = "subtle", placement = "bottom", class: className } = Astro.p
     left: 0;
     height: 2px;
     width: 22%;
-    border-radius: 2px;
-    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--accent) 85%, transparent));
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--ember) 85%, transparent));
     translate: -110% 0;
     will-change: translate;
   }
   /* Headlights travel the other way. */
   .hero-trails__road span:nth-child(even) {
-    background: linear-gradient(270deg, transparent, color-mix(in oklab, var(--text) 70%, transparent));
+    background: linear-gradient(270deg, transparent, color-mix(in oklab, var(--accent-fill-hover) 70%, transparent));
     translate: calc(100cqw + 10%) 0;
   }
   .hero-trails__road span:nth-child(1) { top: 18%; width: 26%; }

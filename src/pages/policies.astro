@@ -10,6 +10,8 @@
  */
 import Icon from "@/components/Icon.astro";
 import Section from "@/components/Section.astro";
+import Plate from "@/components/local/Plate.astro";
+import { fleetPlate, picker, scenePlate, trails } from "@/components/local/plates";
 import OnThisPage from "@/components/services/OnThisPage.astro";
 import { TERMS } from "@/components/services/terms";
 import { primaryPhone, site } from "@/config/site";
@@ -41,7 +43,6 @@ const night = rangeText(range(models.map((m) => m.rates.driverNightAllowance)), 
 interface PolicySection {
   id: string;
   title: string;
-  icon: string;
   paras?: string[];
   bullets?: string[];
   after?: string[];
@@ -51,7 +52,6 @@ const sections: PolicySection[] = [
   {
     id: "about-these-terms",
     title: "About these terms",
-    icon: "ph:info",
     paras: [
       `These terms apply to every booking with ${site.name}. They are a plain-English summary of our standard rental terms, written to be read before you book.`,
       "When you book, the confirmed quote (car with driver) or the signed rental agreement (self drive) is the document that applies. If anything on this page differs from your agreement, the agreement takes priority.",
@@ -60,7 +60,6 @@ const sections: PolicySection[] = [
   {
     id: "bookings",
     title: "Bookings and confirmation",
-    icon: "ph:calendar-check",
     bullets: [
       "A booking is confirmed when you accept our quote on WhatsApp or email and pay any advance we ask for. Prices on this website are estimates until then.",
       "We ask for a CNIC (or passport) for every booking, and a driving licence for self drive. We may decline a booking if documents cannot be verified.",
@@ -73,7 +72,6 @@ const sections: PolicySection[] = [
   {
     id: "fuel",
     title: "Fuel",
-    icon: "ph:gas-pump",
     bullets: [
       "None of our published rates include fuel.",
       `Car with driver: fuel is ${TERMS.fuelWithDriver}. Your quote states which.`,
@@ -84,7 +82,6 @@ const sections: PolicySection[] = [
   {
     id: "kilometre-limits",
     title: "Kilometre limits",
-    icon: "ph:gauge",
     bullets: [
       `Self drive cars include a daily allowance, currently ${km} per day depending on the car. It is counted across the whole rental.`,
       "Kilometres above the total allowance are charged at the per km rate written in your agreement.",
@@ -95,7 +92,6 @@ const sections: PolicySection[] = [
   {
     id: "duty-hours",
     title: "Duty hours and overtime (car with driver)",
-    icon: "ph:clock",
     bullets: [
       `A city day includes ${TERMS.cityDayHours} hours of duty, for example ${TERMS.cityDayWindow}, starting at the agreed pickup time.`,
       `Time beyond the duty hours is overtime, billed per hour at the car's rate, currently ${overtime} per hour depending on the car.`,
@@ -106,7 +102,6 @@ const sections: PolicySection[] = [
   {
     id: "late-returns",
     title: "Late returns (self drive)",
-    icon: "ph:timer",
     bullets: [
       "Return the car at the date and time on your agreement. If you are running late, tell us as early as possible.",
       `There is a grace period of ${TERMS.lateGraceMinutes} minutes. After that, late time is charged per hour.`,
@@ -117,7 +112,6 @@ const sections: PolicySection[] = [
   {
     id: "cancellations",
     title: "Cancellations and changes",
-    icon: "ph:calendar-x",
     bullets: [
       `Cancel at least ${TERMS.freeCancelHours} hours before pickup and your advance is refunded in full.`,
       `Cancellations inside ${TERMS.freeCancelHours} hours, and no-shows, may lose the advance, because the car was held for you.`,
@@ -128,7 +122,6 @@ const sections: PolicySection[] = [
   {
     id: "deposits-and-refunds",
     title: "Security deposits and refunds",
-    icon: "ph:wallet",
     bullets: [
       `Self drive rentals need a refundable security deposit, currently ${deposit} depending on the car, paid at handover by cash or bank transfer.`,
       `The deposit is refunded within ${TERMS.depositRefundDays} days of return, after we check the car and the Safe City e-challan record.`,
@@ -140,7 +133,6 @@ const sections: PolicySection[] = [
   {
     id: "damage-and-accidents",
     title: "Damage and accidents",
-    icon: "ph:shield-check",
     bullets: [
       "At handover and return we photograph the car together with you. Damage that is not in the handover photos is treated as new damage.",
       "Self drive: the renter is responsible for damage, theft of parts and loss during the rental, as set out in the agreement and subject to any insurance cover on the car.",
@@ -153,7 +145,6 @@ const sections: PolicySection[] = [
   {
     id: "traffic-challans",
     title: "Traffic challans and fines",
-    icon: "ph:traffic-signal",
     bullets: [
       "Self drive: the renter pays every traffic ticket, parking fine and Safe City e-challan dated during the rental.",
       "E-challans are issued to the car's registration and can appear days after the rental. We check the record before refunding the deposit and share a copy of every challan we deduct.",
@@ -165,7 +156,6 @@ const sections: PolicySection[] = [
   {
     id: "prohibited-use",
     title: "What the cars may not be used for",
-    icon: "ph:prohibit",
     bullets: [
       "Ride hailing, taxi or delivery work, or renting the car on to anyone else.",
       "Racing, stunts, aerial firing from or near the car, or blocking roads in convoys.",
@@ -179,7 +169,6 @@ const sections: PolicySection[] = [
   {
     id: "outstation-travel",
     title: "Outstation travel",
-    icon: "ph:road-horizon",
     bullets: [
       "Car with driver: outstation trips are welcome. Tell us the route and nights away so we can price the outstation days and the driver night allowance.",
       `Self drive: the car can leave Lahore ${TERMS.selfDriveOutstation}. Tell us the destination and dates. We may ask for a higher deposit for long trips.`,
@@ -190,7 +179,6 @@ const sections: PolicySection[] = [
   {
     id: "smoking-food-pets",
     title: "Smoking, food and pets",
-    icon: "ph:cigarette-slash",
     bullets: [
       "No smoking in any of our cars. This applies to customers and drivers alike.",
       "Light snacks and drinks are fine. A car returned needing deep cleaning is charged a cleaning fee.",
@@ -200,7 +188,6 @@ const sections: PolicySection[] = [
   {
     id: "privacy",
     title: "Privacy summary",
-    icon: "ph:lock-key",
     paras: [
       "We collect only what we need to rent you a car: your name, phone number, email if you share it, trip details, and for self drive copies of your CNIC and licence.",
       "We use this to quote, confirm and run your booking, to verify identity for self drive, to settle deposits and challans, and to meet legal and accounting requirements.",
@@ -209,6 +196,13 @@ const sections: PolicySection[] = [
     ],
   },
 ];
+
+const pick = picker("/policies/");
+const hero = pick(scenePlate("corporate", "garage"), fleetPlate("toyota-prado")) ?? trails();
+const breaks: Record<string, ReturnType<typeof pick>> = {
+  "late-returns": pick(scenePlate("garage"), fleetPlate("toyota-fortuner")),
+  "prohibited-use": pick(scenePlate("monthly"), fleetPlate("mercedes-s-class")),
+};
 
 const toc = [...sections.map((s) => ({ id: s.id, text: s.title })), { id: "questions", text: "Questions about these terms" }];
 ---
@@ -219,74 +213,83 @@ const toc = [...sections.map((s) => ({ id: s.id, text: s.title })), { id: "quest
   h1="Rental policies"
   intro="Every term that matters, in plain English: fuel, kilometres, hours, deposits, damage, challans and cancellations."
   crumbs={[{ label: "Policies" }]}
+  heroImage={hero.img}
+  heroCaption={hero.caption}
+  heroPosition={hero.position}
+  heroHeight="short"
 >
-  <Section id="terms" spacing="sm">
-    <div class="grid gap-12 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-20">
+
+  <Section id="terms">
+    <div class="grid gap-12 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-20">
       <aside class="hidden lg:block">
         <OnThisPage items={toc} />
       </aside>
 
-      <div class="max-w-3xl">
-        <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-          <Icon name="ph:calendar-dots" size={16} class="text-accent" />
+      <div class="min-w-0">
+        <p class="text-sm text-muted">
           Last updated <time datetime={UPDATED}>{formatDate(UPDATED)}</time>
         </p>
         <!-- Phones and tablets: the same index, collapsed, so the 15 sections are one tap away -->
-        <details class="group mt-6 rounded-card border border-line lg:hidden">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-semibold text-fg [&::-webkit-details-marker]:hidden">
-            Jump to a section
-            <Icon name="ph:caret-down" size={18} class="text-muted transition-transform duration-200 group-open:rotate-180" />
+        <details class="group mt-6 border-y border-line lg:hidden">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-fg [&::-webkit-details-marker]:hidden">
+            <span class="label">Jump to a section</span>
+            <Icon name="ph:caret-down" size={16} class="text-muted transition-transform duration-500 group-open:rotate-180" />
           </summary>
-          <div class="border-t border-line px-5 py-4">
+          <div class="border-t border-line py-4">
             <OnThisPage items={toc} sticky={false} title="Sections" />
           </div>
         </details>
-        <div class="mt-6 flex gap-4 rounded-card border border-line bg-surface p-5 text-[0.9375rem] leading-relaxed text-muted">
-          <Icon name="ph:scales" size={22} class="mt-0.5 shrink-0 text-accent" />
-          <p>
-            This page summarises our standard terms. Your confirmed quote or signed rental agreement is the binding document. Amounts
-            quoted here come from our current rate list and differ by car.
-          </p>
-        </div>
+        <p class="text-lede mt-8 max-w-[58ch] border-l border-accent pl-6 text-fg">
+          This page summarises our standard terms. Your confirmed quote or signed rental agreement is the binding document. Amounts
+          quoted here come from our current rate list and differ by car.
+        </p>
 
         {
-          sections.map((s) => (
-            <section id={s.id} aria-labelledby={`${s.id}-title`} class="mt-14 scroll-mt-[calc(var(--header-h)+1.5rem)] border-t border-line pt-10">
-              <h2 id={`${s.id}-title`} class="flex items-center gap-3 text-display-md text-fg">
-                <Icon name={s.icon} size={26} class="shrink-0 text-accent" />
-                {s.title}
-              </h2>
-              {s.paras?.map((p) => (
-                <p class="mt-4 leading-relaxed text-muted">{p}</p>
-              ))}
-              {s.bullets && (
-                <ul class="mt-5 flex flex-col gap-3">
-                  {s.bullets.map((b) => (
-                    <li class="flex gap-3 leading-relaxed text-muted">
-                      <span class="mt-[0.7em] h-0.5 w-2.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
-                      <span>{b}</span>
-                    </li>
+          sections.map((s, i) => (
+            <>
+              <section id={s.id} aria-labelledby={`${s.id}-title`} class="mt-20 scroll-mt-[calc(var(--header-h)+1.5rem)] md:mt-28">
+                <p class="label text-accent-fg tabular" aria-hidden="true">{String(i + 1).padStart(2, "0")}</p>
+                <h2 id={`${s.id}-title`} class="text-display-lg mt-4 max-w-[20ch] text-fg" data-fx="lines">
+                  {s.title}
+                </h2>
+                <div class="policy-body mt-8 flex flex-col gap-4">
+                  {s.paras?.map((p) => (
+                    <p class="leading-[1.75] text-fg/80">{p}</p>
                   ))}
-                </ul>
-              )}
-              {s.after?.map((p) => (
-                <p class="mt-4 leading-relaxed text-fg">{p}</p>
-              ))}
-            </section>
+                  {s.bullets && (
+                    <ul class="border-t border-line">
+                      {s.bullets.map((b) => (
+                        <li class="border-b border-line py-4 leading-[1.7] text-fg/80">{b}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {s.after?.map((p) => (
+                    <p class="leading-[1.75] text-fg">{p}</p>
+                  ))}
+                </div>
+              </section>
+              {breaks[s.id] && <Plate plate={breaks[s.id]} ratio="aspect-[4/3] md:aspect-[21/9]" sizes="(min-width: 64rem) 72vw, 100vw" class="mt-20 md:mt-28" />}
+            </>
           ))
         }
 
-        <section id="questions" aria-labelledby="questions-title" class="mt-14 scroll-mt-[calc(var(--header-h)+1.5rem)] border-t border-line pt-10">
-          <h2 id="questions-title" class="text-display-md text-fg">Questions about these terms</h2>
-          <p class="mt-4 leading-relaxed text-muted">
+        <section id="questions" aria-labelledby="questions-title" class="mt-20 scroll-mt-[calc(var(--header-h)+1.5rem)] border-t border-accent pt-10 md:mt-28">
+          <h2 id="questions-title" class="text-display-lg text-fg" data-fx="lines">Questions about these terms</h2>
+          <p class="text-lede mt-6 max-w-[58ch] text-muted">
             Ask before you book and we will explain anything that is not clear. Call{" "}
-            <a href={telUrl()} class="font-semibold text-fg tabular-nums underline underline-offset-4">{primaryPhone.display}</a>, email{" "}
-            <a href={mailtoUrl(site.email, "Question about rental terms")} class="font-semibold text-fg underline underline-offset-4">{site.email}</a>, or
-            see the <a href={urls.faq()} class="font-semibold text-accent-fg underline underline-offset-4">FAQ</a> and{" "}
-            <a href={urls.contact()} class="font-semibold text-accent-fg underline underline-offset-4">contact page</a>.
+            <a href={telUrl()} class="link-draw text-fg tabular-nums">{primaryPhone.display}</a>, email{" "}
+            <a href={mailtoUrl(site.email, "Question about rental terms")} class="link-draw text-fg">{site.email}</a>, or
+            see the <a href={urls.faq()} class="link-draw text-accent-fg">FAQ</a> and{" "}
+            <a href={urls.contact()} class="link-draw text-accent-fg">contact page</a>.
           </p>
         </section>
       </div>
     </div>
   </Section>
 </PageLayout>
+
+<style>
+  .policy-body {
+    max-width: 65ch;
+  }
+</style>

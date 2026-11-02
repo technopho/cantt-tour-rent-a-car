@@ -1,11 +1,11 @@
 ---
 /**
- * Internal links block: Lahore areas (pills with service-specific anchor text) and, where the
- * service goes beyond Lahore, outstation routes with distance and drive time when the route
- * page's content entry has them.
+ * Internal links: Lahore areas (service-specific anchor text) and, where the service goes beyond Lahore,
+ * outstation routes with distance and drive time when the route page's content entry has them.
+ * Plain text on hairlines. On phones each list folds under one line (PhoneFold): the links stay in the HTML.
  */
 import { getCollection } from "astro:content";
-import Icon from "@/components/Icon.astro";
+import PhoneFold from "@/components/PhoneFold.astro";
 import { getRoute, site } from "@/config/site";
 import { formatDriveTime, formatKm } from "@/lib/format";
 import { urls } from "@/lib/urls";
@@ -32,29 +32,27 @@ const routeRows = (routes?.slugs ?? [])
   .filter((r): r is { slug: string; city: string; meta: string | null } => r !== null);
 ---
 
-<div class:list={["grid gap-14", routeRows.length > 0 && "lg:grid-cols-2 lg:gap-16"]}>
+<div class:list={["grid gap-16", routeRows.length > 0 && "lg:grid-cols-2 lg:gap-20"]}>
   <div>
-    <h2 id={headingId} class="text-display-md text-fg">{areas.title}</h2>
-    <p class="mt-3 max-w-xl text-muted">{areas.intro}</p>
-    <ul class="mt-8 flex flex-wrap gap-2.5">
+    <h2 id={headingId} class="text-display-md text-fg" data-fx="lines">{areas.title}</h2>
+    <p class="mt-4 max-w-xl text-muted">{areas.intro}</p>
+    <PhoneFold summary={`${site.areasServed.length} areas of Lahore`} class="mt-8">
+    <ul class:list={["grid border-t border-line sm:grid-cols-2 sm:gap-x-10 md:mt-8", routeRows.length === 0 && "lg:grid-cols-3"]}>
       {
         site.areasServed.map((area) => (
-          <li>
-            <a
-              href={urls.area(area.slug)}
-              class="group inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 py-2.5 pr-4 pl-3.5 text-sm font-medium text-fg transition-[border-color,background-color] duration-200 hover:border-line-strong hover:bg-surface-2"
-            >
-              <Icon name="ph:map-pin" size={16} class="text-accent" />
+          <li class="border-b border-line">
+            <a href={urls.area(area.slug)} class="block py-3.5 text-[0.9375rem] text-fg transition-colors duration-500 hover:text-accent-fg">
               {areas.linkLabel(area.name)}
             </a>
           </li>
         ))
       }
     </ul>
+    </PhoneFold>
     <p class="mt-6 text-sm text-muted">
       Not on the list? We cover all of Lahore, including Cavalry Ground, Walton, Garden Town, Township and Raiwind Road. <a
         href={urls.areas()}
-        class="font-semibold text-accent-fg underline underline-offset-4">See all areas</a
+        class="text-accent-fg underline underline-offset-4">See all areas</a
       >.
     </p>
   </div>
@@ -62,26 +60,22 @@ const routeRows = (routes?.slugs ?? [])
   {
     routes && routeRows.length > 0 && (
       <div>
-        <h2 class="text-display-md text-fg">{routes.title}</h2>
-        <p class="mt-3 max-w-xl text-muted">{routes.intro}</p>
-        <ul class="mt-8 border-t border-line">
+        <h2 class="text-display-md text-fg" data-fx="lines">{routes.title}</h2>
+        <p class="mt-4 max-w-xl text-muted">{routes.intro}</p>
+        <PhoneFold summary={`${routeRows.length} routes out of Lahore`} class="mt-8">
+        <ul class="border-t border-line md:mt-8">
           {routeRows.map((r) => (
             <li class="border-b border-line">
-              <a href={urls.route(r.slug)} class="group flex items-center gap-4 py-4 transition-colors hover:text-accent-fg">
-                <Icon name="ph:road-horizon" size={20} class="text-muted transition-colors group-hover:text-accent" />
-                <span class="font-semibold text-fg group-hover:text-accent-fg">Lahore to {r.city}</span>
-                {r.meta && <span class="hidden text-sm text-muted tabular-nums sm:inline">{r.meta}</span>}
-                <Icon
-                  name="ph:arrow-right"
-                  size={18}
-                  class="ml-auto text-muted transition-transform duration-300 ease-(--ease-out) group-hover:translate-x-1"
-                />
+              <a href={urls.route(r.slug)} class="group flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3.5">
+                <span class="text-[0.9375rem] text-fg transition-colors duration-500 group-hover:text-accent-fg">Lahore to {r.city}</span>
+                {r.meta && <span class="text-sm text-muted tabular-nums">{r.meta}</span>}
               </a>
             </li>
           ))}
         </ul>
+        </PhoneFold>
         <p class="mt-6 text-sm text-muted">
-          <a href={urls.routes()} class="font-semibold text-accent-fg underline underline-offset-4">
+          <a href={urls.routes()} class="text-accent-fg underline underline-offset-4">
             All outstation routes from Lahore
           </a>
         </p>

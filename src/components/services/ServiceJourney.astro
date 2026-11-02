@@ -1,14 +1,12 @@
 ---
 /**
- * Signature timeline for service pages: stops along a road whose tail-light line draws itself
- * as the section scrolls into view (CSS scroll-driven animation, zero JS). Vertical on phones and
- * tablets, horizontal from 1024px. Static and fully drawn under reduced motion or in browsers
- * without animation-timeline.
+ * The journey as a composed sequence: large numerals descending a staircase on desktop, one column on
+ * phones. A hairline draws across each step. Not cards and not icons.
  *
- *   <ServiceJourney id="journey" title="..." intro="..." stops={[{ label, title, text, icon }]} />
+ *   <ServiceJourney id="journey" title="..." intro="..." stops={[{ label, title, text }]} />
  */
-import Icon from "@/components/Icon.astro";
 import Section from "@/components/Section.astro";
+import PhoneFold from "@/components/PhoneFold.astro";
 import SectionHeading from "@/components/SectionHeading.astro";
 import type { JourneyStop } from "./service-data";
 
@@ -24,103 +22,70 @@ const { id, title, intro, eyebrow, stops } = Astro.props;
 const headingId = `${id}-title`;
 ---
 
-<Section id={id} labelledby={headingId} divider>
+<Section id={id} labelledby={headingId}>
   <SectionHeading id={headingId} title={title} intro={intro} eyebrow={eyebrow} />
 
-  <div class="journey relative mt-14" style={`--cols:${stops.length}`}>
-    <div class="journey__road" aria-hidden="true">
-      <span class="journey__fill"></span>
-    </div>
-    <ol class="relative grid gap-10 lg:grid-cols-[repeat(var(--cols),minmax(0,1fr))] lg:gap-8">
-      {
-        stops.map((stop, i) => (
-          <li class="relative pl-18 lg:pl-0 lg:pt-20" data-reveal data-reveal-delay={i ? String(Math.min(i, 3)) : undefined}>
-            <span class="journey__marker absolute top-0 left-0 grid size-12 place-items-center rounded-full border border-line-strong/60 bg-bg text-accent">
-              <Icon name={stop.icon} size={22} />
-            </span>
-            <p class="text-xs font-bold tracking-[0.14em] text-muted uppercase">
-              <span class="sr-only">Stop {i + 1}: </span>
-              {stop.label}
-            </p>
-            <h3 class="mt-2 text-display-sm text-fg">{stop.title}</h3>
-            <p class="mt-2 max-w-sm text-[0.9375rem] leading-relaxed text-muted">{stop.text}</p>
-          </li>
-        ))
-      }
-    </ol>
-  </div>
+  <PhoneFold summary={`The ${stops.length} steps, start to finish`} class="mt-10 md:mt-0">
+  <ol class="journey md:mt-20" style={`--steps:${stops.length}`}>
+    {
+      stops.map((stop, i) => (
+        <li class="journey__step" style={`--i:${i}`}>
+          <div class="h-px w-full origin-left bg-line-strong" data-fx="rule" data-delay={String(i * 0.12)} aria-hidden="true"></div>
+          <div class="journey__body" data-fx="fade" data-delay={String(0.1 + i * 0.12)}>
+            <span class="journey__num" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+            <div>
+              <p class="label text-accent-fg">
+                <span class="sr-only">Stop {i + 1}: </span>
+                {stop.label}
+              </p>
+              <h3 class="mt-3 text-xl font-medium text-fg">{stop.title}</h3>
+              <p class="mt-2 max-w-sm text-[0.9375rem] leading-relaxed text-muted">{stop.text}</p>
+            </div>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+  </PhoneFold>
 </Section>
 
 <style>
-  /* Road: dashed lane marking (track) + accent tail-light line (fill). Marker centre = 24px. */
-  .journey__road {
-    position: absolute;
-    top: 24px;
-    bottom: 24px;
-    left: 23px;
-    width: 2px;
-    background: repeating-linear-gradient(180deg, var(--line-strong) 0 10px, transparent 10px 20px);
-    opacity: 0.9;
+  .journey {
+    display: grid;
+    gap: 2.5rem;
   }
-  .journey__fill {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, var(--accent), color-mix(in oklab, var(--accent) 35%, transparent));
-    box-shadow: 0 0 14px color-mix(in oklab, var(--accent) 45%, transparent);
-    transform-origin: 50% 0;
+  .journey__body {
+    display: grid;
+    grid-template-columns: 4.25rem minmax(0, 1fr);
+    gap: 1rem;
+    padding-top: 1.25rem;
   }
-  .journey__marker {
-    box-shadow: 0 0 0 6px var(--bg);
+  /* A low optical size keeps the hairlines: at auto, a phone "04" read as "01". */
+  .journey__num {
+    font-family: var(--font-display);
+    font-size: 3.25rem;
+    line-height: 0.9;
+    color: var(--accent);
+    font-variant-numeric: lining-nums;
+    font-variation-settings: "opsz" 18;
   }
-
   @media (width >= 64rem) {
-    .journey__road {
-      top: 23px;
-      bottom: auto;
-      left: 24px;
-      right: 0;
-      width: auto;
-      height: 2px;
-      background: repeating-linear-gradient(90deg, var(--line-strong) 0 14px, transparent 14px 28px);
-      -webkit-mask-image: linear-gradient(90deg, black 85%, transparent);
-      mask-image: linear-gradient(90deg, black 85%, transparent);
+    .journey {
+      grid-template-columns: repeat(var(--steps), minmax(0, 1fr));
+      gap: 2rem;
     }
-    .journey__fill {
-      background: linear-gradient(90deg, var(--accent), color-mix(in oklab, var(--accent) 30%, transparent));
-      transform-origin: 0 50%;
+    /* Each step sits lower than the last: the sequence reads as a road going somewhere. */
+    .journey__step {
+      margin-top: calc(var(--i) * clamp(2rem, 3.5vw, 4rem));
     }
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    @supports (animation-timeline: view()) {
-      .journey__fill {
-        animation: journey-draw-y linear both;
-        animation-timeline: view();
-        animation-range: entry 15% cover 55%;
-      }
-      @media (width >= 64rem) {
-        .journey__fill {
-          animation-name: journey-draw-x;
-          animation-range: entry 40% cover 60%;
-        }
-      }
+    .journey__body {
+      display: block;
+      padding-top: 1.5rem;
     }
-  }
-
-  @keyframes journey-draw-y {
-    from {
-      transform: scaleY(0);
-    }
-    to {
-      transform: scaleY(1);
-    }
-  }
-  @keyframes journey-draw-x {
-    from {
-      transform: scaleX(0);
-    }
-    to {
-      transform: scaleX(1);
+    .journey__num {
+      display: block;
+      margin-bottom: 1.5rem;
+      font-size: clamp(4rem, 6.5vw, 7rem);
     }
   }
 </style>

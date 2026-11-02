@@ -1,57 +1,171 @@
 ---
 /**
- * Closing call to action (the layout's footer CTA band is hidden on the home page so the two
- * never repeat). Offers WhatsApp, so it carries data-fab-hide.
+ * Closing scene (the layout's footer CTA band is hidden on the home page so the two never repeat):
+ * a full-bleed picture, slowly pushing in, with the huge line over it. Offers WhatsApp, so it carries
+ * data-fab-hide. With no image it is still a full black stage with the same type.
  */
 import Button from "@/components/Button.astro";
 import Container from "@/components/Container.astro";
-import HeroTrails from "@/components/HeroTrails.astro";
 import { formatOpeningHours, primaryPhone, site } from "@/config/site";
 import { telUrl, whatsappUrl } from "@/lib/links";
+import type { HomeImage } from "./home-data";
 
+interface Props {
+  image?: HomeImage;
+}
+
+const { image } = Astro.props;
 const hours = formatOpeningHours();
 ---
 
-<section id="get-started" class="relative isolate overflow-hidden border-t border-line" aria-labelledby="final-cta-title" data-fab-hide>
-  <HeroTrails intensity="bold" placement="top" />
-  <div
-    class="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[70%] bg-[radial-gradient(60%_80%_at_50%_100%,color-mix(in_oklab,var(--accent)_16%,transparent),transparent_70%)]"
-    aria-hidden="true"
-  >
+<section id="get-started" class="final" aria-labelledby="final-cta-title" data-fab-hide>
+  <div class="final-media" data-fx="parallax" data-speed="0.12" aria-hidden="true">
+    {
+      image && (
+        <img
+          src={image.img.src}
+          srcset={image.img.srcset || undefined}
+          sizes={image.img.srcset ? "100vw" : undefined}
+          width={image.img.width}
+          height={image.img.height}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          class="final-img"
+          data-fx="kenburns"
+        />
+      )
+    }
   </div>
-  <Container class="grid gap-10 py-[calc(var(--section-space)*1.15)] lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-end">
-    <div>
-      <h2 id="final-cta-title" class="text-display-xl text-fg">
-        <span class="block">Gari chahiye?</span>
-        <span class="block text-accent">We'll be there on Cantt time.</span>
-      </h2>
-      <p class="text-lede mt-6 max-w-xl text-muted">
+  <div class="final-scrim" aria-hidden="true"></div>
+  {image?.caption && <p class="final-cap">{image.caption}</p>}
+
+  <Container class="final-body">
+    <h2 id="final-cta-title" class="final-title">
+      <span class="final-line" data-fx="lines">Gari chahiye?</span>{" "}
+      <span class="final-sub" data-fx="lines" data-delay="0.15">We'll be there on <em>Cantt</em> time.</span>
+    </h2>
+    <div class="final-row">
+      <p class="final-text" data-fx="fade" data-delay="0.3">
         Tell us the car, the dates and where to pick you up. We reply with a clear price before anything is booked.
       </p>
-    </div>
-    <div class="flex flex-col gap-5 lg:items-end">
-      <div class="flex flex-wrap gap-3 lg:justify-end">
-        <Button href={site.cta.quote.href} size="lg" iconRight="ph:arrow-right" class="max-sm:w-full">
-          {site.cta.quote.label}
-        </Button>
-        <Button
-          href={whatsappUrl()}
-          variant="secondary"
-          size="lg"
-          icon="simple-icons:whatsapp"
-          iconClass="text-whatsapp"
-          external
-          class="max-sm:w-full"
-        >
-          {site.cta.whatsapp.label}
-        </Button>
-        <Button href={telUrl()} variant="ghost" size="lg" icon="ph:phone" class="max-sm:w-full">
-          {site.cta.call.label}
-        </Button>
+      <div class="final-actions" data-fx="fade" data-delay="0.4">
+        <div class="final-buttons">
+          <Button href={site.cta.quote.href} size="lg" iconRight="ph:arrow-right" class="max-sm:w-full">
+            {site.cta.quote.label}
+          </Button>
+          <Button href={whatsappUrl()} variant="secondary" size="lg" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external class="max-sm:w-full">
+            {site.cta.whatsapp.label}
+          </Button>
+          <Button href={telUrl()} variant="ghost" size="lg" icon="ph:phone" class="max-sm:w-full">
+            {site.cta.call.label}
+          </Button>
+        </div>
+        <p class="final-hours">
+          <span class="tabular">{primaryPhone.display}</span>, {hours.join(", ")}
+        </p>
       </div>
-      <p class="text-sm text-muted lg:text-right">
-        <span class="tabular">{primaryPhone.display}</span> · {hours.join(", ")}
-      </p>
     </div>
   </Container>
 </section>
+
+<style>
+  .final {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: flex-end;
+    min-height: max(100svh, 44rem);
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .final-media {
+    position: absolute;
+    z-index: -2;
+    inset: -8% 0;
+    overflow: hidden;
+  }
+  .final-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    object-fit: cover;
+    object-position: 40% 42%;
+  }
+  .final-scrim {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: linear-gradient(180deg, var(--bg) 0%, transparent 16%, transparent 34%, rgb(7 7 8 / 0.82) 62%, var(--bg) 100%);
+  }
+  .final-cap {
+    position: absolute;
+    top: 1rem;
+    right: var(--gutter);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    color: rgb(242 236 224 / 0.72);
+  }
+  .final :global(.final-body) {
+    width: 100%;
+    padding-block: 8rem clamp(2.5rem, 5vw, 4rem);
+  }
+  .final-title {
+    margin: 0;
+  }
+  .final-line {
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(4.25rem, 1.5rem + 11vw, 13rem);
+    line-height: 0.95;
+    letter-spacing: -0.012em;
+    color: var(--text);
+  }
+  .final-sub {
+    display: block;
+    margin-top: 0.75rem;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.25rem, 1.25rem + 3.6vw, 5.25rem);
+    line-height: 1.02;
+    color: var(--accent);
+  }
+  .final-row {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: clamp(1.5rem, 3vw, 2.75rem);
+  }
+  .final-text {
+    max-width: 30rem;
+    color: var(--text);
+  }
+  .final-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .final-hours {
+    margin-top: 0.875rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  @media (width >= 64rem) {
+    .final-scrim {
+      background: linear-gradient(180deg, var(--bg) 0%, transparent 14%, transparent 42%, rgb(7 7 8 / 0.74) 72%, var(--bg) 100%);
+    }
+    .final-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 3rem;
+    }
+    .final-buttons {
+      justify-content: flex-end;
+    }
+    .final-hours {
+      text-align: right;
+    }
+  }
+</style>

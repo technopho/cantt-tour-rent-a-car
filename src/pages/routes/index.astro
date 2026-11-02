@@ -7,15 +7,17 @@
 import { getCollection } from "astro:content";
 import Button from "@/components/Button.astro";
 import FaqList from "@/components/FaqList.astro";
-import Icon from "@/components/Icon.astro";
 import JsonLd from "@/components/JsonLd.astro";
 import PriceTag from "@/components/PriceTag.astro";
 import SampleFleetNote from "@/components/SampleFleetNote.astro";
 import Section from "@/components/Section.astro";
 import SectionHeading from "@/components/SectionHeading.astro";
+import Interlude from "@/components/local/Interlude.astro";
+import Plate from "@/components/local/Plate.astro";
 import OutstationPricing from "@/components/local/OutstationPricing.astro";
 import QuoteBand from "@/components/local/QuoteBand.astro";
 import RouteNetworkMap from "@/components/local/RouteNetworkMap.astro";
+import { firstPlate, fleetPlate, picker, roadPlate, terrain, trails } from "@/components/local/plates";
 import { cheapestOutstation, withDriverOnly } from "@/components/local/pricing";
 import { ROUTE_META, routeMeta } from "@/components/local/route-meta";
 import { itemListSchema } from "@/components/local/schema";
@@ -45,21 +47,21 @@ const outstationModels = withDriverOnly(outstationTagged.length ? outstationTagg
 /** Car choice by trip type, with the cheapest outstation day rate per category from the catalog. */
 const choices = [
   {
-    icon: "ph:car-profile",
+    plate: firstPlate(fleetPlate("mercedes-s-class"), fleetPlate("honda-civic")),
     title: "Sedans for the motorway",
     text: "Islamabad, Sialkot, Faisalabad and Multan are motorway trips. A sedan with a driver is comfortable and economical for up to four people.",
     category: "sedan",
     linkLabel: "See sedans",
   },
   {
-    icon: "ph:jeep",
+    plate: firstPlate(fleetPlate("toyota-land-cruiser"), fleetPlate("toyota-prado")),
     title: "SUVs and 4x4s for the mountains",
     text: "For Murree in snow, Naran, Hunza and Skardu, ground clearance and power matter. Pick an SUV, and a 4x4 for the high passes.",
     category: "suv",
     linkLabel: "See SUVs",
   },
   {
-    icon: "ph:van",
+    plate: fleetPlate("toyota-hiace"),
     title: "Vans and coasters for groups",
     text: "Families, wedding parties, school trips and office outings travel together in a Toyota Hiace or a coaster, with room for luggage.",
     category: "van",
@@ -72,6 +74,13 @@ const choices = [
   const inCat = tagged.length ? tagged : withDriverOnly(models.filter((m) => m.category === c.category));
   return { ...c, href: cat ? urls.category(cat.slug) : urls.cars(), price: cheapestOutstation(inCat)?.price ?? null, linkLabel: cat ? c.linkLabel : "See the fleet" };
 });
+
+// The motorway north opens the page, Skardu carries "The road decides the car", and the quote band sits over the
+// terrain of the north: three pictures, none repeated.
+const pick = picker("/routes/", { pool: [roadPlate("hunza"), terrain(), trails()] });
+const hero = pick(roadPlate("motorway")) ?? trails();
+const interlude = pick(roadPlate("skardu"), roadPlate("hunza"));
+const band = pick(terrain());
 
 const faqs = [
   {
@@ -103,6 +112,9 @@ const faqs = [
   h1="Outstation car rental from Lahore"
   intro="Motorway runs to Islamabad, family weekends in Murree and two-day drives to Hunza. Every route with distance, drive time, the right car and an honest price."
   crumbs={[{ label: "Outstation routes" }]}
+  heroImage={hero.img}
+  heroCaption={hero.caption}
+  heroPosition={hero.position}
 >
   <JsonLd slot="jsonld" data={itemListSchema("Outstation routes from Lahore", routes.map((r) => ({ name: r.data.h1, url: urls.route(r.data.slug) })))} />
 
@@ -113,42 +125,34 @@ const faqs = [
     </Button>
   </Fragment>
 
+
   <Section id="routes" aria-label="All outstation routes from Lahore">
-    <div class="grid gap-12 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-10 lg:gap-16">
+    <div class="grid gap-14 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-12 lg:gap-20">
       <div class="md:sticky md:top-[calc(var(--header-h)+1.5rem)] md:self-start">
         <RouteNetworkMap routes={routes.map((r) => ({ slug: r.data.slug, distanceKm: r.data.distanceKm, driveHours: r.data.driveHours }))} />
       </div>
-      <div class="flex flex-col gap-12">
+      <div class="flex flex-col gap-20">
         {
           groups.map((g) => (
             <div>
-              <h2 id={`group-${g.id}`} class="text-display-md text-fg">
+              <h2 id={`group-${g.id}`} class="text-display-md text-fg" data-fx="lines">
                 {g.title}
               </h2>
-              <ol class="mt-6 border-t border-line" aria-labelledby={`group-${g.id}`}>
+              <ol class="mt-8 border-t border-line" aria-labelledby={`group-${g.id}`}>
                 {g.routes.map((r) => {
                   const m = routeMeta(r.data.slug);
                   return (
-                    <li class="border-b border-line">
-                      <a href={urls.route(r.data.slug)} class="route-row group grid grid-cols-[3.25rem_minmax(0,1fr)_auto] items-center gap-x-4 py-5" data-route-row={r.data.slug}>
-                        <span class="grid h-8 place-items-center rounded-badge border border-line font-display text-[0.6875rem] font-semibold tracking-[0.02em] text-accent-fg transition-colors duration-300 group-hover:border-transparent group-hover:bg-accent-soft">
-                          {m.code}
-                        </span>
-                        <span class="flex min-w-0 flex-col gap-1">
-                          <span class="font-display text-display-sm text-fg">Lahore to {r.data.to}</span>
-                          <span class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted tabular">
-                            <span>about {formatKm(r.data.distanceKm)}</span>
-                            <span>
-                              {formatDriveTime(r.data.driveHours)}
-                              {m.timeNote ? `, ${m.timeNote}` : ""}
-                            </span>
-                            <span class="flex items-center gap-1">
-                              <Icon name="ph:calendar-blank" size={14} />
-                              {m.season}
-                            </span>
+                    <li class="border-b border-line" data-reveal="fade">
+                      <a href={urls.route(r.data.slug)} class="route-row group flex flex-col gap-3 py-7" data-route-row={r.data.slug} data-cursor="View">
+                        <span class="route-name text-display-md text-fg transition-[color,transform] duration-700 ease-(--ease-out) group-hover:translate-x-2">Lahore to {r.data.to}</span>
+                        <span class="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted tabular">
+                          <span>about {formatKm(r.data.distanceKm)}</span>
+                          <span>
+                            {formatDriveTime(r.data.driveHours)}
+                            {m.timeNote ? `, ${m.timeNote}` : ""}
                           </span>
+                          <span>{m.season}</span>
                         </span>
-                        <Icon name="ph:arrow-right" size={18} class="text-muted transition-[color,transform] duration-300 group-hover:translate-x-1 group-hover:text-accent" />
                       </a>
                     </li>
                   );
@@ -161,37 +165,37 @@ const faqs = [
     </div>
   </Section>
 
+  <Interlude plate={interlude} decorative>The road decides the car.</Interlude>
+
+  <Section id="choose" labelledby="choose-title">
+    <SectionHeading id="choose-title" title="Pick the car for the road" intro="The road decides the car. A quick guide, with the lowest outstation day rate in each group." />
+    <ul class="mt-16 flex flex-col gap-20 md:gap-28">
+      {
+        choices.map((c, i) => (
+          <li class:list={["grid items-center gap-8 md:gap-14", c.plate ? "md:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]" : "max-w-3xl"]}>
+            {c.plate && <Plate plate={c.plate} sizes="(min-width: 48rem) 55vw, 100vw" class={i % 2 === 1 ? "md:order-2" : undefined} />}
+            <div class="flex flex-col gap-5">
+              <h3 class="text-display-md text-fg" data-fx="lines">{c.title}</h3>
+              <p class="max-w-[52ch] leading-relaxed text-muted" data-fx="fade">{c.text}</p>
+              <div class="flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-line pt-5" data-fx="fade">
+                <PriceTag amount={c.price} size="lg" note={c.price ? "outstation" : undefined} />
+                <a href={c.href} class="link-draw text-accent-fg">{c.linkLabel}</a>
+              </div>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+    <SampleFleetNote class="mt-16" />
+  </Section>
+
   <Section id="pricing" labelledby="pricing-title" divider>
     <SectionHeading
       id="pricing-title"
       title="How outstation pricing works"
       intro="The same four rules for every trip out of Lahore. Prices below come straight from our current fleet rates."
     />
-    <OutstationPricing models={outstationModels} days={3} class="mt-12" />
-  </Section>
-
-  <Section id="choose" labelledby="choose-title" divider>
-    <SectionHeading id="choose-title" title="Pick the car for the road" intro="The road decides the car. A quick guide, with the lowest outstation day rate in each group." />
-    <ul class="mt-12 border-t border-line">
-      {
-        choices.map((c) => (
-          <li class="grid gap-x-8 gap-y-4 border-b border-line py-8 md:grid-cols-[3.5rem_minmax(0,1.1fr)_minmax(0,1fr)_auto] md:items-center" data-reveal>
-            <span class="grid size-12 place-items-center rounded-full bg-accent-soft text-accent">
-              <Icon name={c.icon} size={24} />
-            </span>
-            <h3 class="text-display-sm text-fg">{c.title}</h3>
-            <p class="text-sm leading-relaxed text-muted">{c.text}</p>
-            <div class="flex flex-wrap items-center gap-4 md:flex-col md:items-end md:gap-2">
-              <PriceTag amount={c.price} note={c.price ? "outstation" : undefined} />
-              <a href={c.href} class="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-fg underline-offset-4 hover:underline">
-                {c.linkLabel} <Icon name="ph:arrow-right" size={14} />
-              </a>
-            </div>
-          </li>
-        ))
-      }
-    </ul>
-    <SampleFleetNote class="mt-8" />
+    <OutstationPricing models={outstationModels} days={3} class="mt-14" />
   </Section>
 
   <QuoteBand
@@ -200,19 +204,24 @@ const faqs = [
     defaultServiceType="with_driver"
     defaultTripType="outstation"
     whatsappMessage="Assalam o Alaikum! I need a car with driver for an outstation trip from Lahore."
+    plate={band}
   />
 
-  <Section id="faq" labelledby="faq-title" width="narrow" divider>
-    <SectionHeading id="faq-title" title="Outstation trips: questions" size="md" />
-    <FaqList faqs={faqs} exclusive id="routes-faq" class="mt-10" />
-    <p class="mt-8 text-sm text-muted">
-      Planning a long trip? Read our <a href={urls.guide("lahore-to-northern-areas-road-trip-guide")} class="font-semibold text-accent-fg underline underline-offset-2">northern areas road trip guide</a>.
-    </p>
+  <Section id="faq" labelledby="faq-title" divider>
+    <div class="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
+      <div>
+        <SectionHeading id="faq-title" title="Outstation trips: questions" size="md" />
+        <p class="mt-6 text-sm text-muted">
+          Planning a long trip? Read our <a href={urls.guide("lahore-to-northern-areas-road-trip-guide")} class="link-draw text-accent-fg">northern areas road trip guide</a>.
+        </p>
+      </div>
+      <FaqList faqs={faqs} exclusive id="routes-faq" />
+    </div>
   </Section>
 </PageLayout>
 
 <style>
-  .route-row.is-active .font-display {
+  .route-row:global(.is-active) .route-name {
     color: var(--accent-fg);
   }
 </style>

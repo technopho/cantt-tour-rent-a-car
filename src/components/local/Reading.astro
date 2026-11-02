@@ -1,0 +1,184 @@
+---
+/**
+ * A long article laid out like a magazine: the markdown body is cut at its H2s, kept in a reading column
+ * about 65 characters wide, with image plates and pull quotes placed between sections. All the text stays,
+ * in order; pull quotes are only lines already in the body and are hidden from screen readers.
+ *
+ *   <Reading html={entry.rendered?.html} slug={entry.id} plates={[...]} every={2}><Content /></Reading>
+ *
+ * The slot is the fallback if the rendered HTML is not available.
+ */
+import Plate from "./Plate.astro";
+import type { Plate as PlateData } from "./plates";
+import { PULL_QUOTES } from "./pull-quotes";
+
+interface Props {
+  html?: string;
+  slug: string;
+  plates?: PlateData[];
+  /** A plate or a quote after every n sections. */
+  every?: number;
+  class?: string;
+}
+
+const { html, slug, plates = [], every = 2, class: className } = Astro.props;
+
+const squash = (t: string) =>
+  t
+    .replace(/<[^>]+>/g, "")
+    .replace(/&#?\w+;/g, "")
+    .replace(/[^a-z0-9]/gi, "")
+    .toLowerCase();
+const body = squash(html ?? "");
+const quotes = (PULL_QUOTES[slug] ?? []).filter((q) => body.includes(squash(q)));
+
+/**
+ * A table in the body (markdown) gets its column names on every cell, so a narrow phone can set each row as a
+ * small block of labelled lines instead of three squeezed columns (global.css, .table-stack).
+ */
+function labelTables(source: string): string {
+  return source.replace(/<table>([\s\S]*?)<\/table>/g, (table) => {
+    const head = /<thead>([\s\S]*?)<\/thead>/.exec(table)?.[1] ?? "";
+    const labels = [...head.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/g)].map((m) => m[1].replace(/<[^>]+>/g, "").replace(/"/g, "&quot;").trim());
+    if (labels.length === 0) return table;
+    const rows = table.replace(/<tr>([\s\S]*?)<\/tr>/g, (row) => {
+      let i = 0;
+      return row.replace(/<td(\s|>)/g, (_m, next: string) => `<td data-label="${labels[i++] ?? ""}"${next}`);
+    });
+    return rows.replace("<table>", '<table class="table-stack">');
+  });
+}
+
+const chunks = labelTables(html ?? "")
+  .split(/(?=<h2[\s>])/)
+  .map((c) => c.trim())
+  .filter(Boolean)
+  .map((c) => c.replace(/<h2 /, '<h2 data-fx="lines" '));
+const startsWithIntro = chunks.length > 0 && !chunks[0].startsWith("<h2");
+
+type Item = { kind: "prose"; html: string; first: boolean } | { kind: "plate"; plate: PlateData; wide: boolean } | { kind: "quote"; text: string };
+const items: Item[] = [];
+let p = 0;
+let q = 0;
+let useQuote = false;
+chunks.forEach((chunk, i) => {
+  items.push({ kind: "prose", html: chunk, first: i === 0 && startsWithIntro });
+  const section = startsWithIntro ? i : i + 1;
+  if (i === chunks.length - 1 || section === 0 || section % every !== 0) return;
+  const canPlate = p < plates.length;
+  const canQuote = q < quotes.length;
+  if (useQuote ? canQuote : !canPlate && canQuote) {
+    items.push({ kind: "quote", text: quotes[q++] });
+  } else if (canPlate) {
+    items.push({ kind: "plate", plate: plates[p], wide: p % 2 === 0 });
+    p++;
+  }
+  useQuote = !useQuote;
+});
+---
+
+<div class:list={["reading", className]}>
+  {
+    chunks.length === 0 ? (
+      <div class="prose-site reading-prose">
+        <slot />
+      </div>
+    ) : (
+      items.map((item) =>
+        item.kind === "prose" ? (
+          <div class:list={["prose-site reading-prose", item.first && "reading-lead"]} set:html={item.html} />
+        ) : item.kind === "plate" ? (
+          <Plate
+            plate={item.plate}
+            ratio={item.wide ? "aspect-[4/3] sm:aspect-[16/9]" : "aspect-[4/3]"}
+            sizes="(min-width: 64rem) 72vw, 100vw"
+            class={item.wide ? "reading-bleed" : "reading-inset"}
+            captionClass="reading-caption"
+          />
+        ) : (
+          <p class="reading-quote text-display-md text-fg" aria-hidden="true" data-fx="lines">
+            {item.text}
+          </p>
+        ),
+      )
+    )
+  }
+</div>
+
+<style>
+  .reading {
+    counter-reset: reading-section;
+    display: flow-root;
+  }
+  .reading-prose {
+    max-width: 65ch;
+    color: color-mix(in oklab, var(--text) 74%, var(--muted));
+    font-size: 1.0625rem;
+    line-height: 1.78;
+  }
+  @media (width >= 64rem) {
+    .reading-prose {
+      font-size: 1.125rem;
+    }
+  }
+  .reading-prose + .reading-prose {
+    margin-top: clamp(3.5rem, 2.5rem + 3vw, 6rem);
+  }
+  .reading-prose :global(h2) {
+    counter-increment: reading-section;
+    margin-top: 0;
+    margin-bottom: 1.1em;
+    max-width: 18ch;
+    font-size: var(--text-display-md);
+  }
+  .reading-prose :global(h3) {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .reading-prose :global(table) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  /* The opening paragraph sets the tone: larger, in ivory, with a Bodoni initial. */
+  .reading-lead :global(> p:first-child) {
+    color: var(--text);
+    font-size: var(--text-lede);
+    line-height: 1.6;
+  }
+  .reading-lead :global(> p:first-child::first-letter) {
+    float: left;
+    margin: 0.06em 0.12em -0.1em 0;
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: 4.4em;
+    line-height: 0.82;
+  }
+  .reading-quote {
+    max-width: 21ch;
+    margin-block: clamp(4rem, 3rem + 4vw, 7.5rem);
+    padding-top: 2rem;
+    border-top: 1px solid var(--accent);
+  }
+  :global(.reading-bleed),
+  :global(.reading-inset) {
+    margin-block: clamp(4rem, 3rem + 4vw, 7.5rem);
+    margin-inline: calc(var(--gutter) * -1);
+  }
+  :global(.reading-caption) {
+    padding-inline: var(--gutter);
+  }
+  @media (width >= 64rem) {
+    /* From the column's start to the edge of the screen. */
+    :global(.reading-bleed) {
+      margin-inline: 0 calc(-1 * max(var(--gutter), (100vw - 96rem) / 2 + var(--gutter)));
+    }
+    :global(.reading-inset) {
+      width: min(70%, 44rem);
+      margin-inline: 0;
+    }
+    :global(.reading-caption) {
+      padding-inline: 0;
+    }
+  }
+</style>

@@ -1,0 +1,549 @@
+---
+/**
+ * "Ignition" preloader (DESIGN.md, experience 1). Rendered by BaseLayout as the first thing in <body>.
+ * Inline CSS and JS only, so it paints with the first frame and needs no network. Without JS it stays
+ * display: none. The whole thing never traps the visitor: by 7 seconds the doors are opening, and scroll is
+ * always released.
+ *
+ * Sequences
+ *  - full   First visit to the home page in a session: the C draws as a brass hairline tied to the real
+ *           load of the opening's first frames, Bodoni counter, the bar lights, a line of light runs the
+ *           width of the screen, two headlight beams sweep out, the doors part, and the opening carries
+ *           that line of light on into its first frame.
+ *  - quick  First page of a session anywhere else (search visitors land on inner pages): the C draws, the
+ *           bar lights and the doors part, the page is in view by about 1.2s. No counter.
+ *  - short  Every later page: a 500ms obsidian curtain with a brass edge, lifting away.
+ *  - fade   prefers-reduced-motion: a quick fade.
+ *  - skip   Page opened in a hidden tab: nothing, done immediately.
+ *
+ * Progress
+ *  - <html data-preload="media"> (BaseLayout prop preloadMedia): follows the real load. Dispatch on window:
+ *      window.dispatchEvent(new CustomEvent("cantt:load-progress", { detail: { progress: 0.42 } }));  // 0..1
+ *      window.dispatchEvent(new Event("cantt:load-ready"));
+ *  - every other page: a short simulated progress tied to DOM ready, fonts and window load.
+ *
+ * What it tells the page (window)
+ *  - "cantt:preloader-parting"  the doors have started to open (window.__canttPreloaderParting = true).
+ *  - "cantt:preloader-done"     gone for good (window.__canttPreloaderDone = true). Set immediately when skipped.
+ *  Check the flag first, then listen:  if (window.__canttPreloaderDone) go(); else addEventListener("cantt:preloader-done", go, { once: true });
+ *
+ * It also arms the motion fallback: if src/scripts/fx has not reported in (html.fx-ready) shortly after
+ * the preloader ends, html.fx-off is set and every element waiting on a data-fx reveal shows as it is.
+ */
+---
+
+<style is:inline>
+  #cantt-pl {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    overflow: hidden;
+    contain: strict;
+    color: #f2ece0;
+    pointer-events: auto;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  html.js #cantt-pl {
+    display: block;
+  }
+  html.pl-lock,
+  html.pl-lock body {
+    overflow: hidden !important;
+  }
+  .pl-door {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 50.5%;
+    background: #070708;
+    transition: transform 1.25s cubic-bezier(0.76, 0, 0.24, 1);
+    will-change: transform;
+  }
+  .pl-door-t {
+    top: 0;
+  }
+  .pl-door-b {
+    bottom: 0;
+  }
+  .pl-seam {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    margin-top: -0.5px;
+    background: linear-gradient(90deg, transparent, #dcbd86 18%, #fff4dc 50%, #dcbd86 82%, transparent);
+    box-shadow: 0 0 24px 2px rgba(220, 189, 134, 0.45);
+    transform: scaleX(0);
+    opacity: 0;
+    transition:
+      transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.5s linear;
+  }
+  .pl-beams {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    transition: opacity 0.45s linear;
+  }
+  /* Filter on the beam, clip on its ::before: blur has to come after the clip for a soft edge. */
+  .pl-beam {
+    position: absolute;
+    top: 0;
+    width: 130vmax;
+    height: 64vmax;
+    margin-top: -32vmax;
+    filter: blur(22px);
+    mix-blend-mode: screen;
+    transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+  }
+  .pl-beam::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    -webkit-clip-path: polygon(0 50%, 100% 0, 100% 100%);
+    clip-path: polygon(0 50%, 100% 0, 100% 100%);
+    background: linear-gradient(90deg, rgba(255, 234, 196, 0.46), rgba(232, 202, 150, 0.16) 24%, rgba(201, 166, 107, 0.05) 52%, transparent 76%);
+  }
+  .pl-beam-r {
+    left: 3vmin;
+    transform-origin: 0 50%;
+    transform: rotate(62deg);
+  }
+  .pl-beam-l {
+    right: 3vmin;
+    transform-origin: 100% 50%;
+    transform: rotate(-62deg);
+  }
+  .pl-beam-l::before {
+    -webkit-clip-path: polygon(100% 50%, 0 0, 0 100%);
+    clip-path: polygon(100% 50%, 0 0, 0 100%);
+    background: linear-gradient(270deg, rgba(255, 234, 196, 0.46), rgba(232, 202, 150, 0.16) 24%, rgba(201, 166, 107, 0.05) 52%, transparent 76%);
+  }
+  .pl-core {
+    position: absolute;
+    inset: 0;
+    transition:
+      opacity 0.4s linear,
+      transform 1.25s cubic-bezier(0.76, 0, 0.24, 1);
+  }
+  .pl-mark {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: clamp(7.5rem, 20vmin, 12.5rem);
+    height: auto;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    overflow: visible;
+    fill: none;
+  }
+  .pl-c-track {
+    stroke: rgba(236, 224, 200, 0.09);
+    stroke-width: 0.6;
+  }
+  .pl-c {
+    stroke: #c9a66b;
+    stroke-width: 0.9;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition:
+      stroke 0.6s linear,
+      stroke-width 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .pl-bar {
+    fill: transparent;
+    stroke: rgba(201, 166, 107, 0.28);
+    stroke-width: 0.5;
+    transition:
+      fill 0.35s linear,
+      stroke 0.35s linear,
+      filter 0.6s linear;
+  }
+  .pl-foot {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 0 max(1.25rem, 3.5vw) max(1rem, 2.4vw);
+  }
+  .pl-name {
+    font: 500 0.6875rem/1.3 "Instrument Sans Variable", "Instrument Fallback", Arial, sans-serif;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #a79e8e;
+    padding-bottom: 0.7rem;
+  }
+  .pl-count {
+    font: 400 clamp(4rem, 13vw, 11rem) / 0.86 "Bodoni Moda Variable", "Bodoni Fallback", "Bodoni 72", Didot, "Times New Roman", serif;
+    font-variant-numeric: lining-nums tabular-nums;
+    font-optical-sizing: auto;
+    letter-spacing: -0.01em;
+    color: #f2ece0;
+  }
+  .pl-count sup {
+    font-size: 0.3em;
+    vertical-align: 1.72em;
+    margin-left: 0.14em;
+    line-height: 0;
+    color: #c9a66b;
+  }
+
+  /* Ignition: the bar lights, a line of light crosses the screen, the beams sweep out. */
+  #cantt-pl.is-lit .pl-bar {
+    fill: #dcbd86;
+    stroke: #fff4dc;
+    filter: drop-shadow(0 0 3px rgba(255, 236, 196, 0.95)) drop-shadow(0 0 9px rgba(220, 189, 134, 0.8));
+  }
+  #cantt-pl.is-lit .pl-c {
+    stroke: #f2ece0;
+    stroke-width: 1.35;
+  }
+  #cantt-pl.is-lit .pl-seam {
+    transform: none;
+    opacity: 1;
+  }
+  #cantt-pl.is-lit .pl-beams {
+    opacity: 1;
+  }
+  #cantt-pl.is-lit .pl-beam-r {
+    transform: rotate(-7deg);
+  }
+  #cantt-pl.is-lit .pl-beam-l {
+    transform: rotate(7deg);
+  }
+  #cantt-pl.is-lit .pl-foot {
+    opacity: 0;
+    transition: opacity 0.45s linear;
+  }
+
+  /* The doors part. */
+  #cantt-pl.is-parting {
+    pointer-events: none;
+  }
+  #cantt-pl.is-parting .pl-door-t {
+    transform: translate3d(0, -101%, 0);
+  }
+  #cantt-pl.is-parting .pl-door-b {
+    transform: translate3d(0, 101%, 0);
+  }
+  #cantt-pl.is-parting .pl-core {
+    opacity: 0;
+  }
+  #cantt-pl.is-parting .pl-beams,
+  #cantt-pl.is-parting .pl-seam {
+    opacity: 0;
+    transition: opacity 0.9s linear;
+  }
+
+  /* First visit to an ordinary page: the C draws on time, the bar lights, the doors part. About 1.2s in all. */
+  #cantt-pl.is-quick :is(.pl-foot, .pl-beams) {
+    display: none;
+  }
+  #cantt-pl.is-quick .pl-c {
+    transition:
+      stroke-dashoffset 0.42s cubic-bezier(0.33, 0, 0.2, 1),
+      stroke 0.4s linear,
+      stroke-width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #cantt-pl.is-quick.is-drawing .pl-c {
+    stroke-dashoffset: 0;
+  }
+  #cantt-pl.is-quick .pl-door {
+    transition-duration: 0.55s;
+  }
+  #cantt-pl.is-quick .pl-core {
+    transition:
+      opacity 0.3s linear,
+      transform 0.6s cubic-bezier(0.76, 0, 0.24, 1);
+  }
+  /* Later pages: an obsidian curtain lifting away, its lower edge a brass hairline (the outgoing page raised
+     the same curtain). Gold stays a line, never a flat fill. */
+  #cantt-pl.is-short {
+    background: #070708;
+    box-shadow:
+      inset 0 -1px 0 #c9a66b,
+      0 1px 22px rgba(201, 166, 107, 0.28);
+    transition: transform 0.5s cubic-bezier(0.76, 0, 0.24, 1);
+    will-change: transform;
+  }
+  #cantt-pl.is-short :is(.pl-door, .pl-seam, .pl-beams, .pl-foot, .pl-c-track, .pl-bar) {
+    display: none;
+  }
+  #cantt-pl.is-short .pl-c {
+    stroke: #c9a66b;
+    stroke-width: 0.6;
+    stroke-dashoffset: 0;
+    opacity: 0.7;
+  }
+  #cantt-pl.is-short.is-parting {
+    transform: translate3d(0, -101%, 0);
+  }
+
+  /* Reduced motion: a quick fade from black. */
+  #cantt-pl.is-fade {
+    background: #070708;
+    transition: opacity 0.25s linear;
+  }
+  #cantt-pl.is-fade > * {
+    display: none;
+  }
+  #cantt-pl.is-fade.is-parting {
+    opacity: 0;
+  }
+</style>
+
+<div id="cantt-pl" aria-hidden="true">
+  <div class="pl-door pl-door-t"></div>
+  <div class="pl-door pl-door-b"></div>
+  <div class="pl-seam"></div>
+  <div class="pl-beams"><div class="pl-beam pl-beam-l"></div><div class="pl-beam pl-beam-r"></div></div>
+  <div class="pl-core">
+    <svg class="pl-mark" viewBox="0 0 64 64">
+      <path class="pl-c-track" d="M43.31 20.69A16 16 0 1 0 43.31 43.31"></path>
+      <path class="pl-c" pathLength="1" d="M43.31 20.69A16 16 0 1 0 43.31 43.31"></path>
+      <rect class="pl-bar" x="35.2" y="30.7" width="18.8" height="2.6" rx="1.3"></rect>
+    </svg>
+    <div class="pl-foot">
+      <div class="pl-name">Cantt Rent a Car</div>
+      <div class="pl-count"><span id="cantt-pl-n">0</span><sup>%</sup></div>
+    </div>
+  </div>
+</div>
+
+<script is:inline>
+  (function () {
+    var w = window,
+      d = document,
+      r = d.documentElement,
+      el = d.getElementById("cantt-pl"),
+      ended = false,
+      parting = false;
+
+    // The motion fallback: anything still waiting on src/scripts/fx shows anyway.
+    function armFxFallback(ms) {
+      setTimeout(function () {
+        if (!r.classList.contains("fx-ready")) r.classList.add("fx-off");
+      }, ms);
+    }
+    armFxFallback(14000);
+
+    function part() {
+      if (parting) return;
+      parting = true;
+      w.__canttPreloaderParting = true;
+      w.dispatchEvent(new Event("cantt:preloader-parting"));
+    }
+
+    function end() {
+      if (ended) return;
+      ended = true;
+      part();
+      w.__canttPreloaderDone = true;
+      r.classList.remove("pl-lock");
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+      armFxFallback(3000);
+      w.dispatchEvent(new Event("cantt:preloader-done"));
+    }
+
+    // A restored page (bfcache) or anything unforeseen must never stay covered.
+    w.addEventListener("pageshow", function (e) {
+      if (e.persisted) end();
+    });
+
+    if (!el || d.visibilityState === "hidden") {
+      end();
+      return;
+    }
+
+    var isMedia = r.getAttribute("data-preload") === "media",
+      reduced = false,
+      seen = false,
+      key = isMedia ? "cantt-pl-home" : "cantt-pl";
+    try {
+      reduced = w.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    } catch (e) {}
+    try {
+      seen = sessionStorage.getItem(key) === "1";
+      sessionStorage.setItem(key, "1");
+      // A full run on the home page also counts for ordinary pages.
+      sessionStorage.setItem("cantt-pl", "1");
+    } catch (e) {}
+
+    r.classList.add("pl-lock");
+    // Hard cap: by 7 seconds the doors are opening, whatever the load is doing.
+    w.setTimeout(function () {
+      if (parting) return;
+      el.classList.add("is-parting");
+      part();
+      setTimeout(end, 1250);
+    }, 7000);
+    w.setTimeout(end, 8600);
+
+    // After the first paint. rAF alone can stall in a throttled view, so a timer backs it up.
+    function afterPaint(fn) {
+      var ran = false;
+      function once() {
+        if (ran) return;
+        ran = true;
+        fn();
+      }
+      requestAnimationFrame(function () {
+        requestAnimationFrame(once);
+      });
+      setTimeout(once, 90);
+    }
+
+    if (reduced) {
+      el.classList.add("is-fade");
+      afterPaint(function () {
+        el.classList.add("is-parting");
+        part();
+        setTimeout(end, 280);
+      });
+      return;
+    }
+
+    if (seen) {
+      el.classList.add("is-short");
+      afterPaint(function () {
+        el.classList.add("is-parting");
+        part();
+        setTimeout(end, 520);
+      });
+      return;
+    }
+
+    // Quick sequence: an ordinary page opened first. Nothing here is waiting on heavy media, so the visitor is
+    // not made to wait either: draw, light, part.
+    if (!isMedia) {
+      el.classList.add("is-quick");
+      afterPaint(function () {
+        el.classList.add("is-drawing");
+        // Content shows as the doors part, about 0.4s after first paint (1.2s in all, network included).
+        setTimeout(function () {
+          el.classList.add("is-lit");
+        }, 340);
+        setTimeout(function () {
+          el.classList.add("is-parting");
+          part();
+          setTimeout(end, 560);
+        }, 430);
+      });
+      return;
+    }
+    // Full sequence.
+    var c = el.querySelector(".pl-c"),
+      n = d.getElementById("cantt-pl-n"),
+      t0 = performance.now(),
+      last = t0,
+      shown = 0,
+      target = 0,
+      stage = 0,
+      real = 0,
+      ready = false,
+      lit = false,
+      softCap = isMedia ? 5000 : 3000;
+
+    function lift(v) {
+      if (v > stage) stage = v;
+    }
+
+    if (isMedia) {
+      w.addEventListener("cantt:load-progress", function (e) {
+        var p = e && e.detail && +e.detail.progress;
+        if (p >= 0 && p > real) real = Math.min(1, p);
+      });
+      w.addEventListener("cantt:load-ready", function () {
+        ready = true;
+      });
+    } else {
+      if (d.readyState === "loading") {
+        d.addEventListener("DOMContentLoaded", function () {
+          lift(0.45);
+        });
+      } else lift(0.45);
+      if (d.fonts && d.fonts.ready) {
+        d.fonts.ready.then(function () {
+          lift(0.78);
+        });
+      } else lift(0.78);
+      if (d.readyState === "complete") lift(1);
+      else {
+        w.addEventListener("load", function () {
+          lift(1);
+        });
+      }
+    }
+
+    function ignite() {
+      if (lit) return;
+      lit = true;
+      el.classList.add("is-lit");
+      setTimeout(function () {
+        el.classList.add("is-parting");
+        part();
+        setTimeout(end, 1250);
+      }, 820);
+    }
+
+    function paint() {
+      if (c) c.style.strokeDashoffset = String(1 - shown);
+      if (n) n.textContent = String(Math.round(shown * 100));
+    }
+
+    function tick(now) {
+      if (ended || lit) return;
+      var dt = Math.min(160, now - last),
+        age = now - t0;
+      last = now;
+      if (isMedia) {
+        // A little credit so the stroke moves before the first real event.
+        target = ready ? 1 : Math.max(Math.min(0.97, real), Math.min(0.08, (age / 1200) * 0.08));
+      } else {
+        target = Math.max(stage, Math.min(0.32, (age / 500) * 0.32));
+      }
+      if (age > softCap) target = 1;
+      // Eases toward the target, and never faster than a full run in 1.15s, so it reads as drawn.
+      var step = Math.min(dt / 1150, (Math.max(0, target - shown) * 0.16 + 0.0015) * (dt / 16));
+      shown = Math.min(target, shown + step);
+      if (shown >= 0.999) {
+        shown = 1;
+        paint();
+        ignite();
+        clearInterval(timer);
+        return;
+      }
+      paint();
+    }
+
+    function loop(now) {
+      if (ended || lit) return;
+      tick(now);
+      requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+    // rAF stalls when the view is throttled; progress must still arrive.
+    var timer = setInterval(function () {
+      var now = performance.now();
+      if (now - last > 100) tick(now);
+    }, 110);
+
+    // rAF does not run in a background tab: leave at once rather than wait for the cap.
+    d.addEventListener("visibilitychange", function () {
+      if (d.visibilityState === "hidden") end();
+    });
+  })();
+</script>

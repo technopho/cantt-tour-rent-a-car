@@ -271,12 +271,14 @@ const roadLabels = [
   .rn-hub-core {
     fill: var(--accent);
   }
+  /* The hub is a label, not a headline: at this size Bodoni's hairlines break up, so it is set in the text face. */
   .rn-hub-label {
     fill: var(--text);
-    font-family: var(--font-display);
-    font-size: 22px;
+    font-family: var(--font-sans);
+    font-size: 15px;
     font-weight: 600;
-    letter-spacing: -0.04em;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
   }
   .rn-station {
     cursor: pointer;
@@ -331,7 +333,7 @@ const roadLabels = [
       display: none;
     }
     .rn-hub-label {
-      font-size: 30px;
+      font-size: 18px;
     }
   }
 </style>

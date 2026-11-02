@@ -1,7 +1,7 @@
 ---
 /**
- * Root layout for every page: <head> (SEO, OG, fonts, sitewide JSON-LD), skip link, Header,
- * <main>, Footer, WhatsApp FAB, grain overlay and the tiny motion bootstrap.
+ * Root layout for every page: <head> (SEO, OG, fonts, sitewide JSON-LD), Ignition preloader, skip link,
+ * Header, <main>, Footer, WhatsApp FAB, grain overlay and the tiny motion bootstrap.
  *
  *   <BaseLayout title="Wedding car rental in Lahore" description="...">
  *     <JsonLd slot="jsonld" data={serviceSchema({...})} />
@@ -12,13 +12,18 @@
  * The header is fixed. By default <main> gets top padding equal to the header height; pass
  * overlayHeader when the first section is a full-bleed hero that handles the offset itself
  * (use class "pt-header" or more on it).
+ *
+ * preloadMedia: the page opens on heavy media (the home page's opening frames). <html data-preload="media">
+ * runs the full Ignition and makes it follow the real load (window events "cantt:load-progress" and
+ * "cantt:load-ready", see Preloader.astro). Other pages get the quick sequence.
  */
 import "@/styles/global.css";
-import unboundedLatin from "@fontsource-variable/unbounded/files/unbounded-latin-wght-normal.woff2?url";
-import manropeLatin from "@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url";
+import bodoniLatin from "@fontsource-variable/bodoni-moda/files/bodoni-moda-latin-standard-normal.woff2?url";
+import instrumentLatin from "@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2?url";
 import Footer from "@/components/Footer.astro";
 import Header from "@/components/Header.astro";
 import JsonLd from "@/components/JsonLd.astro";
+import Preloader from "@/components/Preloader.astro";
 import WhatsAppFab from "@/components/WhatsAppFab.astro";
 import { site } from "@/config/site";
 import { getPriceRange } from "@/lib/catalog";
@@ -38,6 +43,8 @@ export interface Props extends SeoInput {
   hideFab?: boolean;
   /** Prefilled WhatsApp message for the FAB on this page. */
   whatsappMessage?: string;
+  /** Full preloader that follows the real load of this page's opening media (see Preloader.astro). Default false. */
+  preloadMedia?: boolean;
   class?: string;
 }
 
@@ -48,6 +55,7 @@ const {
   hideFooterCta = false,
   hideFab = false,
   whatsappMessage,
+  preloadMedia = false,
   class: className,
   ...seoInput
 } = Astro.props;
@@ -58,7 +66,7 @@ const priceRange = priceRangeLabel(await getPriceRange());
 ---
 
 <!doctype html>
-<html lang="en-PK" dir="ltr" data-smooth-scroll={smoothScroll ? "on" : "off"}>
+<html lang="en-PK" dir="ltr" data-smooth-scroll={smoothScroll ? "on" : "off"} data-preload={preloadMedia ? "media" : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -67,12 +75,11 @@ const priceRange = priceRangeLabel(await getPriceRange());
     <link rel="canonical" href={seo.canonical} />
     <meta name="robots" content={seo.robots} />
 
-    <link rel="preload" href={unboundedLatin} as="font" type="font/woff2" crossorigin="anonymous" />
-    <link rel="preload" href={manropeLatin} as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href={bodoniLatin} as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href={instrumentLatin} as="font" type="font/woff2" crossorigin="anonymous" />
 
-    <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#070708" />
     <meta name="format-detection" content="telephone=no" />
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -94,9 +101,12 @@ const priceRange = priceRangeLabel(await getPriceRange());
     <slot name="head" />
   </head>
   <body class:list={["min-h-dvh bg-bg text-fg", className]}>
+    <Preloader />
+
     <a
       href="#main"
-      class="sr-only-focusable fixed top-3 left-3 z-[100] rounded-full bg-accent-fill px-5 py-3 font-semibold text-accent-ink shadow-lift"
+      data-no-transition
+      class="sr-only-focusable fixed top-3 left-3 z-[100] bg-accent-fill px-5 py-3 font-medium text-accent-ink"
     >
       Skip to content
     </a>

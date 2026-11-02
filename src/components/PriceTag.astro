@@ -5,6 +5,8 @@
  *   <PriceTag amount={model.rates.fromPrice} />                   from Rs 3,500/day
  *   <PriceTag amount={rates.selfDrive.monthly} unit="month" from={false} size="lg" />
  *   <PriceTag amount={null} />                                    Price on request
+ *
+ * Instrument Sans at every size: Bodoni's hairlines do not survive in figures under about 44px.
  */
 import { formatPKR, type PriceUnit } from "@/lib/format";
 
@@ -25,7 +27,7 @@ const sizes = {
   sm: "text-sm",
   md: "text-base",
   lg: "text-xl",
-  xl: "text-display-sm",
+  xl: "text-[clamp(1.75rem,1.6rem+0.55vw,2.25rem)] leading-[1.12] tracking-[-0.01em]",
 };
 const unitWords: Record<PriceUnit, string> = {
   day: "per day",
@@ -39,9 +41,9 @@ const unitWords: Record<PriceUnit, string> = {
 
 {
   typeof amount === "number" ? (
-    <span class:list={["inline-flex flex-wrap items-baseline gap-x-1 tabular-nums", sizes[size], className]}>
-      {from && <span class="text-[0.78em] font-medium text-muted">from</span>}{" "}
-      <data value={amount} class="font-display font-semibold tracking-[-0.03em] text-fg">
+    <span class:list={["inline-flex flex-wrap items-baseline gap-x-1 tabular-nums lining-nums", sizes[size], className]}>
+      {from && <span class="text-[0.78em] text-muted">from</span>}{" "}
+      <data value={amount} class="font-medium text-fg">
         {formatPKR(amount)}
       </data>{" "}
       {unit && (

@@ -1,0 +1,58 @@
+---
+/**
+ * A full-bleed picture between two text blocks: clip-path reveal, slow parallax, caption under it.
+ * Renders nothing when there is no picture, so a page simply closes up.
+ *
+ *   <Interlude visual={visuals[1]} />
+ */
+import type { Visual } from "@/components/fleet/model-visual";
+
+interface Props {
+  visual?: Visual;
+  /** "wide" = a letterbox band, "tall" = closer to full screen. */
+  shape?: "wide" | "tall";
+  position?: string;
+  class?: string;
+}
+
+const { visual, shape = "wide", position, class: className } = Astro.props;
+---
+
+{
+  visual && (
+    <figure class:list={["interlude", className]}>
+      <div class:list={["interlude__frame relative overflow-hidden bg-surface", shape === "tall" && "interlude__frame--tall"]} data-fx="image">
+        <img
+          src={visual.img.src}
+          srcset={visual.img.srcset}
+          sizes="100vw"
+          width={visual.img.width}
+          height={visual.img.height}
+          alt={visual.img.alt}
+          loading="lazy"
+          decoding="async"
+          style={position ? `object-position:${position}` : undefined}
+          class:list={["absolute inset-0 size-full object-cover", visual.img.credit && "photo-grade"]}
+          data-fx="parallax"
+          data-speed="0.14"
+        />
+      </div>
+      {visual.caption && <figcaption class="container-site mt-3 text-right text-xs text-muted">{visual.caption}</figcaption>}
+    </figure>
+  )
+}
+
+<style>
+  .interlude__frame {
+    aspect-ratio: 4 / 3;
+  }
+  @media (width >= 48rem) {
+    .interlude__frame {
+      aspect-ratio: 21 / 9;
+      max-height: 86svh;
+    }
+    .interlude__frame--tall {
+      aspect-ratio: 16 / 9;
+    }
+  }
+</style>

@@ -1,11 +1,10 @@
 ---
 /**
- * Neighbourhood index: a big typographic list of the Lahore areas in site.ts. On desktop,
- * hovering or focusing an area reveals its one-line pickup note (space is reserved, so nothing
- * shifts); on touch screens the notes are always visible. Every row links to /areas/<slug>/.
+ * Pickup areas: a slow marquee of the neighbourhood names as the large type moment, then a compact
+ * list with every /areas/<slug>/ link and its one-line pickup note. The marquee repeats the list, so it
+ * is hidden from assistive tech and holds no links.
  */
 import Container from "@/components/Container.astro";
-import Icon from "@/components/Icon.astro";
 import { site } from "@/config/site";
 import { urls } from "@/lib/urls";
 import { areaNote } from "./home-data";
@@ -13,38 +12,27 @@ import { areaNote } from "./home-data";
 const areas = site.areasServed.map((area) => ({ ...area, note: areaNote(area) }));
 ---
 
-<section id="areas" class="py-section" aria-labelledby="areas-title">
-  <Container class="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.7fr)] lg:gap-16">
-    <div class="flex flex-col gap-5 self-start lg:sticky lg:top-[calc(var(--header-h)+2.5rem)]">
-      <h2 id="areas-title" class="text-display-lg text-fg">Pickups across Lahore</h2>
-      <p class="text-lede text-muted">
-        From Cantt to Bahria Town, our drivers know the gates, the shortcuts and where to park. Pick your area for drive
-        times and pickup points.
-      </p>
-      <a
-        href={urls.areas()}
-        class="group inline-flex items-center gap-2 self-start font-semibold text-fg underline decoration-line-strong decoration-1 underline-offset-[0.3em] transition-colors hover:decoration-accent"
-      >
-        All areas we serve
-        <Icon name="ph:arrow-right" size={18} class="transition-transform duration-300 group-hover:translate-x-1" />
-      </a>
+<section id="areas" class="areas" aria-labelledby="areas-title">
+  <div class="areas-rule" data-fx="rule"></div>
+  <div class="areas-marquee" data-fx="marquee" data-speed="38" aria-hidden="true">
+    {areas.map((area, i) => <span class:list={["areas-word", i % 2 === 1 && "areas-word--italic"]}>{area.name}</span>)}
+  </div>
+  <div class="areas-rule" data-fx="rule" data-delay="0.15"></div>
+
+  <Container class="areas-body">
+    <div class="areas-head">
+      <h2 id="areas-title" class="areas-title" data-fx="lines">Pickups across <em>Lahore</em></h2>
+      <p class="areas-text">From Cantt to Bahria Town, our drivers know the gates, the shortcuts and where to park. Pick your area for drive times and pickup points.</p>
+      <a href={urls.areas()} class="areas-all link-draw">All areas we serve</a>
     </div>
 
-    <ol class="area-list">
+    <ol class="areas-list" data-fx="stagger" data-stagger="0.05">
       {
-        areas.map((area, i) => (
+        areas.map((area) => (
           <li>
-            <a href={urls.area(area.slug)} class="area-row group">
-              <span class="area-idx tabular" aria-hidden="true">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span class="area-main">
-                <span class="area-name">{area.name}</span>
-                <span class="area-note">{area.note}</span>
-              </span>
-              <span class="area-arrow" aria-hidden="true">
-                <Icon name="ph:arrow-up-right" size={22} />
-              </span>
+            <a href={urls.area(area.slug)} class="areas-row">
+              <span class="areas-name">{area.name}</span>
+              <span class="areas-note">{area.note}</span>
             </a>
           </li>
         ))
@@ -54,136 +42,114 @@ const areas = site.areasServed.map((area) => ({ ...area, note: areaNote(area) })
 </section>
 
 <style>
-  .area-list {
-    border-top: 1px solid var(--line);
+  .areas {
+    padding-block: clamp(1.5rem, 3vw, 3rem) clamp(3rem, 5vw, 5rem);
+  }
+  .areas-rule {
+    height: 1px;
+    background: var(--line);
+  }
+  .areas-marquee {
+    display: flex;
+    width: 100%;
+    white-space: nowrap;
+    padding-block: 0.1em 0.2em;
+    font-family: var(--font-display);
+    font-size: clamp(3.25rem, 1.75rem + 8vw, 10rem);
+    line-height: 1.1;
+    color: var(--text);
+  }
+  .areas-word {
+    flex: none;
+    padding-inline: 0.45em;
+  }
+  .areas-word--italic {
+    font-style: italic;
+    color: var(--accent);
   }
 
-  .area-row {
-    position: relative;
+  .areas :global(.areas-body) {
     display: grid;
-    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 0.75rem;
-    padding-block: 1.1rem;
+    gap: 1.75rem;
+    margin-top: clamp(1.75rem, 4vw, 3.5rem);
+  }
+  @media (width >= 64rem) {
+    .areas :global(.areas-body) {
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.8fr);
+      gap: 4rem;
+    }
+  }
+  .areas-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.75rem, 1.9rem + 2.4vw, 4.25rem);
+    line-height: 1.02;
+    letter-spacing: -0.008em;
+    color: var(--text);
+  }
+  .areas-text {
+    margin-top: 1rem;
+    max-width: 26rem;
+    color: var(--muted);
+  }
+  .areas-all {
+    display: inline-block;
+    margin-top: 1rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .areas-list {
+    display: grid;
+    border-top: 1px solid var(--line);
+  }
+  @media (width >= 40rem) {
+    .areas-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 2.5rem;
+    }
+  }
+  .areas-row {
+    position: relative;
+    display: block;
+    height: 100%;
+    padding-block: 0.7rem 0.8rem;
     border-bottom: 1px solid var(--line);
+    color: var(--text);
     outline: none;
   }
-  .area-row::before {
+  .areas-row::after {
     content: "";
     position: absolute;
     left: 0;
     right: 0;
     bottom: -1px;
     height: 1px;
-    background: linear-gradient(90deg, var(--accent), transparent 80%);
+    background: var(--accent);
     transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.6s var(--ease-out);
+    transform-origin: 0 50%;
+    transition: transform 0.9s var(--ease-heavy);
   }
-  .area-row:hover::before,
-  .area-row:focus-visible::before {
+  .areas-row:hover::after,
+  .areas-row:focus-visible::after {
     transform: scaleX(1);
   }
-  .area-row:focus-visible .area-name {
-    outline: 2px solid var(--accent);
-    outline-offset: 4px;
-    border-radius: 4px;
-  }
-
-  .area-idx {
-    align-self: start;
-    padding-top: 0.6em;
-    font-size: 0.8125rem;
-    font-weight: 700;
-    color: var(--muted);
-  }
-
-  .area-main {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: 0.35rem;
-  }
-  .area-name {
+  .areas-name {
+    display: block;
     font-family: var(--font-display);
-    font-size: clamp(1.75rem, 1.1rem + 2.8vw, 3.5rem);
-    font-weight: 600;
-    line-height: 1.05;
-    letter-spacing: -0.04em;
-    color: var(--text);
-    transition:
-      color 0.3s var(--ease-out),
-      transform 0.5s var(--ease-out);
+    font-size: 1.75rem;
+    line-height: 1.15;
+    transition: color 0.6s var(--ease-heavy);
   }
-  .area-note {
-    font-size: 0.9375rem;
+  .areas-row:hover .areas-name,
+  .areas-row:focus-visible .areas-name {
+    color: var(--accent-fg);
+  }
+  .areas-note {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
     color: var(--muted);
-  }
-
-  .area-arrow {
-    display: grid;
-    width: 2.75rem;
-    height: 2.75rem;
-    place-items: center;
-    border-radius: 9999px;
-    border: 1px solid var(--line);
-    color: var(--muted);
-    transition:
-      background-color 0.3s var(--ease-out),
-      border-color 0.3s var(--ease-out),
-      color 0.3s var(--ease-out),
-      transform 0.3s var(--ease-out);
-  }
-  .area-row:hover .area-arrow,
-  .area-row:focus-visible .area-arrow {
-    background: var(--accent-fill);
-    border-color: transparent;
-    color: var(--accent-ink);
-    transform: rotate(45deg);
-  }
-  .area-row:hover .area-name,
-  .area-row:focus-visible .area-name {
-    color: var(--accent);
-  }
-
-  /* Desktop with a mouse: notes reveal on hover / focus. Space stays reserved, nothing shifts. */
-  @media (hover: hover) and (pointer: fine) {
-    .area-row {
-      grid-template-columns: 3rem minmax(0, 1fr) auto;
-      gap: 1rem;
-      padding-block: 1.35rem;
-    }
-    .area-note {
-      opacity: 0;
-      transform: translateY(-0.4rem);
-      transition:
-        opacity 0.35s var(--ease-out),
-        transform 0.45s var(--ease-out);
-    }
-    .area-row:hover .area-note,
-    .area-row:focus-visible .area-note {
-      opacity: 1;
-      transform: none;
-    }
-    .area-row:hover .area-name,
-    .area-row:focus-visible .area-name {
-      transform: translateX(0.5rem);
-    }
-    .area-row:hover .area-note,
-    .area-row:focus-visible .area-note {
-      transition-delay: 0.05s;
-    }
-    /* Notes also show while the list is not being explored (first row as a hint). */
-    .area-list:not(:hover):not(:focus-within) li:first-child .area-note {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .area-row:hover .area-name,
-    .area-row:focus-visible .area-name {
-      transform: none;
-    }
   }
 </style>

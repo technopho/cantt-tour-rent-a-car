@@ -1,17 +1,15 @@
 ---
 /**
- * Model page gallery.
- *  - No photos: the branded CarVisual panel (no fake imagery).
+ * Model page gallery of real catalog photos. The full-bleed hero already shows the cover or the
+ * representative image, so with no photos this renders nothing.
  *  - Photos: a scroll-snap track (swipe on phones) with prev/next, a counter and thumbnails, plus a
  *    native <dialog> lightbox. Plain <img srcset> from R2 with width/height (no layout shift).
- *    Only the first photo may be high priority (it is the page's LCP image).
  *
  * Without JS: the track still swipes/scrolls, thumbnails are #anchors and each photo links to the
  * full-size file. The script only adds smooth paging, the active state and the lightbox.
  *
  *   <ModelGallery model={model} categoryName="SUVs" priority />
  */
-import CarVisual from "@/components/CarVisual.astro";
 import Icon from "@/components/Icon.astro";
 import type { CatalogImage, CatalogModel } from "@/lib/catalog-types";
 import { carName } from "./fleet-data";
@@ -28,7 +26,7 @@ const { model, priority = false, class: className } = Astro.props;
 const name = carName(model);
 const images = model.images;
 const count = images.length;
-const sizes = "(min-width: 1400px) 760px, (min-width: 1024px) 55vw, 100vw";
+const sizes = "(min-width: 1536px) 1424px, 100vw";
 
 /** Largest rendition from a "url 480w, url 960w" srcset (falls back to src). */
 function largest(img: CatalogImage): string {
@@ -43,13 +41,9 @@ function largest(img: CatalogImage): string {
 ---
 
 {
-  count === 0 ? (
-    <div class:list={["relative", className]}>
-      <CarVisual model={model} decorative sizes={sizes} class="shadow-soft" />
-    </div>
-  ) : (
+  count > 0 && (
     <div class:list={["model-gallery relative", className]} data-gallery>
-      <div class="relative overflow-hidden rounded-card bg-surface-2 shadow-soft">
+      <div class="relative overflow-hidden bg-surface">
         <ul
           class="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth scrollbar-none"
           data-gallery-track
@@ -60,7 +54,7 @@ function largest(img: CatalogImage): string {
           {images.map((img, i) => (
             <li
               id={`photo-${i + 1}`}
-              class="relative aspect-[16/10] w-full shrink-0 snap-center"
+              class="relative aspect-[3/2] w-full shrink-0 snap-center md:aspect-[2/1]"
               aria-label={count > 1 ? `Photo ${i + 1} of ${count}` : undefined}
             >
               <a href={largest(img)} class="group block size-full cursor-zoom-in" data-gallery-open={i} data-full={largest(img)}>
@@ -82,7 +76,7 @@ function largest(img: CatalogImage): string {
           ))}
         </ul>
 
-        <span class="pointer-events-none absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-badge border border-line bg-bg/70 px-2 py-1 text-xs font-semibold text-fg backdrop-blur-sm">
+        <span class="pointer-events-none absolute top-3 right-3 inline-flex items-center gap-1.5 bg-bg/60 px-2 py-1 text-xs text-fg backdrop-blur-sm">
           <Icon name="ph:magnifying-glass-plus" size={14} />
           {count > 1 ? (
             <span class="tabular" data-gallery-count>
@@ -97,7 +91,7 @@ function largest(img: CatalogImage): string {
           <div class="absolute right-3 bottom-3 flex gap-2">
             <button
               type="button"
-              class="grid size-10 place-items-center rounded-full border border-line bg-bg/70 text-fg backdrop-blur-sm transition-[background-color,transform] hover:bg-bg active:scale-95"
+              class="grid size-10 place-items-center border border-line-strong bg-bg/60 text-fg backdrop-blur-sm transition-colors duration-500 hover:bg-bg"
               data-gallery-prev
               aria-label="Previous photo"
             >
@@ -105,7 +99,7 @@ function largest(img: CatalogImage): string {
             </button>
             <button
               type="button"
-              class="grid size-10 place-items-center rounded-full border border-line bg-bg/70 text-fg backdrop-blur-sm transition-[background-color,transform] hover:bg-bg active:scale-95"
+              class="grid size-10 place-items-center border border-line-strong bg-bg/60 text-fg backdrop-blur-sm transition-colors duration-500 hover:bg-bg"
               data-gallery-next
               aria-label="Next photo"
             >
@@ -116,12 +110,12 @@ function largest(img: CatalogImage): string {
       </div>
 
       {count > 1 && (
-        <ul class="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-6" aria-label="Choose a photo">
+        <ul class="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-8 lg:grid-cols-10" aria-label="Choose a photo">
           {images.map((img, i) => (
             <li>
               <a
                 href={`#photo-${i + 1}`}
-                class="block aspect-[16/10] overflow-hidden rounded-badge border border-line opacity-60 transition-opacity hover:opacity-100 aria-[current=true]:border-accent aria-[current=true]:opacity-100"
+                class="block aspect-[3/2] overflow-hidden border border-transparent opacity-50 transition-opacity duration-500 hover:opacity-100 aria-[current=true]:border-accent aria-[current=true]:opacity-100"
                 data-gallery-go={i}
                 aria-current={i === 0 ? "true" : undefined}
                 aria-label={`Show photo ${i + 1}`}
@@ -151,10 +145,10 @@ function largest(img: CatalogImage): string {
         closedby="any"
       >
         <div class="relative grid h-full place-items-center p-4 md:p-10" data-gallery-stage>
-          <img data-gallery-full alt="" class="max-h-full w-auto max-w-full rounded-card object-contain" />
+          <img data-gallery-full alt="" class="max-h-full w-auto max-w-full object-contain" />
           <button
             type="button"
-            class="absolute top-4 right-4 grid size-11 place-items-center rounded-full border border-white/15 bg-black/60 text-white"
+            class="absolute top-4 right-4 grid size-11 place-items-center border border-white/15 bg-black/60 text-white"
             data-gallery-close
             aria-label="Close photo viewer"
             autofocus
@@ -165,7 +159,7 @@ function largest(img: CatalogImage): string {
             <>
               <button
                 type="button"
-                class="absolute top-1/2 left-4 grid size-11 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-black/60 text-white"
+                class="absolute top-1/2 left-4 grid size-11 -translate-y-1/2 place-items-center border border-white/15 bg-black/60 text-white"
                 data-gallery-dialog-prev
                 aria-label="Previous photo"
               >
@@ -173,7 +167,7 @@ function largest(img: CatalogImage): string {
               </button>
               <button
                 type="button"
-                class="absolute top-1/2 right-4 grid size-11 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-black/60 text-white"
+                class="absolute top-1/2 right-4 grid size-11 -translate-y-1/2 place-items-center border border-white/15 bg-black/60 text-white"
                 data-gallery-dialog-next
                 aria-label="Next photo"
               >

@@ -1,0 +1,48 @@
+---
+/**
+ * Route facts in large type, straight under the hero: approximate distance, drive time, typical trip,
+ * the catalog "from" price, then the roads and the season.
+ */
+import FactStrip, { type Fact } from "./FactStrip.astro";
+import { formatPKR, formatNumber } from "@/lib/format";
+
+interface Props {
+  to: string;
+  km: number;
+  hours: number;
+  timeNote?: string;
+  days: number;
+  via: string[];
+  season: string;
+  fromPrice: number | null;
+  fromModel?: string;
+  /** "Outstation with driver" or "City day with driver". */
+  priceLabel?: string;
+  class?: string;
+}
+
+const { to, km, hours, timeNote, days, via, season, fromPrice, fromModel, priceLabel = "Outstation with driver", class: className } = Astro.props;
+
+const facts: Fact[] = [
+  { label: "Distance, about", value: formatNumber(km), unit: "km" },
+  { label: "Driving, about", value: Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace(/\.0$/, ""), unit: hours === 1 ? "hour" : "hours", note: timeNote },
+  { label: "Typical trip", value: String(days), unit: days === 1 ? "day" : "days" },
+];
+if (typeof fromPrice === "number") {
+  facts.push({ label: priceLabel, value: formatPKR(fromPrice), unit: "/day", note: fromModel ? `From, ${fromModel}` : "From", wide: true, price: true });
+}
+---
+
+<section class:list={["container-site", className]} aria-label={`Trip summary: Lahore to ${to}`}>
+  <FactStrip facts={facts} />
+  <dl class="grid gap-x-10 gap-y-6 border-b border-line py-7 md:grid-cols-2">
+    <div class="flex flex-col gap-2">
+      <dt class="label text-muted">Roads</dt>
+      <dd class="text-lede text-fg">{via.join(", ")}</dd>
+    </div>
+    <div class="flex flex-col gap-2">
+      <dt class="label text-muted">Best time</dt>
+      <dd class="text-lede text-fg">{season}</dd>
+    </div>
+  </dl>
+</section>

@@ -1,0 +1,147 @@
+---
+/**
+ * Full-bleed hero for inner pages: image with Ken Burns, grain and a dark scrim (HeroImage), breadcrumb, huge
+ * serif title, optional sub-copy, actions and an aside. With no image it falls back to a composed dark plate
+ * (the C drawn large, a horizon rule), so a page never looks unfinished. The C only shows from 768px up, with no
+ * aside: on phones its bar would run through the title like a strikethrough, and an aside would sit on the arc.
+ *
+ *   <PageHero image={img} caption={img && captionFor(img)}>
+ *     <Breadcrumbs slot="breadcrumb" items={[{ label: "About" }]} />
+ *     <Fragment slot="title">The <em>private</em> garage</Fragment>
+ *     <Fragment slot="sub">One short sentence.</Fragment>
+ *     <Button slot="actions" href="/quote/">Get a quote</Button>
+ *     <div slot="aside">...right column on desktop...</div>
+ *   </PageHero>
+ *
+ * The title slot is rendered inside this component's <h1> (one per page). Use as="p" if the page already
+ * has its H1 elsewhere.
+ *
+ * stack: on phones the picture becomes a block of its own above the title instead of sitting behind it, as on
+ * the model pages. It defaults to on for a picture with a vehicle in it (showsVehicle, or a "Representative
+ * image" caption): behind a phone-width H1 a car turns into a grey scribble. Landscapes and the no-car stills
+ * stay full bleed behind the title.
+ */
+import { REPRESENTATIVE, showsVehicle, type Img } from "@/lib/media";
+import Container from "./Container.astro";
+import HeroImage from "./HeroImage.astro";
+
+interface Props {
+  image?: Img;
+  /** Tag around the title slot. Default h1. */
+  as?: "h1" | "h2" | "p";
+  /** Hero height: tall = most of the screen, short = for pages that get to the point. */
+  height?: "tall" | "short";
+  /** The image is the page's LCP element: eager + fetchpriority high. Default true. */
+  priority?: boolean;
+  /** Where the crop sits, e.g. "50% 70%". */
+  objectPosition?: string;
+  /** Small print in the bottom right of the image, e.g. captionFor(image). Leave it out if the page captions the image itself. */
+  caption?: string;
+  /** Phones: picture above the title rather than behind it. Default: on when the picture shows a vehicle. */
+  stack?: boolean;
+  class?: string;
+}
+
+const {
+  image,
+  as: Title = "h1",
+  height = "tall",
+  priority = true,
+  objectPosition,
+  caption,
+  stack = Boolean(image && (showsVehicle(image) || caption?.includes(REPRESENTATIVE))),
+  class: className,
+} = Astro.props;
+const stacked = Boolean(image) && stack;
+// Rendered up front: a layout that forwards the slot conditionally still registers it, so has() alone would
+// leave an empty right column and hide the plate's C.
+const aside = Astro.slots.has("aside") ? (await Astro.slots.render("aside")).trim() : "";
+const hasAside = aside.replace(/<!--[\s\S]*?-->/g, "").trim() !== "";
+---
+
+<section
+  class:list={[
+    "page-hero relative isolate flex overflow-hidden pt-[calc(var(--header-h)+2.5rem)] pb-12 md:pb-16",
+    height === "tall" ? "min-h-[86svh] items-end" : "min-h-[62svh] items-end",
+    className,
+  ]}
+  data-stack={stacked ? "" : undefined}
+>
+  <div class="page-hero__media absolute inset-0 -z-10 overflow-hidden bg-surface" aria-hidden={image ? undefined : "true"}>
+    {
+      image ? (
+        <HeroImage image={image} priority={priority} objectPosition={objectPosition} caption={caption} />
+      ) : (
+        <>
+          <div class="absolute inset-0 bg-[radial-gradient(60%_70%_at_78%_38%,color-mix(in_oklab,var(--accent)_12%,transparent),transparent_70%)]" />
+          {!hasAside && (
+            <svg viewBox="0 0 64 64" fill="none" class="absolute top-1/2 right-[-6%] hidden w-[62vmax] max-w-none -translate-y-1/2 md:block">
+              <path d="M43.31 20.69A16 16 0 1 0 43.31 43.31" stroke="var(--line-strong)" stroke-width="0.07" />
+              <path d="M43.31 20.69A16 16 0 1 0 43.31 43.31" stroke="var(--accent)" stroke-width="0.05" pathLength="1" stroke-dasharray="0.12 0.88" stroke-dashoffset="-0.42" />
+              <rect x="35.2" y="31.92" width="18.8" height="0.16" fill="var(--accent)" />
+            </svg>
+          )}
+          <div class="absolute inset-x-0 top-[72%] hidden h-px bg-[linear-gradient(90deg,transparent_48%,var(--line-strong)_72%,transparent)] opacity-40 md:block" />
+          <div class="absolute inset-x-0 top-[72%] h-[28%] bg-[radial-gradient(40%_70%_at_72%_0%,color-mix(in_oklab,var(--ember)_12%,transparent),transparent_75%)]" />
+          <div class="absolute inset-0 bg-[linear-gradient(180deg,rgb(7_7_8/0.4)_0%,rgb(7_7_8/0.08)_32%,rgb(7_7_8/0.62)_72%,var(--bg)_100%)]" />
+          <div class="absolute inset-0 bg-[linear-gradient(90deg,rgb(7_7_8/0.6)_0%,rgb(7_7_8/0.12)_60%,transparent_100%)]" />
+        </>
+      )
+    }
+  </div>
+
+  <Container class:list={["page-hero__copy relative w-full", hasAside && "grid items-end gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]"]}>
+    <div class="flex min-w-0 flex-col">
+      {Astro.slots.has("breadcrumb") && <div data-fx="fade"><slot name="breadcrumb" /></div>}
+      <Title class="text-display-xl mt-6 max-w-[16ch] text-fg [overflow-wrap:anywhere] md:[overflow-wrap:normal]" data-fx="lines" data-delay="0.1">
+        <slot name="title" />
+      </Title>
+      {
+        Astro.slots.has("sub") && (
+          <p class="text-lede mt-6 max-w-2xl text-fg/80" data-fx="fade" data-delay="0.35">
+            <slot name="sub" />
+          </p>
+        )
+      }
+      {
+        Astro.slots.has("actions") && (
+          <div class="mt-9 flex flex-wrap gap-3" data-fx="fade" data-delay="0.5">
+            <slot name="actions" />
+          </div>
+        )
+      }
+    </div>
+    {
+      hasAside && (
+        <div class="relative" data-fx="fade" data-delay="0.45">
+          <Fragment set:html={aside} />
+        </div>
+      )
+    }
+  </Container>
+</section>
+
+<style>
+  /* Phones, car pictures: the picture is a block under the overlay header and the title follows it, so the car
+     is seen whole. The scrim only shades the header and fades the foot into the page. */
+  @media (width < 48rem) {
+    .page-hero[data-stack] {
+      display: block;
+      min-height: 0;
+      padding-top: 0;
+    }
+    .page-hero[data-stack] .page-hero__media {
+      position: relative;
+      inset: auto;
+      z-index: 0;
+      height: min(64svh, 82vw);
+      min-height: 17rem;
+    }
+    .page-hero[data-stack] .page-hero__copy {
+      padding-top: 1.5rem;
+    }
+    .page-hero[data-stack] :global(.hero-scrim) {
+      background: linear-gradient(180deg, rgb(7 7 8 / 0.6) 0%, transparent 30%, transparent 70%, var(--bg) 100%);
+    }
+  }
+</style>

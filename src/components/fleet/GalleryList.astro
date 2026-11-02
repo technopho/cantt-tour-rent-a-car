@@ -1,0 +1,50 @@
+---
+/**
+ * A list of cars in gallery rhythm, largest first unless `order="given"`.
+ *
+ *   <GalleryList models={models} categoryName={(m) => "SUVs"} />
+ *   <GalleryList models={related} layout="row" />       index rows with a small picture
+ *   <GalleryList models={models} detailed />            one or two cars: with description and rates
+ *
+ * Plates with a picture come first; models without one follow as name rows under "Also in the fleet".
+ */
+import type { CatalogModel } from "@/lib/catalog-types";
+import GalleryPlate from "./GalleryPlate.astro";
+import { gallerySlots, picturesFirst } from "./gallery-slots";
+import { byLargest, modelVisual } from "./model-visual";
+
+interface Props {
+  models: CatalogModel[];
+  categoryName?: (model: CatalogModel) => string | undefined;
+  headingLevel?: "h2" | "h3" | "h4";
+  layout?: "plate" | "row";
+  detailed?: boolean;
+  order?: "largest" | "given";
+  class?: string;
+}
+
+const { models, categoryName, headingLevel = "h3", layout = "plate", detailed = false, order = "largest", class: className } = Astro.props;
+const sorted = order === "largest" ? [...models].sort(byLargest) : models;
+const hasPicture = (m: CatalogModel) => Boolean(modelVisual(m));
+const list = layout === "row" ? sorted : picturesFirst(sorted, hasPicture);
+const slots = layout === "row" ? list.map(() => "row" as const) : gallerySlots(list.map(hasPicture));
+// The hairline label goes before the first name row, and only when pictures come before it.
+const dividerAt = layout === "row" ? -1 : slots.findIndex((slot) => slot === "row");
+---
+
+<ul class:list={["plate-grid", className]}>
+  {
+    list.map((model, i) => (
+      <>
+        {i === dividerAt && i > 0 && (
+          <li class="plate-divider" aria-hidden="true">
+            <p class="label text-muted">Also in the fleet</p>
+          </li>
+        )}
+        <li data-slot={slots[i]}>
+          <GalleryPlate model={model} categoryName={categoryName?.(model)} headingLevel={headingLevel} layout={layout} detailed={detailed} />
+        </li>
+      </>
+    ))
+  }
+</ul>

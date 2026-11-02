@@ -1,451 +1,1440 @@
 ---
 /**
- * Home hero: asymmetric copy (H1 = LCP text, sub, two CTAs, one proof line) over the night-drive
- * stage. The stage shows, in order: a CSS gradient (instant), the poster (drawn into a 2D canvas
- * after load, so it never competes with the H1 for LCP) and, on capable devices only, the live
- * WebGL scene from src/scripts/hero3d.ts, which fades in over the poster.
+ * The opening (DESIGN.md experience 2): five full-bleed frames on a pinned stage, played by the scroll like the
+ * first minute of a car launch film.
  *
- * Dark (brand mode): full-bleed stage, vanishing point on the right, copy on the left.
- * Light: the night scene sits in a framed media panel (no section flip), copy beside or below it.
+ *   1  Arrive like it's yours (the H1)   a night arrival
+ *   2  With a driver, or the keys        the chauffeur at the open door
+ *   3  Dressed for the baraat            the wedding car
+ *   4  From Lahore to the north          a northern road (licensed photo), else the terrain still
+ *   5  After dark, on time               Lahore at night (ember trails only over a picture that is not a real
+ *                                        photo, whose own light trails need no help), dissolving into the Collection
+ *
+ * Every frame lists its pictures in order of preference and takes the first that exists and is not already in
+ * the opening, so the sequence improves by itself as images land in src/data/media.json. AI pictures carry
+ * "Representative image"; licensed photos carry their photographer's credit.
+ *
+ * Motion (the script below; GSAP and ScrollTrigger, no WebGL): only the imagery is scrubbed. A frame arrives
+ * either by a strip-light sweep (it wipes in from the left behind a vertical bar of light) or by a garage door
+ * (the frame before lifts away, light spilling under its edge). Slow Ken Burns and parallax run throughout, a
+ * soft band of light crosses each frame as it settles, and the type plays in on its own clock when an act
+ * starts, so a line never rests half cut: the words of the act before leave first, and only then do the new
+ * ones rise, so two headlines never share the screen. The preloader's doors hand over to the first frame's light.
+ *
+ * Without JS, and under reduced motion, the five frames are simply stacked, each with its words and note.
  */
-import Button from "@/components/Button.astro";
-import Container from "@/components/Container.astro";
-import Icon from "@/components/Icon.astro";
-import { formatOpeningHours, site } from "@/config/site";
-import { formatPKR } from "@/lib/format";
-import { whatsappUrl } from "@/lib/links";
-import type { FleetFacts } from "./home-data";
+import { site } from "@/config/site";
+import { captionFor, fleetImage, road, scene, still, type Img, type StillName } from "@/lib/media";
+import { urls } from "@/lib/urls";
 
-interface Props {
-  facts: FleetFacts;
+type Line = { text: string; em?: string };
+interface ActDef {
+  key: string;
+  /** s: scene, r: road, f: fleet image, t: still with no car. First that exists and is unused wins. */
+  picks: string[];
+  /** How this frame arrives (the first one is revealed by the preloader). */
+  wipe: "sweep" | "door";
+  /** Where the words sit on a wide screen. Phones always set them top left. */
+  place: "top-left" | "top-right" | "bottom-left" | "top-center";
+  title?: Line[];
+  links?: { label: string; href: string }[];
 }
 
-const { facts } = Astro.props;
-const hours = formatOpeningHours()[0];
+const service = (slug: string) => site.services.find((s) => s.slug === slug);
+const serviceLink = (slug: string, short = false) => {
+  const s = service(slug);
+  return s ? [{ label: short ? s.shortName : s.name, href: urls.service(s.slug) }] : [];
+};
+
+const ACTS: ActDef[] = [
+  {
+    key: "arrive",
+    picks: ["s:airport", "s:garage", "s:corporate", "s:luxury", "f:mercedes-s-class", "f:toyota-land-cruiser", "t:trails"],
+    wipe: "door",
+    place: "top-left",
+  },
+  {
+    key: "driver",
+    picks: ["s:chauffeur", "s:cabin", "s:luxury", "s:corporate", "s:selfdrive", "f:mercedes-s-class", "t:trails"],
+    wipe: "sweep",
+    place: "top-right",
+    title: [{ text: "With a driver," }, { text: "or the ", em: "keys." }],
+    links: [...serviceLink("rent-a-car-with-driver-lahore", true), ...serviceLink("self-drive-car-rental-lahore", true)],
+  },
+  {
+    key: "wedding",
+    picks: ["s:wedding", "s:luxury", "s:corporate", "s:monthly", "f:mercedes-s-class", "f:toyota-land-cruiser", "t:trails"],
+    wipe: "door",
+    place: "top-left",
+    title: [{ text: "Dressed for" }, { text: "the ", em: "baraat." }],
+    links: serviceLink("wedding-car-rental-lahore"),
+  },
+  {
+    key: "north",
+    picks: ["r:hunza", "r:swat", "r:skardu", "r:karakoram", "r:naran", "r:murree", "r:motorway", "t:terrain"],
+    wipe: "sweep",
+    place: "bottom-left",
+    title: [{ text: "From Lahore" }, { text: "to the ", em: "north." }],
+    links: [{ label: "Routes from Lahore", href: urls.routes() }],
+  },
+  {
+    key: "night",
+    picks: ["s:lahore-night", "s:badshahi", "t:trails", "t:terrain"],
+    wipe: "door",
+    place: "top-center",
+    title: [{ text: "After dark," }, { text: "on ", em: "time." }],
+    links: serviceLink("lahore-airport-car-rental"),
+  },
+];
+
+/** Where the subject sits: `d` for wide screens, `m` for the narrow phone crop. Default centred. */
+const FOCUS: Record<string, { d?: string; m?: string }> = {
+  "s:airport": { d: "50% 62%", m: "34% 50%" },
+  "s:garage": { d: "50% 60%", m: "50% 50%" },
+  "s:corporate": { d: "50% 60%", m: "42% 50%" },
+  "s:luxury": { d: "50% 50%", m: "58% 50%" },
+  "s:chauffeur": { d: "50% 46%", m: "37% 50%" },
+  "s:cabin": { d: "50% 55%", m: "46% 50%" },
+  "s:selfdrive": { d: "50% 50%", m: "52% 50%" },
+  "s:wedding": { d: "50% 60%", m: "40% 50%" },
+  "s:monthly": { d: "50% 62%", m: "46% 50%" },
+  "s:lahore-night": { d: "50% 55%", m: "31% 50%" },
+  "s:badshahi": { d: "50% 62%", m: "60% 50%" },
+  "r:hunza": { d: "50% 62%", m: "50% 50%" },
+  "r:swat": { d: "50% 62%", m: "50% 50%" },
+  "r:skardu": { d: "50% 50%", m: "46% 50%" },
+  "r:motorway": { d: "50% 60%", m: "56% 50%" },
+  "t:trails": { d: "50% 70%", m: "62% 50%" },
+  "t:terrain": { d: "50% 62%", m: "38% 50%" },
+};
+const FLEET_FOCUS = { d: "50% 60%", m: "30% 50%" };
+
+/** The manifest's licence block for real photos (Unsplash, Pexels). */
+interface Credit {
+  author?: string;
+  name?: string;
+  authorUrl?: string;
+  url?: string;
+  source?: string;
+  license?: string;
+}
+type Credited = Img & { credit?: Credit };
+
+function creditFor(img: Img): { who?: string; where?: string; href?: string } | undefined {
+  const c = (img as Credited).credit;
+  if (!c) return undefined;
+  const who = c.author ?? c.name;
+  const from = `${c.license ?? ""} ${c.source ?? ""} ${c.authorUrl ?? ""}`;
+  const where = /unsplash/i.test(from) ? "Unsplash" : /pexels/i.test(from) ? "Pexels" : c.license?.replace(/\s*License$/i, "");
+  if (!who && !where) return undefined;
+  return { who, where, href: c.authorUrl ?? c.url };
+}
+
+function lookUp(choice: string): Img | undefined {
+  const name = choice.slice(2);
+  if (choice.startsWith("s:")) return scene(name);
+  if (choice.startsWith("r:")) return road(name);
+  if (choice.startsWith("t:")) return still(name as StillName);
+  return fleetImage(name);
+}
+
+const used = new Set<string>();
+const frames = ACTS.map((act, index) => {
+  let choice = act.picks.find((c) => {
+    const img = lookUp(c);
+    return img && !used.has(img.src);
+  });
+  // Every list ends on a still, so this only repeats a picture when the manifest is nearly empty.
+  choice ??= act.picks.find((c) => lookUp(c)) ?? "t:trails";
+  const img = lookUp(choice) ?? still("trails");
+  used.add(img.src);
+  const credit = creditFor(img);
+  const focus = FOCUS[choice] ?? (choice.startsWith("f:") ? FLEET_FOCUS : {});
+  // Licensed photos carry their photographer; AI pictures show a vehicle, or the inside of one, so they are
+  // representative; the two stills (trails, terrain) show no car and need no note.
+  const note = credit ? undefined : choice.startsWith("t:") ? undefined : (captionFor(img) ?? "Representative image");
+  // Licensed photos are graded into the opening's night; AI pictures were made for it.
+  const grade = !credit ? undefined : choice.startsWith("r:") ? "dusk" : "night";
+  return { ...act, index, img, credit, note, grade, focus };
+});
+
+const count = String(frames.length).padStart(2, "0");
 ---
 
-<section class="hero" data-hero data-fab-hide aria-labelledby="hero-title">
-  <div class="hero-stage" data-hero-stage aria-hidden="true">
-    <canvas class="hero-poster" data-hero-poster width="16" height="10"></canvas>
-    <div class="hero-shade"></div>
-  </div>
+<section class="op" data-op data-fab-hide aria-labelledby="hero-title">
+  <script is:inline>
+    // Pins the stage before first paint, unless the visitor asked for less motion (then the frames stay stacked).
+    // If the opening's script never arrives, the stack comes back.
+    (function (op) {
+      try {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      } catch (e) {}
+      op.setAttribute("data-mode", "pending");
+      setTimeout(function () {
+        if (!op.hasAttribute("data-ready")) op.removeAttribute("data-mode");
+      }, 9000);
+    })(document.currentScript.parentElement);
+  </script>
 
-  <Container class="hero-body">
-    <div class="hero-copy">
-      <h1 id="hero-title" class="hero-title text-fg">
-        <span class="block">Rent a car in Lahore</span>
-        <span class="block text-accent">on Cantt time.</span>
-      </h1>
-      <p class="hero-sub text-lede text-muted">
-        Sedans, SUVs, vans and wedding cars, with a driver or self drive, from our base in Lahore Cantt.
-      </p>
-      <div class="hero-actions">
-        <Button href={site.cta.quote.href} size="lg" iconRight="ph:arrow-right" class="max-sm:w-full">
-          {site.cta.quote.label}
-        </Button>
-        <Button
-          href={whatsappUrl()}
-          variant="secondary"
-          size="lg"
-          icon="simple-icons:whatsapp"
-          iconClass="text-whatsapp"
-          external
-          class="max-sm:w-full"
-        >
-          {site.cta.whatsapp.label}
-        </Button>
-      </div>
-      <ul class="hero-proof" aria-label="At a glance">
-        <li>
-          <Icon name="ph:car-profile" size={18} class="text-accent" />
-          <span><span class="tabular">{facts.models}</span> models, <span class="tabular">{facts.units}</span> cars</span>
-        </li>
+  <div class="op-stage" data-op-stage>
+    {
+      frames.map((frame) => (
+        <>
+        <div class={`op-act op-act--${frame.index + 1}`} data-act={frame.index} data-wipe={frame.wipe} data-place={frame.place}>
+          <div class="op-clip" data-clip>
+            <div class="op-counter" data-counter>
+              <div class="op-pic" data-pic>
+                <img
+                  class="op-img"
+                  data-op-img
+                  data-grade={frame.grade}
+                  src={frame.img.src}
+                  srcset={frame.img.srcset}
+                  sizes={frame.img.srcset ? "(max-aspect-ratio: 1/1) 160vh, 100vw" : undefined}
+                  alt={frame.img.alt}
+                  width={frame.img.width}
+                  height={frame.img.height}
+                  loading={frame.index === 0 ? "eager" : "lazy"}
+                  fetchpriority={frame.index === 0 ? "high" : undefined}
+                  decoding={frame.index === 0 ? undefined : "async"}
+                  style={`--pos-d:${frame.focus.d ?? "50% 50%"};--pos-m:${frame.focus.m ?? frame.focus.d ?? "50% 50%"}`}
+                />
+              </div>
+              <div class="op-shade" aria-hidden="true" />
+              {
+                frame.key === "night" && !frame.credit && (
+                  <svg class="op-trails" data-trails viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+                    <g class="op-trails-glow">
+                      <path pathLength="1" data-trail class="t-ember" d="M -100 838 C 320 808, 940 790, 1700 800" />
+                      <path pathLength="1" data-trail class="t-ember" d="M -100 866 C 380 834, 980 818, 1700 830" />
+                      <path pathLength="1" data-trail class="t-ember" d="M -100 812 C 440 788, 1020 776, 1700 784" />
+                      <path pathLength="1" data-trail class="t-ivory" d="M 1700 758 C 1100 750, 520 760, -100 784" />
+                      <path pathLength="1" data-trail class="t-ivory" d="M 1700 742 C 1200 736, 700 742, -100 764" />
+                    </g>
+                    <g class="op-trails-core">
+                      <path pathLength="1" data-trail class="t-ember" d="M -100 838 C 320 808, 940 790, 1700 800" />
+                      <path pathLength="1" data-trail class="t-ember" d="M -100 866 C 380 834, 980 818, 1700 830" />
+                      <path pathLength="1" data-trail class="t-ember" d="M -100 812 C 440 788, 1020 776, 1700 784" />
+                      <path pathLength="1" data-trail class="t-ivory" d="M 1700 758 C 1100 750, 520 760, -100 784" />
+                      <path pathLength="1" data-trail class="t-ivory" d="M 1700 742 C 1200 736, 700 742, -100 764" />
+                    </g>
+                    <g class="op-trails-flow" data-flow-group>
+                      <path pathLength="1" class="t-ember" d="M -100 838 C 320 808, 940 790, 1700 800" />
+                      <path pathLength="1" class="t-ember t-late" d="M -100 866 C 380 834, 980 818, 1700 830" />
+                      <path pathLength="1" class="t-ivory" d="M 1700 758 C 1100 750, 520 760, -100 784" />
+                    </g>
+                  </svg>
+                )
+              }
+              <i class="op-sweep" data-sweep aria-hidden="true" />
+              <div class="op-dim" data-dim aria-hidden="true" />
+              {
+                (frame.note || frame.credit) && (
+                  <p class="op-note">
+                    {frame.note}
+                    {frame.credit && (
+                      <>
+                        Photo:{" "}
+                        {frame.credit.href ? (
+                          <a href={frame.credit.href} target="_blank" rel="noopener noreferrer">
+                            {frame.credit.who ?? frame.credit.where}
+                          </a>
+                        ) : (
+                          (frame.credit.who ?? frame.credit.where)
+                        )}
+                        {frame.credit.who && frame.credit.where ? ` / ${frame.credit.where}` : ""}
+                      </>
+                    )}
+                  </p>
+                )
+              }
+            </div>
+          </div>
+
+          <div class="op-copy">
+            {
+              frame.index === 0 ? (
+                <h1 id="hero-title" class="op-h1">
+                  <span class="op-mask">
+                    <span class="op-line" data-line>
+                      <span class="op-line" data-hero-line>
+                        Arrive like
+                      </span>
+                    </span>
+                  </span>{" "}
+                  <span class="op-mask op-mask--2">
+                    <span class="op-line" data-line>
+                      <span class="op-line" data-hero-line>
+                        it's <em>yours</em>
+                      </span>
+                    </span>
+                  </span>{" "}
+                  <span class="op-keyword" data-fade>
+                    <span data-hero-soft>Luxury rent a car in Lahore</span>
+                  </span>
+                </h1>
+              ) : (
+                <h2 class="op-title">
+                  {frame.title?.map((line) => (
+                    <>
+                      <span class="op-mask">
+                        <span class="op-line" data-line>
+                          {line.text}
+                          {line.em && <em>{line.em}</em>}
+                        </span>
+                      </span>{" "}
+                    </>
+                  ))}
+                </h2>
+              )
+            }
+            {
+              frame.links && frame.links.length > 0 && (
+                <p class="op-links" data-fade>
+                  {frame.links.map((link) => (
+                    <a href={link.href}>{link.label}</a>
+                  ))}
+                </p>
+              )
+            }
+          </div>
+        </div>
         {
-          facts.fromPrice !== null && (
-            <li>
-              <Icon name="ph:tag" size={18} class="text-accent" />
-              <span>
-                from <data value={facts.fromPrice} class="tabular font-semibold text-fg">{formatPKR(facts.fromPrice)}</data>/day
-              </span>
-            </li>
+          frame.index === 0 && (
+            <div class="op-front" data-op-front>
+              <a class="op-cta" href={site.cta.quote.href} data-hero-soft>
+                <span>{site.cta.quote.label}</span>
+              </a>
+              <p class="op-meta" data-hero-soft aria-hidden="true">
+                <span class="op-index">
+                  <b data-op-index>01</b> / {count}
+                </span>
+                <span class="op-bar">
+                  <i data-op-bar />
+                </span>
+                <span class="op-hint">Scroll</span>
+              </p>
+            </div>
           )
         }
-        <li>
-          <Icon name="ph:clock" size={18} class="text-accent" />
-          <span>{hours}</span>
-        </li>
-      </ul>
-    </div>
-  </Container>
+        </>
+      ))
+    }
+
+    <div class="op-light op-light--v" data-light-v aria-hidden="true"><i></i></div>
+    <div class="op-light op-light--h" data-light-h aria-hidden="true"><i></i></div>
+    <div class="op-veil" data-veil aria-hidden="true"></div>
+    <div class="op-seam" data-seam aria-hidden="true"></div>
+
+  </div>
 </section>
 
 <style>
-  .hero {
+  .op {
+    --op-pb: clamp(3.25rem, 7vw, 5.5rem);
+    /* Height of the bottom bar (CTA) plus its margin, for anything that must sit above it. */
+    --op-bar: calc(clamp(1.5rem, 4vw, 3rem) + 3.25rem);
     position: relative;
+    background: #050506;
+    color: var(--text);
     isolation: isolate;
+  }
+
+  /* ---------- Without JS, under reduced motion, or when the script fails: the frames stacked ---------- */
+  .op-act {
+    position: relative;
     display: flex;
     flex-direction: column;
-    min-height: 100dvh;
+    justify-content: flex-end;
+    min-height: 100svh;
+    padding: calc(var(--header-h) + 2rem) var(--gutter) var(--op-pb);
     overflow: clip;
   }
-
-  /* ---------- Stage (dark, phones: full-bleed behind the copy) ---------- */
-  .hero-stage {
-    --focus-x: 0.5;
-    --focus-y: 0.34;
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    overflow: hidden;
-    background:
-      radial-gradient(70% 30% at calc(var(--focus-x) * 100%) calc(var(--focus-y) * 100%), rgb(232 85 61 / 0.15), transparent 70%),
-      radial-gradient(26% 14% at calc(var(--focus-x) * 100%) calc(var(--focus-y) * 100%), rgb(255 222 190 / 0.1), transparent 70%),
-      linear-gradient(180deg, #08090d 0%, #0b0d12 60%);
+  .op-act--1 {
+    /* Room for the CTA bar, which follows act one in the stack. */
+    padding-bottom: calc(var(--op-pb) + 4.75rem);
   }
 
-  .hero-poster,
-  .hero-stage :global(canvas[data-hero-webgl]) {
+  .op-clip,
+  .op-counter,
+  .op-pic {
     position: absolute;
     inset: 0;
+  }
+  .op-clip {
+    z-index: 0;
+    overflow: hidden;
+  }
+  /* Chrome treats a picture that covers the whole viewport as a background and leaves it out of Largest
+     Contentful Paint, which then falls on type revealed after the preloader. Frame one is the page's main
+     content, so it stops 1px short of the top edge (under the header's scrim, where nobody can see it). */
+  .op-act--1 .op-clip {
+    top: 1px;
+  }
+  .op-img {
     display: block;
     width: 100%;
     height: 100%;
+    object-fit: cover;
+    object-position: var(--pos-d, 50% 50%);
+    transform-origin: 50% 50%;
+  }
+  @media (max-aspect-ratio: 1/1) {
+    .op-img {
+      object-position: var(--pos-m, 50% 50%);
+    }
+  }
+  /* Licensed photos are graded into the night the rest of the opening lives in: city lights a little down,
+     daylight roads all the way to dusk. */
+  .op-img[data-grade="night"] {
+    filter: sepia(0.25) saturate(0.5) brightness(0.7) contrast(1.08);
+  }
+  .op-img[data-grade="dusk"] {
+    filter: sepia(0.4) saturate(0.5) brightness(0.6) contrast(1.12);
   }
 
-  .hero-poster {
-    opacity: 0;
-    transition: opacity 0.9s var(--ease-out);
-  }
-  .hero-stage[data-poster="ready"] .hero-poster {
-    opacity: 1;
-  }
-
-  .hero-stage :global(canvas[data-hero-webgl]) {
-    opacity: 0;
-    transition: opacity 1.6s var(--ease-out);
-  }
-  .hero-stage[data-live="true"] :global(canvas[data-hero-webgl]) {
-    opacity: 1;
-  }
-
-  .hero-shade {
+  .op-shade {
     position: absolute;
     inset: 0;
-    /* Above the poster AND the live WebGL canvas (hero3d appends it after this element). */
-    z-index: 1;
     pointer-events: none;
-    background: linear-gradient(
-      180deg,
-      rgb(11 13 18 / 0.6) 0%,
-      rgb(11 13 18 / 0) 16%,
-      rgb(11 13 18 / 0) 28%,
-      rgb(11 13 18 / 0.74) 46%,
-      rgb(11 13 18 / 0.9) 60%,
-      #0b0d12 100%
-    );
+    background:
+      linear-gradient(0deg, rgb(5 5 6 / 0.88) 0%, rgb(5 5 6 / 0.35) 34%, transparent 60%),
+      radial-gradient(130% 95% at 50% 45%, transparent 52%, rgb(5 5 6 / 0.55) 100%);
+  }
+  .op-dim {
+    position: absolute;
+    inset: 0;
+    background: #050506;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .op-sweep {
+    display: none;
   }
 
-  /* ---------- Copy ---------- */
-  .hero-body {
+  .op-copy {
     position: relative;
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding-top: calc(var(--header-h) + 2.5rem);
-    padding-bottom: clamp(3rem, 2rem + 4vw, 6.5rem);
+    z-index: 2;
   }
 
-  .hero-copy {
-    max-width: 52rem;
+  .op-h1,
+  .op-title {
+    margin: 0;
+    font-family: "Bodoni Moda Variable", var(--font-display);
+    font-weight: 400;
+    font-size: clamp(3.5rem, 11vw, 11rem);
+    line-height: 0.95;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    text-shadow: 0 0.03em 0.5em rgb(5 5 6 / 0.35);
+  }
+  .op-title {
+    font-size: clamp(3.25rem, 9.2vw, 9.5rem);
+  }
+  .op em {
+    font-style: italic;
+    color: var(--text);
+  }
+  .op-mask {
+    display: block;
+    overflow: clip;
+    /* Room for Bodoni's descenders and italic overhang inside the mask. */
+    padding: 0.04em 0.08em 0.14em 0.02em;
+    margin: -0.04em -0.08em -0.14em -0.02em;
+  }
+  .op-line {
+    display: block;
   }
 
-  .hero-title {
-    font-size: clamp(2.125rem, 1rem + 3.4vw, 4.25rem);
-    line-height: 1.02;
-    letter-spacing: -0.045em;
-    font-weight: 600;
+  .op-keyword,
+  .op-keyword span {
+    display: block;
+    margin-top: 1.4rem;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--text);
   }
 
-  .hero-sub {
-    margin-top: 1.25rem;
-    max-width: 33rem;
-  }
-
-  .hero-actions {
-    margin-top: 2rem;
+  .op-links {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 0.75rem 1.75rem;
+    margin: 1.75rem 0 0;
+  }
+  .op-links a {
+    position: relative;
+    padding: 0.5rem 0 0.45rem;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .op-links a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: var(--accent);
+    transform-origin: 0 50%;
+    transform: scaleX(0.35);
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .op-links a:hover::after,
+  .op-links a:focus-visible::after {
+    transform: scaleX(1);
   }
 
-  .hero-proof {
-    margin-top: 2rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.625rem 1.5rem;
-    font-size: 0.875rem;
-    color: var(--muted);
+  /* The small print each picture owes the reader. Quiet, but legible. */
+  .op-note {
+    position: absolute;
+    right: max(var(--gutter), env(safe-area-inset-right));
+    bottom: 1rem;
+    z-index: 2;
+    margin: 0;
+    max-width: calc(100% - 2 * var(--gutter));
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-align: right;
+    color: rgb(242 236 224 / 0.7);
+    text-shadow: 0 1px 6px rgb(5 5 6 / 0.8);
   }
-  .hero-proof li {
+  /* Stacked frames on a phone (no JS, reduced motion): bottom left, clear of the floating WhatsApp button. */
+  @media (max-aspect-ratio: 1/1) {
+    .op:not([data-mode]) .op-note {
+      left: max(var(--gutter), env(safe-area-inset-left));
+      right: auto;
+      text-align: left;
+    }
+  }
+  .op-note a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgb(242 236 224 / 0.35);
+    text-underline-offset: 0.2em;
+  }
+  .op-note a:hover,
+  .op-note a:focus-visible {
+    color: var(--text);
+  }
+
+  .op-trails,
+  .op-light,
+  .op-veil,
+  .op-seam {
+    display: none;
+  }
+
+  /* The CTA bar follows act one and sits over its lower edge. */
+  .op-front {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-top: calc(-1 * (var(--op-pb) + 4.75rem));
+    padding: 0 var(--gutter) calc(var(--op-pb) + 1.5rem);
+    pointer-events: none;
+  }
+  .op-cta {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
+    min-height: 3.25rem;
+    padding: 0 2.25rem;
+    border: 1px solid var(--accent);
+    overflow: hidden;
+    pointer-events: auto;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text);
+    text-decoration: none;
+    background: rgb(5 5 6 / 0.28);
+    transition: color 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .op-cta::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform: translateX(-101%);
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .op-cta span {
+    position: relative;
+  }
+  .op-cta:hover,
+  .op-cta:focus-visible {
+    color: #0b0a08;
+  }
+  .op-cta:hover::before,
+  .op-cta:focus-visible::before {
+    transform: translateX(0);
   }
 
-  /* Phones and tablets (dark): the copy sits on the moving scene, so the small text gets a soft dark
-     halo that keeps it legible when a headlight streak passes behind it. */
-  @media (width < 64rem) {
-    .hero-sub,
-    .hero-proof {
-      text-shadow:
-        0 0 14px rgb(11 13 18 / 0.95),
-        0 1px 3px rgb(11 13 18 / 0.9);
+  .op-meta {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+    margin: 0 0 1.1rem;
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .op-index b {
+    font-weight: 600;
+    color: var(--text);
+  }
+  .op-bar {
+    position: relative;
+    display: block;
+    width: clamp(3.5rem, 8vw, 7.5rem);
+    height: 1px;
+    background: rgb(236 224 200 / 0.2);
+    overflow: hidden;
+  }
+  .op-bar i {
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+  }
+
+  /* ---------- The pinned stage ---------- */
+  .op[data-mode] {
+    height: 600lvh;
+  }
+  .op[data-mode] .op-stage {
+    position: sticky;
+    top: 0;
+    /* lvh, not svh: the stage must not change size when the address bar collapses. */
+    height: 100lvh;
+    overflow: clip;
+    isolation: isolate;
+    background: #050506;
+  }
+
+  /* No act makes a stacking context: the pictures (z 1 to 3), the lights (5 to 7) and the words (10) share
+     the stage's, so the words always sit over whichever picture is on top. */
+  .op[data-mode] .op-act {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    /* Keep the words inside the part of the screen the address bar never covers. */
+    bottom: calc(100lvh - 100svh);
+    display: block;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .op[data-mode] .op-clip {
+    inset: 0 0 calc(100svh - 100lvh);
+    z-index: 1;
+    will-change: transform;
+  }
+  .op[data-mode] .op-act--1 .op-clip {
+    top: 1px;
+  }
+  .op[data-mode] :is(.op-counter, .op-pic) {
+    will-change: transform;
+  }
+  .op[data-mode] .op-act--1 .op-img {
+    transform: scale(1.12);
+  }
+  /* The later frames stay out of layout (and so do not start loading) until the first one is in. */
+  .op[data-mode]:not([data-armed]) .op-act:not(.op-act--1) .op-clip {
+    display: none;
+  }
+  .op[data-mode]:not([data-ready]) .op-act:not(.op-act--1) .op-copy {
+    visibility: hidden;
+  }
+
+  .op[data-mode] .op-shade {
+    background:
+      linear-gradient(180deg, rgb(5 5 6 / 0.74) 0%, rgb(5 5 6 / 0.3) 26%, transparent 46%),
+      linear-gradient(0deg, rgb(5 5 6 / 0.8) 0%, rgb(5 5 6 / 0.2) 22%, transparent 36%),
+      radial-gradient(130% 95% at 50% 50%, transparent 55%, rgb(5 5 6 / 0.5) 100%);
+  }
+  .op[data-mode] [data-place="bottom-left"] .op-shade {
+    background:
+      linear-gradient(180deg, rgb(5 5 6 / 0.55) 0%, transparent 26%),
+      linear-gradient(0deg, rgb(5 5 6 / 0.92) 0%, rgb(5 5 6 / 0.55) 30%, transparent 62%),
+      radial-gradient(130% 95% at 50% 50%, transparent 55%, rgb(5 5 6 / 0.5) 100%);
+  }
+  /* The last frame hands over to the page: its foot melts into the page colour. */
+  .op[data-mode] .op-act--5 .op-shade {
+    background:
+      linear-gradient(180deg, rgb(5 5 6 / 0.74) 0%, rgb(5 5 6 / 0.3) 26%, transparent 46%),
+      linear-gradient(0deg, #070708 0%, rgb(7 7 8 / 0.6) 14%, transparent 40%),
+      radial-gradient(130% 95% at 50% 50%, transparent 55%, rgb(5 5 6 / 0.5) 100%);
+  }
+
+  .op[data-mode] .op-sweep {
+    position: absolute;
+    top: -20%;
+    bottom: -20%;
+    left: 0;
+    display: block;
+    width: 34%;
+    pointer-events: none;
+    background: linear-gradient(
+      100deg,
+      transparent 0%,
+      rgb(255 240 214 / 0.05) 30%,
+      rgb(255 240 214 / 0.2) 50%,
+      rgb(255 240 214 / 0.05) 70%,
+      transparent 100%
+    );
+    mix-blend-mode: screen;
+    opacity: 0;
+    transform: translate3d(-110%, 0, 0) skewX(-14deg);
+  }
+
+  .op[data-mode] .op-trails {
+    position: absolute;
+    inset: auto 0 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .op[data-mode] .op-trails {
+    transform: translateY(-6%);
+  }
+  .op-trails path {
+    fill: none;
+    stroke-linecap: round;
+    stroke-dasharray: 1 1;
+    stroke-dashoffset: 1;
+  }
+  .op-trails .t-ember {
+    stroke: #e0452f;
+  }
+  .op-trails .t-ivory {
+    stroke: #f6e7cc;
+  }
+  /* Out-of-focus traffic passing in the foreground: soft cores, wide glows, nothing crisp. */
+  .op-trails-core {
+    filter: blur(0.9px);
+  }
+  .op-trails-core path {
+    stroke-width: 2.6;
+    opacity: 0.8;
+  }
+  .op-trails-core .t-ivory {
+    stroke-width: 1.6;
+    opacity: 0.5;
+  }
+  .op-trails-glow {
+    filter: blur(7px);
+    opacity: 0.7;
+  }
+  .op-trails-glow path {
+    stroke-width: 14;
+  }
+  .op-trails-glow .t-ember {
+    stroke: #c1281d;
+  }
+  .op-trails-glow .t-ivory {
+    stroke: #c9a66b;
+    stroke-width: 9;
+    opacity: 0.45;
+  }
+  .op[data-lite] .op-trails-glow {
+    display: none;
+  }
+  /* Packets of light running along the trails, only while the last frame is on screen. */
+  .op-trails-flow {
+    opacity: 0;
+  }
+  .op-trails-flow {
+    filter: blur(1.2px);
+  }
+  .op-trails-flow path {
+    stroke-width: 3.2;
+    stroke-dasharray: 0.05 0.285;
+    stroke-dashoffset: 0;
+  }
+  .op-trails-flow .t-ember {
+    stroke: #ffb39c;
+  }
+  .op-trails-flow .t-ivory {
+    stroke: #fff6e4;
+    stroke-width: 1.8;
+  }
+  .op[data-flow] .op-trails-flow path {
+    animation: op-flow 2.6s linear infinite;
+  }
+  .op[data-flow] .op-trails-flow .t-late {
+    animation-duration: 3.4s;
+    animation-delay: -1.2s;
+  }
+  .op[data-flow] .op-trails-flow .t-ivory {
+    animation-duration: 3s;
+  }
+  @keyframes op-flow {
+    to {
+      stroke-dashoffset: -0.335;
     }
   }
 
-  /* Entrance for everything except the H1 (the LCP element is never animated). */
-  @media (prefers-reduced-motion: no-preference) {
-    .hero-sub,
-    .hero-actions,
-    .hero-proof {
-      animation: reveal-up 0.9s var(--ease-out) both;
-    }
-    .hero-sub {
-      animation-delay: 0.12s;
-    }
-    .hero-actions {
-      animation-delay: 0.22s;
-    }
-    .hero-proof {
-      animation-delay: 0.32s;
-    }
+  /* Light: a vertical strip that leads a sweep, a horizontal seam under a lifting door. */
+  .op[data-mode] .op-light {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: block;
+    pointer-events: none;
+    opacity: 0;
+    mix-blend-mode: screen;
+    will-change: transform, opacity;
+  }
+  .op-light::before,
+  .op-light::after,
+  .op-light i {
+    content: "";
+    position: absolute;
+    display: block;
+  }
+  .op-light--v::before {
+    top: 0;
+    bottom: 0;
+    left: -1px;
+    width: 2px;
+    background: linear-gradient(180deg, transparent, #fff1d6 18%, #fffaf0 50%, #fff1d6 82%, transparent);
+    box-shadow:
+      0 0 14px 3px rgb(255 238 208 / 0.6),
+      0 0 70px 18px rgb(220 189 134 / 0.26);
+  }
+  /* Light thrown back onto the frame it has just revealed. */
+  .op-light--v::after {
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 42vw;
+    background: linear-gradient(90deg, transparent, rgb(255 226 180 / 0.05) 55%, rgb(255 236 206 / 0.24));
+  }
+  /* The anamorphic streak across the bar. */
+  .op-light--v i {
+    top: 54%;
+    left: -45vw;
+    width: 90vw;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgb(255 236 206 / 0.55) 50%, transparent);
+    box-shadow: 0 0 10px 1px rgb(220 189 134 / 0.35);
+  }
+  .op-light--h::before {
+    left: 0;
+    right: 0;
+    top: -1px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #fff1d6 14%, #fffaf0 50%, #fff1d6 86%, transparent);
+    box-shadow:
+      0 0 14px 3px rgb(255 238 208 / 0.6),
+      0 0 60px 14px rgb(220 189 134 / 0.24);
+  }
+  /* Light spilling under the door onto the frame behind it. */
+  .op-light--h::after {
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 46lvh;
+    background: linear-gradient(180deg, rgb(255 236 206 / 0.28), rgb(255 226 180 / 0.07) 40%, transparent);
+  }
+  .op-light--h i {
+    display: none;
   }
 
-  /* ---------- Dark desktop: vanishing point right, copy left ---------- */
-  @media (width >= 64rem) {
-    .hero-stage {
-      --focus-x: 0.7;
-      --focus-y: 0.47;
-    }
-    .hero-shade {
-      background:
-        linear-gradient(90deg, #0b0d12 0%, rgb(11 13 18 / 0.88) 24%, rgb(11 13 18 / 0.4) 46%, rgb(11 13 18 / 0) 64%),
-        linear-gradient(180deg, rgb(11 13 18 / 0.55) 0%, rgb(11 13 18 / 0) 15%, rgb(11 13 18 / 0) 70%, #0b0d12 100%);
-    }
-    .hero-body {
-      justify-content: center;
-      padding-top: calc(var(--header-h) + 3rem);
-    }
-    .hero-actions {
-      margin-top: 2.5rem;
-    }
-    .hero-proof {
-      margin-top: 3rem;
-    }
+  /* Frame one waits in the dark for the preloader's doors, then the seam of light between them carries on. */
+  .op[data-mode] .op-veil {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: block;
+    background: #050506;
+    opacity: 0.94;
+    pointer-events: none;
+  }
+  .op[data-mode] .op-seam {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    z-index: 7;
+    display: block;
+    height: 2px;
+    margin-top: -1px;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, #dcbd86 18%, #fff4dc 50%, #dcbd86 82%, transparent);
+    box-shadow: 0 0 24px 2px rgb(220 189 134 / 0.45);
+    opacity: 0;
   }
 
-  /* ---------- Light: the night scene becomes a framed media panel ---------- */
-  @media (prefers-color-scheme: light) {
-    .hero {
-      min-height: 0;
+  .op[data-mode] .op-note {
+    bottom: calc(100lvh - 100svh + var(--op-bar) + 1.1rem);
+  }
+  .op[data-mode] .op-note a {
+    pointer-events: auto;
+  }
+
+  /* ---------- Words, act by act: wide screens ---------- */
+  .op[data-mode] .op-copy {
+    position: absolute;
+    z-index: 10;
+  }
+  .op[data-mode] .op-copy a {
+    pointer-events: auto;
+  }
+  .op[data-mode] [data-place="top-left"] .op-copy {
+    left: max(var(--gutter), 3.2vw);
+    top: calc(var(--header-h) + 4vh);
+  }
+  .op[data-mode] [data-place="top-right"] .op-copy {
+    right: max(var(--gutter), 3.2vw);
+    top: calc(var(--header-h) + 4vh);
+    text-align: right;
+  }
+  .op[data-mode] [data-place="top-right"] .op-links {
+    justify-content: flex-end;
+  }
+  .op[data-mode] [data-place="bottom-left"] .op-copy {
+    left: max(var(--gutter), 3.2vw);
+    bottom: calc(var(--op-bar) + 2.5rem);
+  }
+  .op[data-mode] [data-place="top-center"] .op-copy {
+    left: var(--gutter);
+    right: var(--gutter);
+    top: calc(var(--header-h) + 6vh);
+    text-align: center;
+  }
+  .op[data-mode] [data-place="top-center"] .op-links {
+    justify-content: center;
+  }
+
+  .op[data-mode] .op-act--1 .op-copy {
+    left: max(var(--gutter), 3.2vw);
+    right: max(var(--gutter), 3.2vw);
+    top: calc(var(--header-h) + 3.5vh);
+  }
+  .op[data-mode] .op-act--1 .op-mask--2 {
+    text-align: right;
+  }
+  .op[data-mode] .op-keyword {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.1rem;
+    margin: 0;
+  }
+
+  .op[data-mode] .op-front {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100lvh - 100svh);
+    z-index: 12;
+    margin: 0;
+    padding: 0 max(var(--gutter), env(safe-area-inset-left)) clamp(1.5rem, 4vw, 3rem);
+  }
+  .op[data-mode] .op-meta {
+    display: flex;
+  }
+
+  /* While waiting for the preloader the hero lines wait under their masks. */
+  .op[data-mode] [data-hero-line] {
+    transform: translateY(118%);
+  }
+  .op[data-mode] [data-hero-soft] {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* ---------- Phones: the same film, recomposed ---------- */
+  @media (max-aspect-ratio: 1/1) {
+    .op[data-mode] {
+      height: 540lvh;
     }
-    .hero-sub,
-    .hero-proof {
-      text-shadow: none;
+    .op-h1 {
+      font-size: clamp(3rem, 16.6vw, 7rem);
     }
-    .hero-stage {
-      --focus-x: 0.5;
-      --focus-y: 0.42;
-      position: relative;
-      inset: auto;
-      z-index: 0;
-      flex: none;
-      margin: calc(var(--header-h) + 0.5rem) var(--gutter) 0;
-      height: clamp(14rem, 42svh, 24rem);
-      border-radius: var(--radius-card);
-      box-shadow: var(--shadow-lift);
+    .op-title {
+      font-size: clamp(2.75rem, 13.6vw, 6.5rem);
     }
-    .hero-shade {
-      background: linear-gradient(180deg, rgb(11 13 18 / 0) 55%, rgb(11 13 18 / 0.55) 100%);
+    .op[data-mode] .op-act .op-copy {
+      left: var(--gutter);
+      right: var(--gutter);
+      top: calc(var(--header-h) + 2.5vh);
+      bottom: auto;
+      text-align: left;
     }
-    .hero-body {
-      flex: none;
+    .op[data-mode] .op-act .op-links {
       justify-content: flex-start;
-      padding-top: 2rem;
     }
+    .op[data-mode] .op-act--1 .op-mask--2 {
+      text-align: left;
+    }
+    .op[data-mode] .op-keyword {
+      position: static;
+      margin-top: 1.1rem;
+      font-size: 0.6875rem;
+    }
+    .op[data-mode] [data-place="bottom-left"] .op-shade {
+      background:
+        linear-gradient(180deg, rgb(5 5 6 / 0.8) 0%, rgb(5 5 6 / 0.35) 30%, transparent 52%),
+        linear-gradient(0deg, rgb(5 5 6 / 0.8) 0%, transparent 30%);
+    }
+    .op[data-mode] .op-shade {
+      background:
+        linear-gradient(180deg, rgb(5 5 6 / 0.78) 0%, rgb(5 5 6 / 0.32) 30%, transparent 50%),
+        linear-gradient(0deg, rgb(5 5 6 / 0.8) 0%, transparent 30%);
+    }
+    .op[data-mode] .op-act--5 .op-shade {
+      background:
+        linear-gradient(180deg, rgb(5 5 6 / 0.78) 0%, rgb(5 5 6 / 0.32) 30%, transparent 50%),
+        linear-gradient(0deg, #070708 0%, rgb(7 7 8 / 0.55) 16%, transparent 38%);
+    }
+    .op-cta {
+      flex: 1;
+      padding: 0 1.25rem;
+    }
+    .op[data-mode] .op-meta {
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.6rem;
+      margin-bottom: 0.2rem;
+    }
+    .op-bar {
+      width: 3.25rem;
+    }
+    .op-hint {
+      display: none;
+    }
+    .op-light--v::after {
+      width: 70vw;
+    }
+    /* Lift the traffic clear of the CTA bar. */
+    .op[data-mode] .op-trails {
+      transform: translateY(-17%);
+    }
+  }
 
-    @media (width >= 64rem) {
-      .hero {
-        min-height: 100dvh;
-      }
-      .hero-stage {
-        --focus-y: 0.46;
-        position: absolute;
-        top: calc(var(--header-h) + 0.75rem);
-        right: max(var(--gutter), calc((100% - var(--container-site)) / 2 + var(--gutter)));
-        bottom: 2.5rem;
-        width: 41%;
-        height: auto;
-        margin: 0;
-      }
-      .hero-shade {
-        background: linear-gradient(180deg, rgb(11 13 18 / 0) 60%, rgb(11 13 18 / 0.45) 100%);
-      }
-      .hero-body {
-        flex: 1;
-        justify-content: center;
-        padding-top: calc(var(--header-h) + 3rem);
-      }
-      .hero-copy {
-        max-width: min(52rem, 54%);
-      }
-      .hero-title {
-        font-size: clamp(2.125rem, 0.5rem + 3.4vw, 3.875rem);
-      }
+  @media (prefers-reduced-motion: reduce) {
+    .op[data-mode] [data-hero-line] {
+      transform: none;
+    }
+    .op[data-mode] [data-hero-soft] {
+      opacity: 1;
+      visibility: visible;
     }
   }
 </style>
 
 <script>
-  import { canRun3D, saveData, whenIdle } from "@/scripts/capabilities";
+  import { loadGsap } from "@/scripts/motion";
+  import { whenPreloaderParts } from "@/scripts/capabilities";
+  import { getTier } from "@/scripts/tier";
 
-  /** Poster = one frame of the same scene (src/scripts/hero3d.ts captureStill), rendered with this focus. */
-  const POSTER_SRC = "/media/hero-poster.webp";
-  const POSTER_FOCUS = { x: 0.7, y: 0.47 };
+  type Place = "before" | "in" | "after";
 
-  const hero = document.querySelector<HTMLElement>("[data-hero]");
-  const stage = hero?.querySelector<HTMLElement>("[data-hero-stage]") ?? null;
-  const poster = stage?.querySelector<HTMLCanvasElement>("[data-hero-poster]") ?? null;
+  const op = document.querySelector<HTMLElement>("[data-op]");
 
-  let posterImage: HTMLImageElement | null = null;
-  let posterObserver: ResizeObserver | null = null;
-  let visibilityObserver: IntersectionObserver | null = null;
-  let dispose3D: (() => void) | null = null;
-  let loading3D = false;
+  const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+  const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+  /** Cubic in-out: a wipe leaves slowly, travels, and settles slowly, however the scroll arrives. */
+  const ease = (u: number) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
 
-  function afterLoad(fn: () => void) {
-    if (document.readyState === "complete") fn();
-    else window.addEventListener("load", fn, { once: true });
+  /** Resolves once the picture is loaded and decoded (or broken: the preloader must never wait on it). */
+  function settled(img?: HTMLImageElement | null): Promise<void> {
+    return new Promise((resolve) => {
+      if (!img) return resolve();
+      const decode = () => (img.decode ? img.decode().then(resolve, () => resolve()) : resolve());
+      if (img.complete) {
+        if (img.naturalWidth > 0) decode();
+        else resolve();
+        return;
+      }
+      img.addEventListener("load", decode, { once: true });
+      img.addEventListener("error", () => resolve(), { once: true });
+    });
   }
 
-  function focusOf(el: HTMLElement) {
-    const style = getComputedStyle(el);
-    const fx = Number.parseFloat(style.getPropertyValue("--focus-x"));
-    const fy = Number.parseFloat(style.getPropertyValue("--focus-y"));
-    return { fx: Number.isFinite(fx) ? fx : 0.5, fy: Number.isFinite(fy) ? fy : 0.45 };
-  }
+  /**
+   * The preloader (html[data-preload="media"]) follows the real load of the opening: the first frame (and the
+   * type) carry most of the stroke, the second frame the rest, without holding the doors more than 1.2s for it.
+   */
+  function reportLoad(imgs: HTMLImageElement[], pinned: boolean): Promise<void> {
+    const send = (progress: number) => window.dispatchEvent(new CustomEvent("cantt:load-progress", { detail: { progress } }));
+    let first = 0;
+    let type = 0;
+    let second = 0;
+    const report = () => send(Math.min(1, 0.05 + 0.63 * first + 0.12 * type + 0.2 * second));
+    report();
 
-  /** Cover-fit the poster so its vanishing point lands on the stage's focus point. */
-  function drawPoster() {
-    if (!stage || !poster || !posterImage) return;
-    const w = stage.clientWidth;
-    const h = stage.clientHeight;
-    if (!w || !h) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    const cw = Math.round(w * dpr);
-    const ch = Math.round(h * dpr);
-    if (poster.width !== cw) poster.width = cw;
-    if (poster.height !== ch) poster.height = ch;
-    const ctx = poster.getContext("2d");
-    if (!ctx) return;
-    const { fx, fy } = focusOf(stage);
-    const iw = posterImage.naturalWidth;
-    const ih = posterImage.naturalHeight;
-    const { x: px, y: py } = POSTER_FOCUS;
-    const scale = Math.max(
-      cw / iw,
-      ch / ih,
-      (fx * cw) / (px * iw),
-      ((1 - fx) * cw) / ((1 - px) * iw),
-      (fy * ch) / (py * ih),
-      ((1 - fy) * ch) / ((1 - py) * ih),
-    );
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(posterImage, fx * cw - px * iw * scale, fy * ch - py * ih * scale, iw * scale, ih * scale);
-  }
-
-  function watchPoster() {
-    if (!stage || !posterImage || posterObserver) return;
-    posterObserver = new ResizeObserver(() => drawPoster());
-    posterObserver.observe(stage);
-  }
-
-  function loadPoster() {
-    if (!stage || !poster || posterImage || saveData()) return;
-    const img = new Image();
-    img.decoding = "async";
-    img.setAttribute("fetchpriority", "low");
-    img.src = POSTER_SRC;
-    img
-      .decode()
+    const firstIn = settled(imgs[0]).then(() => {
+      first = 1;
+      report();
+    });
+    const typeIn = Promise.race([document.fonts ? document.fonts.ready.then(() => undefined) : Promise.resolve(), wait(2500)]).then(() => {
+      type = 1;
+      report();
+    });
+    // The second frame starts after the first, so it never competes with the LCP picture. In the stacked
+    // layout it is far below the fold and loads lazily, so nothing waits on it.
+    const secondIn = firstIn
       .then(() => {
-        posterImage = img;
-        drawPoster();
-        stage.dataset.poster = "ready";
-        watchPoster();
+        const img = imgs[1];
+        if (!pinned || !img) return;
+        img.loading = "eager";
+        return Promise.race([settled(img), wait(4000)]);
       })
-      .catch(() => {});
-  }
+      .then(() => {
+        second = 1;
+        report();
+      });
 
-  function mount3D() {
-    if (!stage || !hero || dispose3D || loading3D) return;
-    loading3D = true;
-    import("@/scripts/hero3d")
-      .then(({ mountHeroScene }) => {
-        loading3D = false;
-        if (dispose3D || !stage.isConnected) return;
-        dispose3D = mountHeroScene({
-          container: stage,
-          scrollTarget: hero,
-          onReady: () => (stage.dataset.live = "true"),
-          onFail: () => (stage.dataset.live = "false"),
-        });
-      })
-      .catch(() => {
-        loading3D = false;
+    return Promise.all([firstIn, typeIn])
+      .then(() => Promise.race([secondIn, wait(1200)]))
+      .then(() => {
+        send(1);
+        window.dispatchEvent(new Event("cantt:load-ready"));
       });
   }
 
-  /** 3D only on capable devices, after load + idle, and only once the hero is actually visible. */
-  function schedule3D() {
-    if (!hero) return;
-    afterLoad(() =>
-      whenIdle(() => {
-        // canRun3D() probes WebGL2 by creating a context: keep that GPU work off the loading path.
-        if (!canRun3D()) return;
-        visibilityObserver?.disconnect();
-        visibilityObserver = new IntersectionObserver((entries) => {
-          if (entries.some((entry) => entry.isIntersecting)) {
-            visibilityObserver?.disconnect();
-            visibilityObserver = null;
-            mount3D();
-          }
+  interface Act {
+    el: HTMLElement;
+    clip: HTMLElement;
+    counter: HTMLElement;
+    pic: HTMLElement;
+    img: HTMLImageElement | null;
+    dim: HTMLElement | null;
+    sweep: HTMLElement | null;
+    lines: HTMLElement[];
+    extras: HTMLElement[];
+    wipe: "sweep" | "door";
+    place: Place;
+    shown: boolean | null;
+    z: number;
+  }
+
+  /** Ken Burns per frame across its whole life on screen: scale, then x and y drift in percent. */
+  const KB = [
+    { s: [1.0, 1.09], x: [0, 0], y: [0, -2] },
+    { s: [1.12, 1.03], x: [-2.5, 1.2], y: [0, 0] },
+    { s: [1.03, 1.13], x: [0, 0], y: [1.4, -2] },
+    { s: [1.14, 1.03], x: [0, 0], y: [-3, 1.2] },
+    { s: [1.03, 1.12], x: [1.2, -2], y: [0, 0] },
+  ];
+  /** Scroll units: how long each frame holds, how long each change takes, and the hand-over at the end. */
+  const HOLD = [0.9, 1, 1, 1, 0.9];
+  const CHANGE = 1.15;
+  const TAIL = 0.8;
+
+  async function play(op: HTMLElement, stage: HTMLElement, imgs: HTMLImageElement[], loaded: Promise<void>) {
+    const { gsap, ScrollTrigger } = await loadGsap();
+    const rich = getTier() !== "fallback";
+    op.dataset.mode = "pinned";
+    // The fallback tier (Save-Data, little memory, no WebGL2) keeps the frames and wipes, not the extra light.
+    if (!rich) op.dataset.lite = "";
+
+    const acts: Act[] = [...stage.querySelectorAll<HTMLElement>("[data-act]")].map((el, index) => ({
+      el,
+      clip: el.querySelector<HTMLElement>("[data-clip]")!,
+      counter: el.querySelector<HTMLElement>("[data-counter]")!,
+      pic: el.querySelector<HTMLElement>("[data-pic]")!,
+      img: el.querySelector<HTMLImageElement>("[data-op-img]"),
+      dim: el.querySelector<HTMLElement>("[data-dim]"),
+      sweep: el.querySelector<HTMLElement>("[data-sweep]"),
+      lines: [...el.querySelectorAll<HTMLElement>("[data-line]")],
+      extras: [...el.querySelectorAll<HTMLElement>("[data-fade]")],
+      wipe: el.dataset.wipe === "door" ? "door" : "sweep",
+      place: index === 0 ? "in" : "before",
+      shown: null,
+      z: -1,
+    }));
+    const n = acts.length;
+    const lightV = stage.querySelector<HTMLElement>("[data-light-v]");
+    const lightH = stage.querySelector<HTMLElement>("[data-light-h]");
+    const indexEl = stage.querySelector<HTMLElement>("[data-op-index]");
+    const barEl = stage.querySelector<HTMLElement>("[data-op-bar]");
+    const trails = [...stage.querySelectorAll<SVGPathElement>("[data-trail]")];
+    const flowGroup = stage.querySelector<SVGGElement>("[data-flow-group]");
+    const coreCount = trails.length / 2;
+
+    // The timeline of the film, in scroll units.
+    const holdAt: number[] = [];
+    const changeAt: number[] = []; // changeAt[k]: the change from frame k-1 to frame k starts
+    let t = 0;
+    for (let k = 0; k < n; k++) {
+      if (k > 0) {
+        changeAt[k] = t;
+        t += CHANGE;
+      }
+      holdAt[k] = t;
+      t += HOLD[k] ?? 1;
+    }
+    const tailAt = t;
+    const total = t + TAIL;
+
+    /** gsap.to with nothing to animate only warns, so empty groups are skipped. */
+    const to = (targets: Element[], vars: Record<string, unknown>) => {
+      if (targets.length) gsap.to(targets, vars);
+    };
+
+    /** When the words last sent out will have cleared their masks (performance.now() time). */
+    let clearAt = 0;
+    const OUT = 0.42;
+    const OUT_STAGGER = 0.04;
+
+    /**
+     * Plays one act's words in or out, on their own clock. Two headlines never share the screen: words coming
+     * in wait until the words going out have left (on phones every act's words sit in the same place).
+     */
+    function words(act: Act, place: Place) {
+      if (act.place === place) return;
+      const was = act.place;
+      act.place = place;
+      const all = [...act.lines, ...act.extras];
+      gsap.killTweensOf(all);
+      const now = performance.now();
+      if (place === "in") {
+        const delay = Math.max(0, (clearAt - now) / 1000);
+        to(act.lines, { yPercent: 0, autoAlpha: 1, duration: 1.15, ease: "expo.out", stagger: 0.09, delay });
+        to(act.extras, { autoAlpha: 1, y: 0, duration: 0.9, ease: "power2.out", delay: delay + 0.4 });
+        if (was !== "in") settle(act, 0.15 + delay);
+        return;
+      }
+      if (was === "in") clearAt = Math.max(clearAt, now + (OUT + OUT_STAGGER * Math.max(0, act.lines.length - 1)) * 1000);
+      to(act.lines, { yPercent: place === "after" ? -118 : 118, duration: OUT, ease: "power2.in", stagger: OUT_STAGGER });
+      to(act.extras, { autoAlpha: 0, duration: 0.3, ease: "none" });
+    }
+
+    /** A soft band of light crosses the frame as it settles. */
+    function settle(act: Act, delay = 0.15) {
+      const band = act.sweep;
+      if (!rich || !band) return;
+      gsap.killTweensOf(band);
+      gsap.fromTo(
+        band,
+        { x: "-60vw", autoAlpha: 1 },
+        { x: "130vw", duration: 2.1, ease: "power2.inOut", delay, onComplete: () => gsap.set(band, { autoAlpha: 0 }) },
+      );
+    }
+
+    let current = -1;
+    let flowing = false;
+    let onScreen = true;
+
+    function setFlow(on: boolean) {
+      if (on === flowing) return;
+      flowing = on;
+      if (on) op.dataset.flow = "";
+      else op.removeAttribute("data-flow");
+    }
+
+    function render(p: number) {
+      const T = p * total;
+      let lightVOn = 0;
+      let lightVX = 0;
+      let lightHOn = 0;
+      let lightHY = 0;
+      let latest = 0;
+      const places: Place[] = [];
+
+      for (let k = 0; k < n; k++) {
+        const act = acts[k];
+        const uIn = k === 0 ? 1 : clamp01((T - changeAt[k]) / CHANGE);
+        const uOut = k === n - 1 ? 0 : clamp01((T - changeAt[k + 1]) / CHANGE);
+        const shown = uIn > 0 && uOut < 1;
+        if (uIn >= 0.5) latest = k;
+
+        if (act.shown !== shown) {
+          act.shown = shown;
+          act.clip.style.visibility = shown ? "visible" : "hidden";
+        }
+
+        // Words: out the moment the next frame starts to come, in once the new frame is well over half arrived,
+        // so the old lines are gone before the new ones rise (words() also waits for them).
+        places[k] = uIn < 0.6 ? "before" : uOut > 0.02 ? "after" : "in";
+
+        if (!shown) continue;
+        const eIn = ease(uIn);
+        const eOut = ease(uOut);
+        const next = acts[k + 1];
+
+        // Who is on top: a sweeping frame covers the one before it; a lifting door covers the one behind.
+        let z = 1;
+        if (uIn < 1) z = act.wipe === "sweep" ? 3 : 2;
+        if (uOut > 0 && next) z = next.wipe === "door" ? 3 : 2;
+        if (z !== act.z) {
+          act.z = z;
+          act.clip.style.zIndex = String(z);
+        }
+
+        // The clip moves like a door; the counter holds the picture still inside it (or lags it, for depth).
+        let clipX = 0;
+        let clipY = 0;
+        let counterX = 0;
+        let counterY = 0;
+        if (uIn < 1 && act.wipe === "sweep") {
+          clipX = -100 + 100 * eIn;
+          counterX = -clipX;
+          lightVOn = Math.pow(Math.sin(Math.PI * uIn), 0.6);
+          lightVX = eIn * 100;
+        }
+        if (uOut > 0 && next?.wipe === "door") {
+          clipY = -100 * eOut;
+          counterY = 22 * eOut;
+          lightHOn = Math.pow(Math.sin(Math.PI * uOut), 0.6);
+          lightHY = (1 - eOut) * 100;
+        }
+        act.clip.style.transform = `translate3d(${clipX}%, ${clipY}%, 0)`;
+        act.counter.style.transform = `translate3d(${counterX}%, ${counterY}%, 0)`;
+
+        // Ken Burns across the frame's whole life, plus a push from the light when the next frame sweeps in.
+        const lifeStart = k === 0 ? 0 : changeAt[k];
+        const lifeEnd = k === n - 1 ? total : changeAt[k + 1] + CHANGE;
+        const v = clamp01((T - lifeStart) / (lifeEnd - lifeStart));
+        const kb = KB[k] ?? KB[0];
+        const s = kb.s[0] + (kb.s[1] - kb.s[0]) * v;
+        let px = kb.x[0] + (kb.x[1] - kb.x[0]) * v;
+        const py = kb.y[0] + (kb.y[1] - kb.y[0]) * v;
+        if (uOut > 0 && next?.wipe === "sweep") px += 7 * eOut;
+        act.pic.style.transform = `translate3d(${px.toFixed(3)}%, ${py.toFixed(3)}%, 0) scale(${s.toFixed(4)})`;
+
+        // Darkness: the frame being covered dims, the frame behind a door waits in shadow, the last one fades.
+        let dim = 0;
+        if (uOut > 0 && next?.wipe === "sweep") dim = 0.5 * eOut;
+        if (uIn < 1 && act.wipe === "door") dim = Math.max(dim, 0.62 * (1 - eIn));
+        if (k === n - 1) dim = Math.max(dim, 0.5 * ease(clamp01((T - tailAt) / TAIL)));
+        if (act.dim) act.dim.style.opacity = dim.toFixed(3);
+      }
+
+      // Words going out first, so the words coming in know to wait for them, in either scroll direction.
+      places.forEach((place, k) => place !== "in" && words(acts[k], place));
+      places.forEach((place, k) => place === "in" && words(acts[k], place));
+
+      if (lightV) {
+        lightV.style.opacity = lightVOn.toFixed(3);
+        if (lightVOn > 0) lightV.style.transform = `translate3d(${lightVX.toFixed(2)}%, 0, 0)`;
+      }
+      if (lightH) {
+        lightH.style.opacity = lightHOn.toFixed(3);
+        if (lightHOn > 0) lightH.style.transform = `translate3d(0, ${lightHY.toFixed(2)}%, 0)`;
+      }
+
+      // The trails draw themselves as the last frame arrives, then light runs along them.
+      if (trails.length) {
+        const from = changeAt[n - 1] + CHANGE * 0.35;
+        const d = clamp01((T - from) / (holdAt[n - 1] + (HOLD[n - 1] ?? 1) + TAIL * 0.4 - from));
+        trails.forEach((path, i) => {
+          const draw = clamp01(d * 1.35 - (i % coreCount) * 0.07);
+          path.style.strokeDashoffset = (1 - draw).toFixed(4);
         });
-        visibilityObserver.observe(hero);
-      }, 2500),
-    );
-  }
+        if (flowGroup) flowGroup.style.opacity = rich ? clamp01((d - 0.75) / 0.25).toFixed(3) : "0";
+        setFlow(rich && onScreen && d > 0.75);
+      }
 
-  function teardown() {
-    visibilityObserver?.disconnect();
-    visibilityObserver = null;
-    dispose3D?.();
-    dispose3D = null;
-    posterObserver?.disconnect();
-    posterObserver = null;
-    if (stage) stage.dataset.live = "false";
-  }
+      if (latest !== current) {
+        current = latest;
+        if (indexEl) indexEl.textContent = String(latest + 1).padStart(2, "0");
+      }
+      if (barEl) barEl.style.transform = `scaleX(${p.toFixed(4)})`;
+    }
 
-  if (hero && stage) {
-    afterLoad(loadPoster);
-    schedule3D();
-    window.addEventListener("pagehide", teardown);
-    document.addEventListener("astro:before-swap", teardown, { once: true });
-    window.addEventListener("pageshow", (event) => {
-      if (!event.persisted) return;
-      watchPoster();
-      schedule3D();
+    // Starting state: the later acts' words wait under their masks, their links unseen.
+    acts.forEach((act, index) => {
+      if (index === 0) return;
+      if (act.lines.length) gsap.set(act.lines, { yPercent: 118 });
+      if (act.extras.length) gsap.set(act.extras, { autoAlpha: 0, y: 12 });
     });
+    // The stylesheet holds the hero lines under their masks: hand the offset over to GSAP.
+    gsap.set(stage.querySelectorAll("[data-hero-line]"), { y: 0, yPercent: 118 });
+
+    const shared = { p: 0 };
+    gsap.to(shared, {
+      p: 1,
+      ease: "none",
+      scrollTrigger: {
+        trigger: op,
+        start: "top top",
+        end: () => `+=${Math.max(1, op.offsetHeight - stage.offsetHeight)}`,
+        scrub: 0.8,
+        invalidateOnRefresh: true,
+      },
+      onUpdate: () => render(shared.p),
+    });
+
+    // Nothing runs while the stage is off screen.
+    new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+      if (!onScreen) setFlow(false);
+      else render(shared.p);
+    }).observe(stage);
+
+    op.dataset.ready = "";
+    render(shared.p);
+    ScrollTrigger.refresh();
+
+    // The later frames join the layout (and load) once the first is in.
+    loaded.then(() => {
+      op.dataset.armed = "";
+      imgs.slice(1).forEach((img) => (img.loading = "eager"));
+      render(shared.p);
+    });
+
+    // The preloader's doors part: its seam of light carries on as frame one's first light.
+    whenPreloaderParts(() => {
+      const veil = stage.querySelector<HTMLElement>("[data-veil]");
+      const seam = stage.querySelector<HTMLElement>("[data-seam]");
+      const first = acts[0];
+      const heroLines = stage.querySelectorAll<HTMLElement>("[data-hero-line]");
+      const soft = stage.querySelectorAll<HTMLElement>("[data-hero-soft]");
+      if (veil) gsap.to(veil, { autoAlpha: 0, duration: rich ? 1.7 : 0.9, ease: "power2.out", delay: 0.1 });
+      if (first.img) gsap.fromTo(first.img, { scale: 1.12 }, { scale: 1, duration: 3.4, ease: "expo.out" });
+      if (seam && rich) {
+        gsap.fromTo(seam, { autoAlpha: 1, scaleY: 1 }, { scaleY: 40, autoAlpha: 0, duration: 1.5, ease: "power2.out" });
+      }
+      settle(first, 0.55);
+      // The H1 rises once the doors are well apart, so no line shows cut inside the gap between them.
+      gsap.to(heroLines, { yPercent: 0, duration: 1.4, ease: "expo.out", stagger: 0.14, delay: 0.8 });
+      gsap.to(soft, { autoAlpha: 1, duration: 1.2, ease: "expo.out", stagger: 0.1, delay: 1.4 });
+    });
+  }
+
+  if (op) {
+    const stage = op.querySelector<HTMLElement>("[data-op-stage]");
+    const imgs = [...op.querySelectorAll<HTMLImageElement>("[data-op-img]")];
+    const pinned = op.hasAttribute("data-mode");
+    const loaded = reportLoad(imgs, pinned);
+    if (pinned && stage) {
+      play(op, stage, imgs, loaded).catch(() => {
+        // Without the timeline the frames go back to the plain stack, words and all.
+        op.removeAttribute("data-mode");
+        op.removeAttribute("data-flow");
+      });
+    }
   }
 </script>

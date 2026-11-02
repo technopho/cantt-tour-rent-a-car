@@ -1,31 +1,149 @@
 ---
 /**
- * Trip composer band, directly under the hero. The composer island is owned by the quote
- * engineer (src/components/quote/TripComposer.svelte); this band only frames it and passes the
- * slim catalog list built at build time with toComposerModels().
+ * Trip composer band, after the Collection. The composer island is owned by the quote engineer
+ * (src/components/quote/TripComposer.svelte); this band only frames it and passes the slim catalog
+ * list built at build time with toComposerModels(). The picture sits behind the headline on the left
+ * and the island keeps its own solid panel, so nothing here can clip or restyle it.
  */
 import Container from "@/components/Container.astro";
 import TripComposer from "@/components/quote/TripComposer.svelte";
 import type { ComposerModel } from "@/components/quote/types";
+import type { HomeImage } from "./home-data";
 
 interface Props {
   models: ComposerModel[];
+  image?: HomeImage;
 }
 
-const { models } = Astro.props;
+const { models, image } = Astro.props;
 ---
 
-<section id="plan" class="relative border-b border-line pt-6 pb-[calc(var(--section-space)*0.55)] lg:pt-4" aria-labelledby="plan-title">
-  <Container class="grid gap-6 lg:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] lg:items-start lg:gap-12">
-    <div class="flex flex-col gap-3 lg:pt-6">
-      <h2 id="plan-title" class="text-display-md text-fg">Plan the trip in one line</h2>
-      <p class="text-muted">
-        Choose the car, the dates and where we pick you up. You see an estimate from our current rates straight away,
-        and our team confirms the final price on WhatsApp.
+<section id="plan" class="plan" aria-labelledby="plan-title">
+  <div class="plan-media" data-fx="image" aria-hidden={image ? undefined : "true"}>
+    {
+      image && (
+        <img
+          src={image.img.src}
+          srcset={image.img.srcset || undefined}
+          sizes={image.img.srcset ? "(min-width: 64rem) 66vw, 100vw" : undefined}
+          width={image.img.width}
+          height={image.img.height}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          class="plan-img"
+          style={image.position ? `--focus:${image.position}` : undefined}
+          data-fx="parallax"
+          data-speed="0.12"
+        />
+      )
+    }
+  </div>
+  {image?.caption && <p class="plan-cap">{image.caption}</p>}
+
+  <Container class="plan-grid">
+    <div class="plan-head">
+      <h2 id="plan-title" class="plan-title" data-fx="lines">Plan the trip in <em>one</em> line</h2>
+      <p class="plan-text" data-fx="fade" data-delay="0.2">
+        Choose the car, the dates and where we pick you up. You see an estimate from our current rates straight away, and our team
+        confirms the final price on WhatsApp.
       </p>
     </div>
-    <div class="min-w-0">
+    <div class="plan-panel min-w-0">
       <TripComposer client:visible models={models} compact />
     </div>
   </Container>
 </section>
+
+<style>
+  .plan {
+    position: relative;
+    isolation: isolate;
+  }
+  .plan-media {
+    position: relative;
+    height: clamp(18rem, 78vw, 28rem);
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .plan-media::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgb(7 7 8 / 0.2) 0%, transparent 40%, var(--bg) 100%);
+  }
+  .plan-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    object-fit: cover;
+    object-position: var(--focus, 50% 50%);
+  }
+  .plan-cap {
+    position: absolute;
+    top: 0.75rem;
+    right: var(--gutter);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    color: rgb(242 236 224 / 0.72);
+    z-index: 1;
+  }
+  .plan :global(.plan-grid) {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 1.75rem;
+    margin-top: clamp(-9rem, -28vw, -6rem);
+    padding-bottom: clamp(3rem, 6vw, 5rem);
+  }
+  .plan-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(3rem, 2rem + 4.6vw, 6.25rem);
+    line-height: 0.98;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .plan-text {
+    margin-top: 1.1rem;
+    max-width: 28rem;
+    color: var(--text);
+  }
+
+  @media (width >= 64rem) {
+    .plan {
+      min-height: min(100dvh, 56rem);
+      display: flex;
+      align-items: stretch;
+    }
+    .plan-media {
+      position: absolute;
+      inset: 0 34% 0 0;
+      height: auto;
+    }
+    .plan-media::after {
+      background:
+        linear-gradient(90deg, transparent 55%, var(--bg) 100%),
+        linear-gradient(180deg, rgb(7 7 8 / 0.25) 0%, transparent 35%, rgb(7 7 8 / 0.82) 100%);
+    }
+    .plan-cap {
+      top: auto;
+      bottom: 0.75rem;
+      left: var(--gutter);
+      right: auto;
+    }
+    .plan :global(.plan-grid) {
+      width: 100%;
+      margin-top: 0;
+      padding-block: clamp(4rem, 8vh, 6rem);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 34rem);
+      align-items: end;
+      gap: clamp(2rem, 4vw, 4.5rem);
+    }
+    .plan-head {
+      padding-bottom: 1.5rem;
+    }
+  }
+</style>

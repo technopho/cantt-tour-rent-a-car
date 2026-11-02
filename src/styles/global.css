@@ -1,13 +1,18 @@
 /*
  * Cantt Rent a Car: design tokens + base styles (Tailwind CSS 4).
- * Tokens follow website/DESIGN.md. Dark is the brand mode (default); light applies under
- * prefers-color-scheme: light with the same hierarchy. One theme per page, no section flips.
+ * Tokens follow website/DESIGN.md ("The Private Garage, After Dark"). One theme: dark.
  *
  * Utility names you get from the tokens below:
  *   bg-bg  bg-surface  bg-surface-2  border-line  border-line-strong  text-fg  text-muted
  *   text-accent  bg-accent  bg-accent-soft  text-accent-fg  bg-accent-fill  text-accent-ink
- *   text-whatsapp  font-display  font-sans  text-display-{2xl,xl,lg,md,sm}  text-lede  text-eyebrow
- *   rounded-card (16px)  rounded-badge (8px)  rounded-full (pills)  max-w-site  pt-header
+ *   text-ember  bg-ember  text-whatsapp  font-display  font-sans
+ *   text-display-{2xl,xl,lg,md,sm} (Bodoni, 28px and up)  text-lede  text-eyebrow
+ *   label (11px caps, 0.22em)  eyebrow (label in brass)
+ *   rounded-card, rounded-badge (2px; rounded-full is flattened too, see "Shape guard")
+ *   btn btn-primary|btn-secondary|btn-ghost btn-sm|btn-md|btn-lg (what Button.astro renders)
+ *   link-draw (underline that draws itself)  max-w-site  pt-header
+ *
+ * Motion attributes (data-fx="...") are documented in src/scripts/fx/index.ts.
  */
 
 @import "tailwindcss";
@@ -15,123 +20,123 @@
 /* ------------------------------------------------------------------------------------------
  * Self-hosted variable fonts (files from @fontsource-variable/*, hashed into /_astro/).
  * Only the latin + latin-ext subsets are declared: the site is English / Roman Urdu, and the
- * package's full index.css would add cyrillic, greek and vietnamese faces (two of them small
- * enough for Vite to inline as base64 into this render-blocking stylesheet).
- * BaseLayout preloads the two latin files; they must stay the same files as below.
+ * package's full index.css would add math and symbols faces.
+ * Bodoni uses the "standard" files because they carry the optical-size axis: at display sizes
+ * font-optical-sizing: auto picks the high-contrast cut.
+ * BaseLayout preloads the Bodoni roman and Instrument Sans latin files; they must stay the same
+ * files as below.
  * ---------------------------------------------------------------------------------------- */
 @font-face {
-  font-family: "Unbounded Variable";
+  font-family: "Bodoni Moda Variable";
   font-style: normal;
   font-display: swap;
-  font-weight: 200 900;
-  src: url("@fontsource-variable/unbounded/files/unbounded-latin-ext-wght-normal.woff2") format("woff2-variations");
+  font-weight: 400 900;
+  src: url("@fontsource-variable/bodoni-moda/files/bodoni-moda-latin-ext-standard-normal.woff2") format("woff2-variations");
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
-  font-family: "Unbounded Variable";
+  font-family: "Bodoni Moda Variable";
   font-style: normal;
   font-display: swap;
-  font-weight: 200 900;
-  src: url("@fontsource-variable/unbounded/files/unbounded-latin-wght-normal.woff2") format("woff2-variations");
+  font-weight: 400 900;
+  src: url("@fontsource-variable/bodoni-moda/files/bodoni-moda-latin-standard-normal.woff2") format("woff2-variations");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "Manrope Variable";
-  font-style: normal;
+  font-family: "Bodoni Moda Variable";
+  font-style: italic;
   font-display: swap;
-  font-weight: 200 800;
-  src: url("@fontsource-variable/manrope/files/manrope-latin-ext-wght-normal.woff2") format("woff2-variations");
+  font-weight: 400 900;
+  src: url("@fontsource-variable/bodoni-moda/files/bodoni-moda-latin-ext-standard-italic.woff2") format("woff2-variations");
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
-  font-family: "Manrope Variable";
+  font-family: "Bodoni Moda Variable";
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400 900;
+  src: url("@fontsource-variable/bodoni-moda/files/bodoni-moda-latin-standard-italic.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Instrument Sans Variable";
   font-style: normal;
   font-display: swap;
-  font-weight: 200 800;
-  src: url("@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2") format("woff2-variations");
+  font-weight: 400 700;
+  src: url("@fontsource-variable/instrument-sans/files/instrument-sans-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Instrument Sans Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url("@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2") format("woff2-variations");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 /* ------------------------------------------------------------------------------------------
- * Fallback faces tuned to the real fonts' metrics (computed from the woff2 files) so the
- * swap from Arial to Unbounded/Manrope does not shift layout (CLS budget 0.05).
+ * Fallback faces tuned to the real fonts' metrics so the swap does not shift layout
+ * (CLS budget 0.05). Values measured against the woff2 files in the browser.
  * ---------------------------------------------------------------------------------------- */
 @font-face {
-  font-family: "Unbounded Fallback";
-  src: local("Arial"), local("Helvetica Neue"), local("Helvetica"), local("Roboto");
-  size-adjust: 134.44%;
-  ascent-override: 74.01%;
-  descent-override: 18.22%;
+  font-family: "Bodoni Fallback";
+  src: local("Times New Roman"), local("Times"), local("Liberation Serif"), local("Georgia");
+  size-adjust: 111.4%;
+  ascent-override: 101.4%;
+  descent-override: 35.9%;
   line-gap-override: 0%;
 }
 @font-face {
-  font-family: "Manrope Fallback";
+  font-family: "Instrument Fallback";
   src: local("Arial"), local("Helvetica Neue"), local("Helvetica"), local("Roboto");
-  size-adjust: 99.17%;
-  ascent-override: 107.49%;
-  descent-override: 30.25%;
+  size-adjust: 101.8%;
+  ascent-override: 95.3%;
+  descent-override: 24.6%;
   line-gap-override: 0%;
 }
 
 /* ------------------------------------------------------------------------------------------
- * Raw tokens. Locked values from DESIGN.md, plus a few derived accessible variants:
- *  --accent-fg    accent for SMALL text (links, eyebrows, prices). AA on bg, surface, surface-2.
- *  --accent-fill  background for filled buttons. AA with --accent-ink (white).
- *  The locked --accent itself is for icons, glows, large display text, borders and focus rings.
+ * Raw tokens. Locked values from DESIGN.md:
+ *  --accent       champagne brass: rules, icons, large display, focus.
+ *  --accent-fg    brass for SMALL text (links, eyebrows, prices). AA on bg, surface, surface-2.
+ *  --accent-fill  background of filled buttons, with --accent-ink text.
+ *  --ember        tail-lights only (3D, trails, small glows). Never on a button.
  * ---------------------------------------------------------------------------------------- */
 :root {
   color-scheme: dark;
 
-  --bg: #0b0d12;
-  --surface: #12151c;
-  --surface-2: #1a1e27;
-  --line: rgb(255 255 255 / 0.08);
-  --line-strong: rgb(255 255 255 / 0.36); /* form controls: 3:1 against surface */
-  --text: #eef0f3;
-  --muted: #9aa3b2;
-  --accent: #e8553d;
-  --accent-ink: #ffffff;
+  --bg: #070708;
+  --surface: #0f0e0d;
+  --surface-2: #181614;
+  --line: rgb(236 224 200 / 0.12);
+  --line-strong: rgb(236 224 200 / 0.42); /* form controls: 3:1 against surface */
+  --text: #f2ece0;
+  --muted: #a79e8e;
+  --accent: #c9a66b;
+  --accent-ink: #0b0a08;
 
-  --accent-fg: #e8553d; /* 5.37:1 on bg, 4.61:1 on surface-2 */
-  --accent-fill: #cf472f; /* white text 4.57:1 */
-  --accent-fill-hover: #c4412a; /* white text 5.08:1 */
-  --accent-soft: rgb(232 85 61 / 0.14);
-  --whatsapp: #25d366; /* brand mark colour, 8.4:1 on surface-2 */
+  --accent-fg: #d4b27a;
+  --accent-fill: #c9a66b;
+  --accent-fill-hover: #dcbd86;
+  --accent-soft: rgb(201 166 107 / 0.14);
+  --ember: #c1281d;
+  /* The WhatsApp glyph stays recognisable in brass; no neon green on this site (DESIGN.md). */
+  --whatsapp: #d4b27a;
 
-  --shadow-tint: 222 47% 2%;
-  --grain-opacity: 0.045;
-  --header-bg: rgb(11 13 18 / 0.84);
-  --theme-color: #0b0d12;
+  --shadow-tint: 30 20% 2%;
+  --grain-opacity: 0.07;
+  /* Monochrome noise, full alpha. As a mid grey it would be invisible under mix-blend-mode: overlay. */
+  --film-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='1.6 0 0 0 -0.3 1.6 0 0 0 -0.3 1.6 0 0 0 -0.3 0 0 0 0 1'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --header-bg: rgb(7 7 8 / 0.62);
+  --theme-color: #070708;
+
+  /* The one easing of the site: slow and heavy. */
+  --ease-heavy: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-door: cubic-bezier(0.76, 0, 0.24, 1);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color-scheme: light;
-
-    --bg: #f3f4f6;
-    --surface: #ffffff;
-    --surface-2: #e9ebef;
-    --line: rgb(12 15 22 / 0.1);
-    --line-strong: rgb(12 15 22 / 0.48);
-    --text: #10131a;
-    --muted: #4b5363;
-    --accent: #c9432c;
-    --accent-ink: #ffffff;
-
-    --accent-fg: #b23a25; /* 5.41:1 on bg, 4.99:1 on surface-2 */
-    --accent-fill: #c9432c; /* white text 4.86:1 */
-    --accent-fill-hover: #b23a25; /* white text 5.96:1 */
-    --accent-soft: rgb(201 67 44 / 0.1);
-    --whatsapp: #128c4a; /* darker green keeps 3:1+ on light surfaces */
-
-    --shadow-tint: 222 25% 35%;
-    --grain-opacity: 0.03;
-    --header-bg: rgb(243 244 246 / 0.86);
-    --theme-color: #f3f4f6;
-  }
-}
-
-/* Static theme values (not colour-scheme dependent). */
+/* Static theme values. */
 @theme {
   /* Kill the default palette so every agent builds from the brand tokens only. */
   --color-*: initial;
@@ -139,51 +144,62 @@
   --color-black: #000000;
 
   --font-*: initial;
-  --font-display: "Unbounded Variable", "Unbounded Fallback", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Manrope Variable", "Manrope Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bodoni Moda Variable", "Bodoni Fallback", "Bodoni 72", Didot, "Times New Roman", serif;
+  --font-sans: "Instrument Sans Variable", "Instrument Fallback", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Display scale (Unbounded, tight tracking). Pair with font-display (h1-h4 get it by default). */
-  --text-display-2xl: clamp(2.5rem, 1.15rem + 5.4vw, 6rem);
-  --text-display-2xl--line-height: 0.98;
-  --text-display-2xl--letter-spacing: -0.045em;
-  --text-display-xl: clamp(2.125rem, 1.25rem + 3.6vw, 4.5rem);
-  --text-display-xl--line-height: 1.02;
-  --text-display-xl--letter-spacing: -0.04em;
-  --text-display-lg: clamp(1.75rem, 1.15rem + 2.4vw, 3.25rem);
-  --text-display-lg--line-height: 1.06;
-  --text-display-lg--letter-spacing: -0.035em;
-  --text-display-md: clamp(1.375rem, 1.05rem + 1.3vw, 2.125rem);
-  --text-display-md--line-height: 1.12;
-  --text-display-md--letter-spacing: -0.03em;
-  --text-display-sm: clamp(1.0625rem, 0.95rem + 0.5vw, 1.375rem);
-  --text-display-sm--line-height: 1.25;
-  --text-display-sm--letter-spacing: -0.02em;
+  /*
+   * Display scale (Bodoni Moda, regular weight, tight leading). Any element with one of these gets
+   * the display face automatically. Nothing below 28px: a Didone's hairlines vanish when small.
+   */
+  --text-display-2xl: clamp(3.5rem, 11vw, 11rem);
+  --text-display-2xl--line-height: 0.95;
+  --text-display-2xl--letter-spacing: -0.01em;
+  --text-display-xl: clamp(3rem, 1.75rem + 5.2vw, 7.5rem);
+  --text-display-xl--line-height: 0.98;
+  --text-display-xl--letter-spacing: -0.01em;
+  --text-display-lg: clamp(2.5rem, 1.75rem + 3vw, 5rem);
+  --text-display-lg--line-height: 1.02;
+  --text-display-lg--letter-spacing: -0.008em;
+  --text-display-md: clamp(2.125rem, 1.8rem + 1.35vw, 3.25rem);
+  --text-display-md--line-height: 1.06;
+  --text-display-md--letter-spacing: -0.005em;
+  --text-display-sm: clamp(1.75rem, 1.6rem + 0.55vw, 2.25rem);
+  --text-display-sm--line-height: 1.12;
+  --text-display-sm--letter-spacing: 0em;
 
-  /* Text scale (Manrope). */
+  /* Text scale (Instrument Sans). */
   --text-lede: clamp(1.0625rem, 0.98rem + 0.4vw, 1.3125rem);
   --text-lede--line-height: 1.55;
-  --text-eyebrow: 0.75rem;
-  --text-eyebrow--line-height: 1.2;
-  --text-eyebrow--letter-spacing: 0.16em;
+  --text-eyebrow: 0.6875rem;
+  --text-eyebrow--line-height: 1.3;
+  --text-eyebrow--letter-spacing: 0.22em;
 
-  /* Shape system: pills for buttons/chips, 16px for cards/inputs/media, 8px for small badges. */
-  --radius-card: 1rem;
-  --radius-badge: 0.5rem;
+  /* Shape system: no pills, no bubbly cards (DESIGN.md). */
+  --radius-card: 2px;
+  --radius-badge: 2px;
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
+  --radius-2xl: 2px;
+  --radius-3xl: 2px;
+  --radius-4xl: 2px;
 
-  --container-site: 87.5rem; /* 1400px */
+  --container-site: 96rem; /* 1536px */
   --container-prose: 44rem;
 
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+  /* Same name as before, no overshoot: nothing on this site bounces. */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 
-  --animate-reveal-up: reveal-up 0.8s var(--ease-out) both;
-  --animate-fade-in: fade-in 0.6s var(--ease-out) both;
-
+  --animate-reveal-up: reveal-up 1.2s var(--ease-out) both;
+  --animate-fade-in: fade-in 1s var(--ease-out) both;
 }
 
-/* Colour utilities reference the live CSS variables so light/dark switch automatically. */
+/* Colour utilities reference the live CSS variables. */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -198,10 +214,11 @@
   --color-accent-fill-hover: var(--accent-fill-hover);
   --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
+  --color-ember: var(--ember);
   --color-whatsapp: var(--whatsapp);
 
-  --shadow-soft: 0 1px 2px hsl(var(--shadow-tint) / 0.18), 0 12px 32px -12px hsl(var(--shadow-tint) / 0.45);
-  --shadow-lift: 0 2px 4px hsl(var(--shadow-tint) / 0.2), 0 24px 60px -20px hsl(var(--shadow-tint) / 0.55);
+  --shadow-soft: 0 1px 2px hsl(var(--shadow-tint) / 0.3), 0 12px 32px -12px hsl(var(--shadow-tint) / 0.6);
+  --shadow-lift: 0 2px 4px hsl(var(--shadow-tint) / 0.35), 0 30px 70px -24px hsl(var(--shadow-tint) / 0.8);
 }
 
 /* Keyframes shared by reveals and animate-* utilities. */
@@ -240,18 +257,18 @@
 @layer base {
   :root {
     --header-h: 4rem;
-    --gutter: 1rem;
-    --section-space: clamp(4.5rem, 3rem + 6vw, 9rem);
+    --gutter: 1.25rem;
+    --section-space: clamp(5.5rem, 3rem + 8vw, 12rem);
   }
   @media (width >= 40rem) {
     :root {
-      --gutter: 1.5rem;
+      --gutter: 2rem;
     }
   }
   @media (width >= 64rem) {
     :root {
-      --header-h: 4.5rem;
-      --gutter: 2.5rem;
+      --header-h: 4.75rem;
+      --gutter: 3.5rem;
     }
   }
 
@@ -267,6 +284,7 @@
     background-color: var(--bg);
     color: var(--text);
     font-family: var(--font-sans);
+    font-optical-sizing: auto;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
@@ -274,6 +292,7 @@
     text-rendering: optimizeLegibility;
     scroll-padding-top: calc(var(--header-h) + 1rem);
     hanging-punctuation: first last;
+    scrollbar-color: rgb(236 224 200 / 0.22) transparent;
   }
 
   body {
@@ -285,14 +304,22 @@
     overflow-x: clip;
   }
 
+  /* Page-level headings are Bodoni; h3 and h4 are usually small, so they stay in the text face
+     unless they carry a text-display-* or font-display class (see the guard below). */
   h1,
-  h2,
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.04;
+    letter-spacing: -0.008em;
+    text-wrap: balance;
+  }
   h3,
   h4 {
-    font-family: var(--font-display);
-    font-weight: 600;
-    line-height: 1.1;
-    letter-spacing: -0.025em;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: 0;
     text-wrap: balance;
   }
 
@@ -305,16 +332,16 @@
 
   strong,
   b {
-    font-weight: 700;
+    font-weight: 600;
   }
 
   ::selection {
-    background-color: color-mix(in oklab, var(--accent) 38%, transparent);
+    background-color: color-mix(in oklab, var(--accent) 42%, transparent);
     color: var(--text);
   }
 
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 1px solid var(--accent);
     outline-offset: 3px;
   }
   :focus:not(:focus-visible) {
@@ -349,7 +376,7 @@
  * Utilities
  * ---------------------------------------------------------------------------------------- */
 
-/* Page container: max 1400px, 16px gutters on phones, 24px tablets, 40px desktop. */
+/* Page container: max 1536px, generous gutters, safe-area aware. */
 @utility container-site {
   width: 100%;
   max-width: var(--container-site);
@@ -373,14 +400,24 @@
   padding-bottom: var(--section-space);
 }
 
-/* Small caps label above headings. Restraint rule: at most 1 eyebrow per 3 sections. */
+/* Instrument Sans, 11px caps, tracking 0.22em. */
+@utility label {
+  font-family: var(--font-sans);
+  font-size: var(--text-eyebrow);
+  line-height: 1.3;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* The same label in brass, above headings. */
 @utility eyebrow {
   font-family: var(--font-sans);
   font-size: var(--text-eyebrow);
-  line-height: 1.2;
-  letter-spacing: 0.16em;
+  line-height: 1.3;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--accent-fg);
 }
 
@@ -421,9 +458,225 @@
   z-index: 60;
   pointer-events: none;
   opacity: var(--grain-opacity);
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-image: var(--film-grain);
   background-size: 220px 220px;
   mix-blend-mode: overlay;
+}
+
+/* Licensed place photos (Unsplash, Pexels) were shot in daylight or mixed city light: graded into the site's
+   night, warm and low. AI pictures were made for it and stay as they are. Plate, Interlude and HeroImage set the
+   class when the picture carries a credit. */
+img.photo-grade {
+  filter: sepia(0.34) saturate(0.5) brightness(0.74) contrast(1.08);
+}
+
+/* The same grain, stronger, on a hero picture (HeroImage.astro). Sits under the scrim so blacks stay black. */
+.hero-grain {
+  pointer-events: none;
+  opacity: 0.16;
+  background-image: var(--film-grain);
+  background-size: 220px 220px;
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Type guard. Written outside any layer so it wins over utilities, on purpose. Bodoni's hairlines need size:
+ *  - every text-display-* is Bodoni at regular weight, whatever else the class list says;
+ *  - under 48px it uses a low optical size, whose hairlines survive (auto would pick the high-contrast cut).
+ *    Fluid clamp() sizes are left on auto, since their class cannot say how large they get;
+ *  - font-display (or an h1/h2) set under 28px falls back to the text face;
+ *  - figures under about 44px fall back to the text face: any tabular element, <data>, or .num, on the Bodoni
+ *    element or inside it (use .num for a number or price with no other marker). A big number takes
+ *    text-display-lg or larger.
+ *  - font-display with a heavier weight and no display size is a small label from before the redesign.
+ * Scoped CSS that sets font-family itself is not guarded: keep Bodoni there at 48px and up, or set
+ * font-variation-settings: "opsz" 14 under that.
+ * ---------------------------------------------------------------------------------------- */
+[class*="text-display-"],
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+[class*="text-display-"] em,
+.font-display em {
+  font-style: italic;
+}
+.text-display-sm:not([class*=":text-display-"]),
+.text-display-md:not([class*=":text-display-"]),
+.font-display:is(.text-3xl, .text-4xl, [class*="text-[1.7"], [class*="text-[1.8"], [class*="text-[1.9"], [class*="text-[2rem"], [class*="text-[2."]),
+.prose-site h2 {
+  font-variation-settings: "opsz" 14;
+}
+@media (width < 48rem) {
+  .text-display-lg:not([class*=":text-display-"]),
+  .text-display-xl:not([class*=":text-display-"]) {
+    font-variation-settings: "opsz" 24;
+  }
+}
+:is(.font-display, h1, h2):is(.text-xs, .text-sm, .text-base, .text-lg, .text-xl, .text-2xl, [class*="text-[0."], [class*="text-[1.0"], [class*="text-[1.1"], [class*="text-[1.2"], [class*="text-[1.3"], [class*="text-[1.4"], [class*="text-[1.5"], [class*="text-[1.6"]),
+.font-display:is(.font-medium, .font-semibold, .font-bold):not([class*="text-display-"], [class*="text-["], .text-3xl, .text-4xl, .text-5xl, .text-6xl, .text-7xl, .text-8xl, .text-9xl) {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: 0;
+  font-variation-settings: normal;
+}
+:is(.font-display, .text-display-sm, .text-display-md):is(data, .tabular, .tabular-nums, .num):not(.text-5xl, .text-6xl, .text-7xl, .text-8xl, .text-9xl, [class*="text-[clamp(3"], [class*="text-[clamp(4"], [class*="text-[clamp(5"], [class*="text-[3"], [class*="text-[4"], [class*="text-[5"]),
+:is(.font-display, .text-display-sm, .text-display-md):not(.text-5xl, .text-6xl, .text-7xl, .text-8xl, .text-9xl, [class*="text-[clamp(3"], [class*="text-[clamp(4"], [class*="text-[clamp(5"], [class*="text-[3"], [class*="text-[4"], [class*="text-[5"]) :is(data, .tabular, .tabular-nums, .num) {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-variation-settings: normal;
+}
+
+/* Bodoni figures at any size: a low optical size keeps the hairlines of 1, 4 and 7, which the high-contrast cut
+   loses at 1x. Scoped number styles set the same. */
+:is(.font-display, [class*="text-display-"]) :is(.num, .tabular, .tabular-nums, data),
+:is(.font-display, [class*="text-display-"]):is(.num, .tabular, .tabular-nums, data) {
+  font-variation-settings: "opsz" 18;
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Shape guard. rounded-full is hard-coded across pages and islands: buttons, chips and badges
+ * become flat, but genuinely circular things (status dots, radio marks, map pins, glows) stay
+ * round. Add .is-round to keep anything else circular.
+ * ---------------------------------------------------------------------------------------- */
+.rounded-full:not(.is-round, .size-1, .size-1\.5, .size-2, .size-2\.5, .size-3, .size-5, .size-6, .size-full, .size-72, [class*="size-[1"], [class*="-dot"]) {
+  border-radius: var(--radius-badge);
+}
+/* Same for scoped component styles that hard-code a pill radius. */
+.fleet-chip,
+.fleet-seg,
+.token {
+  border-radius: var(--radius-badge) !important;
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Fine-tuned small pieces: buttons and the self-drawing underline.
+ * ---------------------------------------------------------------------------------------- */
+@layer components {
+  /*
+   * Rectangle, hairline, brass fill that slides in on hover (transform only). The fill is a
+   * pseudo-element, so a plain <a class="btn btn-primary btn-md"> works anywhere.
+   */
+  .btn {
+    --btn-line: var(--line-strong);
+    --btn-fg: var(--text);
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    overflow: hidden;
+    white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+    border: 1px solid var(--btn-line);
+    border-radius: var(--radius-badge);
+    color: var(--btn-fg);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    transition:
+      color 0.5s var(--ease-heavy),
+      border-color 0.5s var(--ease-heavy),
+      opacity 0.3s linear;
+    &::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      z-index: -1;
+      background: var(--accent-fill);
+      transform: translate3d(0, 102%, 0);
+      transition: transform 0.75s var(--ease-heavy);
+    }
+    &:disabled,
+    &[aria-disabled="true"] {
+      pointer-events: none;
+      opacity: 0.5;
+    }
+  }
+  .btn-primary {
+    --btn-line: var(--accent);
+  }
+  .btn-ghost {
+    --btn-line: transparent;
+  }
+  .btn-sm {
+    height: 2.25rem;
+    padding-inline: 1rem;
+    font-size: 0.6875rem;
+  }
+  .btn-md {
+    height: 2.75rem;
+    padding-inline: 1.5rem;
+    font-size: 0.71875rem;
+  }
+  .btn-lg {
+    height: 3.5rem;
+    padding-inline: 2.25rem;
+    font-size: 0.75rem;
+  }
+  .btn-icon {
+    padding-inline: 0;
+    aspect-ratio: 1;
+  }
+  @media (hover: hover) {
+    .btn:hover {
+      color: var(--accent-ink);
+      border-color: var(--accent-fill);
+      &::before {
+        transform: none;
+      }
+      & svg {
+        color: inherit;
+      }
+    }
+    .btn-ghost:hover {
+      border-color: transparent;
+    }
+  }
+  /* No hover on phones: the primary action wears its fill all the time. */
+  @media (hover: none) {
+    .btn-primary {
+      --btn-line: var(--accent-fill);
+      --btn-fg: var(--accent-ink);
+      &::before {
+        transform: none;
+      }
+    }
+    .btn-secondary:active,
+    .btn-ghost:active {
+      color: var(--accent-ink);
+      &::before {
+        transform: none;
+        transition-duration: 0.2s;
+      }
+    }
+  }
+
+  /* Underline that draws itself from the left, retracts to the right. */
+  .link-draw {
+    position: relative;
+    text-decoration: none;
+    &::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 -0.25em 0;
+      height: 1px;
+      background: currentColor;
+      transform: scaleX(0);
+      transform-origin: 100% 50%;
+      transition: transform 0.7s var(--ease-heavy);
+    }
+    &:hover::after,
+    &:focus-visible::after,
+    &[aria-current="page"]::after {
+      transform: scaleX(1);
+      transform-origin: 0 50%;
+    }
+  }
 }
 
 /* ------------------------------------------------------------------------------------------
@@ -431,6 +684,7 @@
  *  Usage: <div data-reveal>, data-reveal="fade" | "scale", optional data-reveal-delay="1|2|3".
  *  Modern browsers: CSS scroll-driven animation (no JS). Others: an IntersectionObserver in
  *  src/scripts/reveal.ts adds .is-revealed. Never put data-reveal on the H1 / LCP element.
+ *  The heavier, sequenced reveals are data-fx (src/scripts/fx/index.ts).
  * ---------------------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
@@ -459,8 +713,8 @@
   @supports not (animation-timeline: view()) {
     .js [data-reveal] {
       transition:
-        opacity 0.8s var(--ease-out),
-        transform 0.8s var(--ease-out);
+        opacity 1.1s var(--ease-out),
+        transform 1.1s var(--ease-out);
     }
     .js [data-reveal]:not(.is-revealed) {
       opacity: 0;
@@ -485,43 +739,159 @@
 }
 
 /* ------------------------------------------------------------------------------------------
- * Cross-document view transitions (progressive enhancement, no client router).
+ * Motion layer states (src/scripts/fx/). Elements wait hidden ONLY while html.js is set and the
+ * fallback has not fired (html.fx-off, set by the preloader script when the module is late or
+ * failed). The module sets data-fx-on on every element it has taken over.
  * ---------------------------------------------------------------------------------------- */
-@view-transition {
-  navigation: auto;
-}
-
 @media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root) {
-    animation: 180ms var(--ease-in-out) both vt-fade-out;
-  }
-  ::view-transition-new(root) {
-    animation: 380ms var(--ease-out) 60ms both vt-rise-in;
-  }
-}
-
-/* Header and FAB stay put while the page underneath changes. */
-.site-header {
-  view-transition-name: site-header;
-}
-.whatsapp-fab {
-  view-transition-name: whatsapp-fab;
-}
-::view-transition-group(site-header),
-::view-transition-group(whatsapp-fab) {
-  animation-duration: 0s;
-}
-
-@keyframes vt-fade-out {
-  to {
+  html.js:not(.fx-off) :is([data-fx~="lines"], [data-fx~="words"], [data-fx~="fade"], [data-fx~="wordmark"]):not([data-fx-on]) {
     opacity: 0;
   }
+  html.js:not(.fx-off) [data-fx~="stagger"]:not([data-fx-on]) > * {
+    opacity: 0;
+  }
+  html.js:not(.fx-off) [data-fx~="image"]:not([data-fx-on]) {
+    clip-path: inset(100% 0 0 0);
+  }
+  html.js:not(.fx-off) [data-fx~="rule"]:not([data-fx-on]) {
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+  }
+
+  [data-fx~="kenburns"] {
+    animation: fx-kenburns 28s ease-in-out infinite alternate;
+    transform-origin: 62% 48%;
+    will-change: transform;
+  }
+  [data-fx~="kenburns"].fx-paused {
+    animation-play-state: paused;
+  }
 }
-@keyframes vt-rise-in {
+@keyframes fx-kenburns {
   from {
-    opacity: 0;
-    transform: translate3d(0, 10px, 0);
+    transform: scale(1.02);
   }
+  to {
+    transform: scale(1.14) translate3d(-1.6%, -1.2%, 0);
+  }
+}
+
+/* Masked lines (SplitText). The padding pair stops the mask clipping Bodoni's descenders at tight leading. */
+.fx-line-mask,
+.fx-word-mask {
+  padding-block: 0.08em 0.16em;
+  margin-block: -0.08em -0.16em;
+}
+.fx-word-mask {
+  display: inline-block;
+  vertical-align: top;
+}
+
+[data-fx~="marquee"] {
+  overflow: clip;
+}
+.fx-marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+.fx-marquee-track > * {
+  flex-shrink: 0;
+}
+
+/* Custom cursor: fine pointers only, added by the fx module (html.has-cursor). */
+html.has-cursor:not(:has(dialog[open])),
+html.has-cursor:not(:has(dialog[open])) :is(a, button, summary, label, [role="button"], [data-cursor]) {
+  cursor: none;
+}
+.fx-cursor-dot,
+.fx-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 90;
+  pointer-events: none;
+  will-change: transform;
+}
+.fx-cursor-dot {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.fx-cursor-ring {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin: -1.125rem 0 0 -1.125rem;
+}
+.fx-cursor-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid color-mix(in oklab, var(--accent) 65%, transparent);
+  border-radius: 50%;
+  transition:
+    transform 0.6s var(--ease-heavy),
+    background-color 0.6s var(--ease-heavy),
+    border-color 0.6s var(--ease-heavy);
+}
+.fx-cursor-ring span {
+  position: relative;
+  font-family: var(--font-sans);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--accent-ink);
+  opacity: 0;
+  transition: opacity 0.3s linear;
+  /* Letter-spacing trails after the last letter: balance it so the word sits in the centre. */
+  padding-left: 0.22em;
+}
+.fx-cursor-ring[data-state="link"]::before {
+  transform: scale(1.6);
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+}
+.fx-cursor-ring[data-state="label"]::before {
+  transform: scale(2.9);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.fx-cursor-ring[data-state="label"] span {
+  opacity: 1;
+}
+/* The dot sits on the ring's centre, which is the middle of the label. It steps aside. */
+.fx-cursor-ring[data-state="label"] + .fx-cursor-dot {
+  opacity: 0;
+}
+html:not(.has-cursor) :is(.fx-cursor-dot, .fx-cursor-ring),
+html:has(dialog[open]) :is(.fx-cursor-dot, .fx-cursor-ring),
+.fx-cursor-hide {
+  opacity: 0 !important;
+}
+
+/* Obsidian curtain that rises over the page before a same-site navigation (fx/transitions.ts), led by a
+   brass hairline. The next page's preloader starts from the same obsidian and lifts it away. Gold is the line,
+   never the fill. */
+.fx-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: var(--bg);
+  box-shadow:
+    inset 0 1px 0 var(--accent),
+    0 -1px 22px rgb(201 166 107 / 0.28);
+  transform: translate3d(0, 101%, 0);
+  transition: transform 0.42s var(--ease-door);
+  pointer-events: none;
+}
+.fx-curtain[data-state="in"] {
+  transform: none;
+  pointer-events: auto;
 }
 
 /* ------------------------------------------------------------------------------------------
@@ -534,16 +904,23 @@ html.lenis body {
 .lenis:not(.lenis-autoToggle).lenis-stopped {
   overflow: clip;
 }
+/* X axis only. Containing Y as well made a horizontal table swallow the vertical wheel, even with no overflow.
+   Vertical scrollers that want containment say so themselves (overscroll-contain). */
 .lenis [data-lenis-prevent],
 .lenis [data-lenis-prevent-wheel],
 .lenis [data-lenis-prevent-touch] {
-  overscroll-behavior: contain;
+  overscroll-behavior-x: contain;
+}
+/* The sticky "on this page" list: Chrome applies containment even when the list fits, which stops the wheel
+   dead with Lenis off (reduced motion, small windows). A list at its end hands over to the page instead. */
+nav[data-lenis-prevent] {
+  overscroll-behavior-y: auto;
 }
 .lenis.lenis-smooth iframe {
   pointer-events: none;
 }
 
-/* Scroll lock while the mobile menu dialog is open. */
+/* Scroll lock while the menu dialog is open. */
 html:has(dialog[open][data-scroll-lock]) {
   overflow: hidden;
 }
@@ -568,23 +945,20 @@ html:has(dialog[open][data-scroll-lock]) {
       scroll-margin-top: calc(var(--header-h) + 1.5rem);
     }
     & :where(h2) {
-      margin-top: 2.4em;
+      margin-top: 2.2em;
       font-size: var(--text-display-md);
       line-height: var(--text-display-md--line-height);
       letter-spacing: var(--text-display-md--letter-spacing);
     }
     & :where(h3) {
       margin-top: 2em;
-      font-size: var(--text-display-sm);
-      line-height: var(--text-display-sm--line-height);
-      letter-spacing: var(--text-display-sm--letter-spacing);
+      font-size: 1.25rem;
+      line-height: 1.3;
     }
     & :where(h4) {
       margin-top: 1.75em;
-      font-family: var(--font-sans);
       font-size: 1.0625rem;
-      font-weight: 700;
-      letter-spacing: 0;
+      font-weight: 600;
     }
     & :where(h2 + *, h3 + *, h4 + *) {
       margin-top: 0.75em;
@@ -594,14 +968,15 @@ html:has(dialog[open][data-scroll-lock]) {
     }
     & :where(a) {
       color: var(--accent-fg);
-      font-weight: 600;
+      font-weight: 500;
       text-decoration: underline;
       text-decoration-thickness: 1px;
-      text-underline-offset: 0.2em;
-      transition: text-decoration-color 0.2s var(--ease-out);
+      text-underline-offset: 0.25em;
+      text-decoration-color: color-mix(in oklab, var(--accent-fg) 45%, transparent);
+      transition: text-decoration-color 0.5s var(--ease-heavy);
     }
     & :where(a:hover) {
-      text-decoration-thickness: 2px;
+      text-decoration-color: var(--accent-fg);
     }
     & :where(ul, ol) {
       padding-left: 1.25em;
@@ -615,11 +990,10 @@ html:has(dialog[open][data-scroll-lock]) {
     & :where(ul > li)::before {
       content: "";
       position: absolute;
-      left: -1.05em;
-      top: 0.78em;
-      width: 0.45em;
-      height: 2px;
-      border-radius: 2px;
+      left: -1.25em;
+      top: 0.85em;
+      width: 0.6em;
+      height: 1px;
       background: var(--accent);
     }
     & :where(ol) {
@@ -627,15 +1001,15 @@ html:has(dialog[open][data-scroll-lock]) {
     }
     & :where(ol > li)::marker {
       color: var(--accent-fg);
-      font-weight: 700;
+      font-weight: 500;
       font-variant-numeric: tabular-nums;
     }
     & :where(li + li) {
       margin-top: 0.5em;
     }
     & :where(blockquote) {
-      border-left: 2px solid var(--accent);
-      padding-left: 1.25em;
+      border-left: 1px solid var(--accent);
+      padding-left: 1.5em;
       color: var(--text);
       font-size: 1.125em;
     }
@@ -658,7 +1032,7 @@ html:has(dialog[open][data-scroll-lock]) {
     }
     & :where(th) {
       color: var(--text);
-      font-weight: 700;
+      font-weight: 600;
     }
     & :where(code) {
       font-family: var(--font-mono);
@@ -671,6 +1045,52 @@ html:has(dialog[open][data-scroll-lock]) {
     & :where(img) {
       border-radius: var(--radius-card);
     }
+  }
+}
+
+/* A body table on a narrow phone (Reading.astro labels its cells): each row becomes a block, its first cell a
+   small heading and every other cell a labelled line, instead of three columns wrapping a word or two a line. */
+@media (width < 37.5rem) {
+  .prose-site table.table-stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .prose-site table.table-stack,
+  .prose-site table.table-stack tbody,
+  .prose-site table.table-stack tr,
+  .prose-site table.table-stack td {
+    display: block;
+  }
+  .prose-site table.table-stack {
+    border-top: 1px solid var(--line);
+  }
+  .prose-site table.table-stack tr {
+    padding-block: 1em;
+    border-bottom: 1px solid var(--line);
+  }
+  .prose-site table.table-stack td {
+    padding: 0;
+    border: 0;
+  }
+  .prose-site table.table-stack td:first-child {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .prose-site table.table-stack td + td {
+    margin-top: 0.6em;
+  }
+  .prose-site table.table-stack td + td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.15em;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
   }
 }
 
@@ -692,9 +1112,7 @@ html:has(dialog[open][data-scroll-lock]) {
     transform: none !important;
     animation: none !important;
   }
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
+  [data-fx~="marquee"] {
+    overflow-x: auto;
   }
 }

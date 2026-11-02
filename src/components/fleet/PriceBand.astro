@@ -1,0 +1,93 @@
+---
+/**
+ * The band under a hero: a few figures across a hairline, in one line on desktop. Prices are real catalog
+ * numbers, large enough for Bodoni; words stay in the text face.
+ *
+ *   <PriceBand items={[{ label: "With driver", value: "Rs 5,000", note: "12 hour day" }, { label: "Base", value: "Lahore Cantt", text: true }]} />
+ */
+interface Item {
+  label: string;
+  value: string;
+  note?: string;
+  href?: string;
+  /** Words rather than a figure: set small, in the text face. */
+  text?: boolean;
+}
+
+interface Props {
+  items: Item[];
+  /** Extra line under the band. */
+  note?: string;
+  class?: string;
+}
+
+const { items, note, class: className } = Astro.props;
+const shown = items.filter((i) => i.value);
+const figures = shown.filter((i) => !i.text).length;
+const words = shown.length - figures;
+// Figures get more room than words. Built here because repeat(0, ...) would void the whole declaration.
+const desktopColumns = [figures && `repeat(${figures}, minmax(0, 1.5fr))`, words && `repeat(${words}, minmax(0, 1fr))`].filter(Boolean).join(" ");
+---
+
+{
+  shown.length > 0 && (
+    <div class:list={["price-band", className]}>
+      <div class="h-px w-full origin-left bg-line" data-fx="rule" aria-hidden="true"></div>
+      <dl class="price-band__list" style={`--cols:${desktopColumns}`} data-fx="stagger" data-stagger="0.07">
+        {shown.map((item) => (
+          <div class:list={["price-band__item", item.text && "price-band__item--text"]}>
+            <dt class="label text-muted">{item.label}</dt>
+            <dd class:list={item.text ? "mt-3 text-[1.0625rem] leading-snug text-fg" : "price-band__figure mt-3 text-fg"}>
+              {item.href ? (
+                <a href={item.href} class="link-draw">
+                  {item.value}
+                </a>
+              ) : (
+                item.value
+              )}
+            </dd>
+            {item.note && <dd class="mt-2 text-sm text-muted">{item.note}</dd>}
+          </div>
+        ))}
+      </dl>
+      {note && <p class="mt-6 max-w-3xl text-sm leading-relaxed text-muted">{note}</p>}
+    </div>
+  )
+}
+
+<style>
+  .price-band__list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem 1.5rem;
+    padding-top: 1.75rem;
+  }
+  .price-band__item {
+    min-width: 0;
+  }
+  .price-band__figure {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.75rem, 11vw, 3.25rem);
+    line-height: 1;
+    font-variant-numeric: lining-nums tabular-nums;
+    font-variation-settings: "opsz" 18;
+    white-space: nowrap;
+  }
+  /* A figure on a phone takes the whole line: "Rs 28,000" at 44px is wider than half a screen. */
+  .price-band__item:not(.price-band__item--text) {
+    grid-column: 1 / -1;
+  }
+  @media (width >= 64rem) {
+    .price-band__list {
+      grid-template-columns: var(--cols);
+      gap: 2.5rem;
+    }
+    .price-band__item:not(.price-band__item--text) {
+      grid-column: auto;
+    }
+    .price-band__figure {
+      font-size: clamp(2.75rem, 4.2vw, 4.75rem);
+    }
+  }
+</style>

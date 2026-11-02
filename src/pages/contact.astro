@@ -1,12 +1,12 @@
 ---
 /**
- * /contact/: NAP exactly as site.ts, click-to-call, WhatsApp, email, hours, a click-to-load map
+ * /contact/: a composed page. NAP exactly as site.ts, click-to-call, WhatsApp, email, hours, a click-to-load map
  * facade, directions from Lahore landmarks (approximate) and the compact trip composer.
  */
-import Icon from "@/components/Icon.astro";
 import JsonLd from "@/components/JsonLd.astro";
 import Section from "@/components/Section.astro";
 import SectionHeading from "@/components/SectionHeading.astro";
+import { firstPlate, scenePlate, trails } from "@/components/local/plates";
 import TripComposer from "@/components/quote/TripComposer.svelte";
 import MapFacade from "@/components/services/MapFacade.astro";
 import { companyPageSchema } from "@/components/services/page-schema";
@@ -26,46 +26,41 @@ const whatsappDisplay = formatPkPhone(`+${site.whatsapp.replace(/\D/g, "")}`);
 const pageTitle = "Contact Us in Lahore Cantt, Phone and WhatsApp";
 const pageDescription = `Call, WhatsApp or email ${site.name} in ${site.address.area}. Opening hours, directions from the airport, DHA and Gulberg, and a quick quote form.`;
 
+const hero = firstPlate(scenePlate("contact", "lahore-night", "chauffeur")) ?? trails();
+
 const directions = [
   {
     from: "Allama Iqbal International Airport",
-    icon: "ph:airplane-tilt",
     route: "Head west on Airport Road towards Cantt.",
     time: "about 15 to 20 minutes in normal traffic",
   },
   {
     from: "DHA, Phases 1 to 6",
-    icon: "ph:house-line",
     route: "Via Walton Road, or the DHA main boulevard and Airport Road.",
     time: "about 15 to 25 minutes",
   },
   {
     from: "Gulberg and Liberty Market",
-    icon: "ph:storefront",
     route: "Head east along Main Boulevard Gulberg into Cantt.",
     time: "about 20 to 30 minutes, longer in the evening rush",
   },
   {
     from: "Lahore Railway Station",
-    icon: "ph:train",
     route: "Via Allama Iqbal Road and Garhi Shahu towards Cantt.",
     time: "about 20 to 30 minutes",
   },
   {
     from: "M-2 motorway from Islamabad",
-    icon: "ph:road-horizon",
     route: "Leave the motorway at the Ravi toll plaza, then take the Lahore Ring Road towards the airport and Cantt.",
     time: "about 40 to 50 minutes",
   },
   {
     from: "Johar Town and the Expo Centre",
-    icon: "ph:buildings",
     route: "Via Canal Road, or the Ring Road for the eastern side of Cantt.",
     time: "about 35 to 45 minutes",
   },
   {
     from: "Fortress Stadium and Cavalry Ground",
-    icon: "ph:map-pin",
     route: "Already in Cantt. We are a short drive away.",
     time: "a few minutes",
   },
@@ -79,90 +74,66 @@ const directions = [
   intro="Call, WhatsApp or email. WhatsApp is quickest for a price: send the car, the dates and your pickup point."
   crumbs={[{ label: "Contact" }]}
   hideFooterCta
+  heroImage={hero.img}
+  heroCaption={hero.caption}
+  heroPosition={hero.position}
+  heroHeight="short"
 >
   <JsonLd slot="jsonld" data={companyPageSchema("ContactPage", { url: urls.contact(), name: pageTitle, description: pageDescription })} />
-  <!-- NAP + map -->
-  <Section id="reach" labelledby="reach-title" spacing="sm">
-    <h2 id="reach-title" class="sr-only">Ways to reach us</h2>
-    <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-14">
-      <address class="flex flex-col not-italic" data-fab-hide>
-        <p class="font-display text-display-sm text-fg">{site.name}</p>
-        <ul class="mt-6 flex flex-col border-t border-line">
-          {
-            site.phones.map((p) => (
-              <li class="border-b border-line">
-                <a href={telUrl(p.e164)} class="group flex items-center gap-4 py-5">
-                  <span class="grid size-12 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
-                    <Icon name="ph:phone" size={22} />
-                  </span>
-                  <span class="flex flex-col">
-                    <span class="text-sm text-muted">
-                      {site.cta.call.label} for {p.label.toLowerCase()}
-                    </span>
-                    <span class="font-display text-display-sm text-fg tabular-nums transition-colors group-hover:text-accent-fg">{p.display}</span>
-                  </span>
-                  <Icon name="ph:arrow-up-right" size={20} class="ml-auto text-muted transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </a>
-              </li>
-            ))
-          }
-          <li class="border-b border-line">
-            <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer" class="group flex items-center gap-4 py-5">
-              <span class="grid size-12 shrink-0 place-items-center rounded-full bg-surface-2 text-whatsapp">
-                <Icon name="simple-icons:whatsapp" size={22} />
-              </span>
-              <span class="flex flex-col">
-                <span class="text-sm text-muted">{site.cta.whatsapp.label}</span>
-                <span class="font-display text-display-sm text-fg tabular-nums transition-colors group-hover:text-accent-fg">{whatsappDisplay}</span>
-              </span>
-              <Icon name="ph:arrow-up-right" size={20} class="ml-auto text-muted transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-            </a>
-          </li>
-          <li class="border-b border-line">
-            <a href={mailtoUrl(site.email, "Car rental enquiry")} class="group flex items-center gap-4 py-5">
-              <span class="grid size-12 shrink-0 place-items-center rounded-full bg-surface-2 text-fg">
-                <Icon name="ph:envelope-simple" size={22} />
-              </span>
-              <span class="flex min-w-0 flex-col">
-                <span class="text-sm text-muted">Email</span>
-                <span class="font-semibold break-all text-fg transition-colors group-hover:text-accent-fg sm:text-lg">{site.email}</span>
-              </span>
-              <Icon name="ph:arrow-up-right" size={20} class="ml-auto shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-            </a>
-          </li>
-          <li class="flex items-start gap-4 border-b border-line py-5">
-            <span class="grid size-12 shrink-0 place-items-center rounded-full bg-surface-2 text-fg">
-              <Icon name="ph:map-pin" size={22} />
-            </span>
-            <span class="flex flex-col">
-              <span class="text-sm text-muted">Address</span>
-              <span class="font-semibold text-fg">{formatAddress()}</span>
-              <a href={mapsUrl()} target="_blank" rel="noopener noreferrer" class="mt-1 text-sm font-semibold text-accent-fg underline underline-offset-4">
-                Get directions
-              </a>
-            </span>
-          </li>
-          <li class="flex items-start gap-4 border-b border-line py-5">
-            <span class="grid size-12 shrink-0 place-items-center rounded-full bg-surface-2 text-fg">
-              <Icon name="ph:clock" size={22} />
-            </span>
-            <span class="flex flex-col">
-              <span class="text-sm text-muted">Opening hours</span>
-              {hours.map((line) => <span class="font-semibold text-fg">{line}</span>)}
-              <span class="mt-1 text-sm text-muted">Airport pickups and outstation trips booked in advance can start outside these hours.</span>
-            </span>
-          </li>
-        </ul>
-      </address>
 
-      <div class="flex flex-col gap-4">
-        <MapFacade />
-        <p class="text-sm text-muted">
-          For most bookings you never need to visit: the driver or the car comes to you, anywhere in Lahore. Planning to come in? Message us
-          first and we send the exact pin on WhatsApp.
-        </p>
+
+  <!-- NAP + map -->
+  <Section id="reach" labelledby="reach-title">
+    <h2 id="reach-title" class="sr-only">Ways to reach us</h2>
+    <address class="flex flex-col not-italic" data-fab-hide>
+      <p class="label text-muted">{site.name}</p>
+      <ul class="mt-5 border-t border-line">
+        {
+          site.phones.map((p) => (
+            <li class="border-b border-line">
+              <a href={telUrl(p.e164)} class="reach-row group">
+                <span class="label text-muted">{site.cta.call.label} for {p.label.toLowerCase()}</span>
+                <span class="reach-value tabular-nums lining-nums">{p.display}</span>
+              </a>
+            </li>
+          ))
+        }
+        <li class="border-b border-line">
+          <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer" class="reach-row group">
+            <span class="label text-muted">{site.cta.whatsapp.label}</span>
+            <span class="reach-value tabular-nums lining-nums">{whatsappDisplay}</span>
+          </a>
+        </li>
+        <li class="border-b border-line">
+          <a href={mailtoUrl(site.email, "Car rental enquiry")} class="reach-row group">
+            <span class="label text-muted">Email</span>
+            <span class="text-lede break-all text-fg transition-colors duration-500 group-hover:text-accent-fg md:text-[1.75rem]">{site.email}</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="mt-16 grid gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-24">
+        <div class="flex flex-col gap-10">
+          <div>
+            <p class="label text-muted">Address</p>
+            <p class="text-display-md mt-4 text-fg">{formatAddress()}</p>
+            <a href={mapsUrl()} target="_blank" rel="noopener noreferrer" class="link-draw mt-5 inline-block text-accent-fg">Get directions</a>
+          </div>
+          <div>
+            <p class="label text-muted">Opening hours</p>
+            {hours.map((line) => <p class="text-lede mt-3 text-fg">{line}</p>)}
+            <p class="mt-3 max-w-[46ch] text-sm leading-relaxed text-muted">Airport pickups and outstation trips booked in advance can start outside these hours.</p>
+          </div>
+        </div>
+        <div class="flex flex-col gap-4">
+          <MapFacade />
+          <p class="max-w-[62ch] text-sm leading-relaxed text-muted">
+            For most bookings you never need to visit: the driver or the car comes to you, anywhere in Lahore. Planning to come in? Message us
+            first and we send the exact pin on WhatsApp.
+          </p>
+        </div>
       </div>
-    </div>
+    </address>
   </Section>
 
   <!-- Directions -->
@@ -172,51 +143,36 @@ const directions = [
       title="Getting to Lahore Cantt"
       intro="Approximate drive times in normal traffic. Allow extra time between 8 and 10 am and 5 and 8 pm, and on wedding nights."
     />
-    <ol class="mt-12 grid gap-px overflow-hidden rounded-card border border-line bg-line md:grid-cols-2">
+    <ol class="mt-14 border-t border-line">
       {
         directions.map((d) => (
-          <li class="flex gap-4 bg-bg p-6">
-            <span class="grid size-10 shrink-0 place-items-center rounded-full bg-surface-2 text-accent">
-              <Icon name={d.icon} size={20} />
-            </span>
-            <div>
-              <h3 class="font-sans text-base font-bold tracking-normal text-fg">From {d.from}</h3>
-              <p class="mt-1.5 text-[0.9375rem] leading-relaxed text-muted">{d.route}</p>
-              <p class="mt-2 text-sm font-semibold text-fg">{d.time.charAt(0).toUpperCase() + d.time.slice(1)}</p>
-            </div>
+          <li class="grid gap-3 border-b border-line py-7 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,0.7fr)] md:items-baseline md:gap-10" data-reveal="fade">
+            <h3 class="text-display-sm text-fg">From {d.from}</h3>
+            <p class="max-w-[50ch] leading-relaxed text-muted">{d.route}</p>
+            <p class="text-sm text-fg">{d.time.charAt(0).toUpperCase() + d.time.slice(1)}</p>
           </li>
         ))
       }
-      {directions.length % 2 === 1 && <li class="hidden bg-bg md:block" aria-hidden="true" />}
     </ol>
   </Section>
 
   <!-- Quote -->
   <Section id="quote" labelledby="quote-title" tone="surface">
-    <div class="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start lg:gap-16">
+    <div class="grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start lg:gap-20">
       <div>
-        <h2 id="quote-title" class="text-display-lg text-fg">Rather not call?</h2>
-        <p class="text-lede mt-5 max-w-lg text-muted">
+        <h2 id="quote-title" class="text-display-lg text-fg" data-fx="lines">Rather not call?</h2>
+        <p class="text-lede mt-6 max-w-lg text-muted" data-fx="fade">
           Tell us the trip here. You see an estimate straight away, and we confirm the price on WhatsApp.
         </p>
-        <ul class="mt-8 flex flex-col gap-3 text-[0.9375rem]">
-          <li>
-            <a href={urls.faq()} class="inline-flex items-center gap-2 font-semibold text-fg underline decoration-line-strong underline-offset-4 hover:text-accent-fg">
-              <Icon name="ph:question" size={18} class="text-accent" />
-              Common questions about booking, deposits and documents
-            </a>
+        <ul class="mt-10 border-t border-line text-[0.9375rem]">
+          <li class="border-b border-line">
+            <a href={urls.faq()} class="block py-4 text-fg transition-colors duration-500 hover:text-accent-fg">Common questions about booking, deposits and documents</a>
           </li>
-          <li>
-            <a href={urls.policies()} class="inline-flex items-center gap-2 font-semibold text-fg underline decoration-line-strong underline-offset-4 hover:text-accent-fg">
-              <Icon name="ph:file-text" size={18} class="text-accent" />
-              Our rental policies in plain English
-            </a>
+          <li class="border-b border-line">
+            <a href={urls.policies()} class="block py-4 text-fg transition-colors duration-500 hover:text-accent-fg">Our rental policies in plain English</a>
           </li>
-          <li>
-            <a href={urls.partner()} class="inline-flex items-center gap-2 font-semibold text-fg underline decoration-line-strong underline-offset-4 hover:text-accent-fg">
-              <Icon name="ph:handshake" size={18} class="text-accent" />
-              Car owners: attach your car with us
-            </a>
+          <li class="border-b border-line">
+            <a href={urls.partner()} class="block py-4 text-fg transition-colors duration-500 hover:text-accent-fg">Car owners: attach your car with us</a>
           </li>
         </ul>
       </div>
@@ -224,3 +180,30 @@ const directions = [
     </div>
   </Section>
 </PageLayout>
+
+<style>
+  .reach-row {
+    display: grid;
+    gap: 0.75rem;
+    padding-block: 1.75rem;
+  }
+  @media (width >= 48rem) {
+    .reach-row {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+      align-items: baseline;
+    }
+  }
+  .reach-value {
+    font-family: var(--font-display);
+    font-size: clamp(2.75rem, 1.6rem + 5.4vw, 7rem);
+    line-height: 1;
+    color: var(--text);
+    transition:
+      color 0.5s linear,
+      transform 0.9s var(--ease-heavy);
+  }
+  .reach-row:hover .reach-value {
+    color: var(--accent-fg);
+    transform: translateX(0.6rem);
+  }
+</style>

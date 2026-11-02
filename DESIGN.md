@@ -1,74 +1,103 @@
-# Website design brief
+# Website design brief: "The Private Garage, After Dark"
 
-**Design read:** premium consumer brand site + local-business SEO site for people renting cars in Lahore (families, wedding parties, corporate staff, overseas Pakistanis visiting home, tourists heading north), with a cinematic night-drive automotive language, built with Astro + Tailwind 4 + GSAP + Three.js.
+Owner's brief (2026-11-02): "We are a luxury rent car service. The website should be unique and feel premium and luxury." Their complaints about the previous version: weak animations, no real 3D, too much text and too few visuals, no preloader. Every decision below answers one of those.
 
-**Dials:** DESIGN_VARIANCE 8 · MOTION_INTENSITY 7 · VISUAL_DENSITY 4. On phones: single column, motion reduced to light reveals.
+**Read:** a private members' garage in Lahore, entered at night. Think of a couture house's site crossed with a car launch film, not a rental listing. The visitor is being shown a car, not sold a price list. Pictures and motion carry the story; words are few, set large, and placed with care.
+
+**Dials:** DESIGN_VARIANCE 10, MOTION_INTENSITY 9, VISUAL_DENSITY 3 (lots of black space, one strong image at a time). Phones get the same experience, recomposed, not a reduced one.
 
 ## Identity
 
-- **Name:** Cantt Rent a Car. "Cantt" = Lahore Cantonment: order, punctuality, trust. The brand promise is *reliable cars and drivers, on time, at honest prices*.
-- **Mood:** Lahore at night from a moving car. Tail-light streaks on the Canal Road, motorway lights, polished paint. Calm confidence, not flashy.
-- **Theme:** dark is the brand mode (default). Light mode is supported through the same CSS variables under `prefers-color-scheme: light`, with identical hierarchy. One theme per page, no section flips.
+- **Name:** Cantt Rent a Car. Never rename it. "Cantt" = Lahore Cantonment: order, punctuality, discretion.
+- **Mood:** polished paint in low light. Brass, ivory, obsidian, ember tail-lights. Quiet confidence. Nothing shouts, nothing bounces.
+- **Theme:** one mode, dark. The light theme is removed. `color-scheme: dark` everywhere.
 
-## Tokens (lock these)
+## Tokens (token NAMES stay the same as before so existing utilities keep working; values change)
 
-| Token | Dark | Light |
+| Token | Value | Use |
 |---|---|---|
-| `--bg` | `#0b0d12` | `#f3f4f6` |
-| `--surface` | `#12151c` | `#ffffff` |
-| `--surface-2` | `#1a1e27` | `#e9ebef` |
-| `--line` | `rgb(255 255 255 / 0.08)` | `rgb(12 15 22 / 0.10)` |
-| `--text` | `#eef0f3` | `#10131a` |
-| `--muted` | `#9aa3b2` | `#4b5363` |
-| `--accent` | `#e8553d` (Lahori sandstone red) | `#c9432c` |
-| `--accent-ink` (text on accent) | `#ffffff` | `#ffffff` |
+| `--bg` | `#070708` | page |
+| `--surface` | `#0f0e0d` | panels |
+| `--surface-2` | `#181614` | raised panels, inputs |
+| `--line` | `rgb(236 224 200 / 0.12)` | hairlines |
+| `--line-strong` | `rgb(236 224 200 / 0.42)` | form controls (3:1) |
+| `--text` | `#f2ece0` | ivory text |
+| `--muted` | `#a79e8e` | secondary text (AA on bg and surface-2) |
+| `--accent` | `#c9a66b` | champagne brass: rules, icons, large display, focus |
+| `--accent-fg` | `#d4b27a` | brass small text |
+| `--accent-fill` / `--accent-fill-hover` | `#c9a66b` / `#dcbd86` | filled buttons |
+| `--accent-ink` | `#0b0a08` | text on brass |
+| `--accent-soft` | `rgb(201 166 107 / 0.14)` | tints |
+| `--ember` | `#c1281d` | tail-lights only, in 3D, trails and small glows. Never on buttons |
 
-- One accent only, used for primary CTAs, key highlights and tail-light glows. No purple/blue AI gradients. No neon outer glows.
-- **Type:** display `Unbounded Variable` (weights 500–700, tight tracking, for headlines and big numbers); text `Manrope Variable` (400–700). Self-hosted via `@fontsource-variable/*`, `font-display: swap`, preload only the two primary files. Prices use `font-variant-numeric: tabular-nums`.
-- **Shape system:** buttons and chips are full pills; cards, inputs, media are 16px radius (`rounded-2xl`); small badges 8px. Follow everywhere.
-- **Icons:** Phosphor (via `@iconify-json/ph`, rendered at build time as inline SVG). One stroke weight ("regular"). Brand marks (WhatsApp) from `@iconify-json/simple-icons`.
-- **Shadows:** tinted to background, never pure black on light. Prefer borders (`--line`) and spacing over cards.
-- **Grain:** optional subtle noise on a fixed, `pointer-events-none` overlay only.
+- No blue, purple or neon anywhere. Gold is a thin line or a small area, never a large flat fill or a gradient text effect.
+- **Type:** display `Bodoni Moda Variable` (roman and italic; optical-size axis if available), used at 28px and larger only, because its hairlines disappear when small. Italic is the emphasis device: one italic word per headline at most. Text and UI `Instrument Sans Variable` (400 to 600). Labels: Instrument Sans 11 to 12px, uppercase, tracking 0.22em. Prices: Bodoni tabular figures at large sizes, Instrument Sans at small sizes.
+- Display sizes are big: home acts up to `clamp(3.5rem, 11vw, 11rem)`, tight leading (0.95), letter-spacing -0.01em.
+- **Shape:** no pills, no bubbly cards. Radius 0 to 2px. Buttons are rectangles with a hairline border and a brass fill that slides in on hover. Cards are mostly not cards: an image, a hairline, a caption.
+- **Icons:** Phosphor "light" or "thin" feel. Use sparingly. **A car icon must never stand in for a car.**
+- **Grain:** a fine fixed film grain overlay stays, at very low opacity.
+- **Logo:** the existing C mark with its bar, redrawn in ivory with a brass bar.
 
 ## Copy rules
 
-- Plain, confident English for Lahore customers. Short sentences. Roman Urdu only where it reads naturally (e.g. "Gari chahiye? We're on WhatsApp.").
-- **No em dashes or en dashes anywhere** in visible copy. Use periods, commas, colons or hyphens.
-- No filler verbs (elevate, seamless, unleash, revolutionize). No fake numbers, no fake reviews, no invented awards. Facts must come from the catalog or `src/config/site.ts`.
-- One label per intent across the whole site: **"Get a quote"** (primary), **"WhatsApp us"**, **"Call now"**.
-- Hero: max 4 text elements, headline ≤ 2 lines on desktop, sub ≤ 20 words.
-- Eyebrow labels: max 1 per 3 sections.
+- Very short. A section gets a headline and at most one sentence, unless it is a content page. No filler verbs (elevate, seamless, unleash, revolutionize) and no luxury cliches (unparalleled, world-class, bespoke, curated).
+- **No em dashes or en dashes anywhere**: the build fails on them (`integrations/copy-guard.mjs`). Use periods, commas, colons or hyphens.
+- No fake numbers, reviews, awards, client names or claims. Facts come from the catalog or `src/config/site.ts`.
+- CTA labels stay exactly: **"Get a quote"**, **"WhatsApp us"**, **"Call now"**.
+- SEO text is not deleted to make a page look clean. On content pages it stays, but is laid out in an editorial way alongside images, or inside accordions. Titles, meta descriptions, canonical URLs, JSON-LD, internal links and every route stay. Each page keeps exactly one H1 containing its main keyword.
 
-## Signature experiences (each must have a reason)
+## Signature experiences
 
-1. **Night-drive hero (WebGL):** light trails (white headlights, red tail-lights) streaming along curved roads through darkness, reacting gently to pointer and scroll. Reason: instantly says "driving in Lahore at night", sets the cinematic tone. The H1 text is the LCP element; the canvas fades in after first paint on capable devices. Fallback (phones and tablets, reduced motion, low-end, Save-Data): a static poster image of the same scene; touch devices keep the CSS/GSAP motion but never load the WebGL scene, because field performance on mid-range Android matters more than the effect. Optional: a sleek stylised car on a reflective floor, only if it looks premium in screenshots.
-2. **Trip composer (the quote form):** a sentence the visitor completes instead of a boring form: *"I need a [Toyota Corolla] [with driver] for [a wedding] from [Fri 14 Nov] to [Sun 16 Nov], picking up in [DHA Phase 5]."* Each bracket is an accessible popover/select. A live "estimated from Rs X" updates from catalog rates (clearly labelled as an estimate; the team confirms the final price). Step 2 asks name, phone (+92), optional email. Turnstile. Success screen shows the reference number and a "WhatsApp us" button prefilled with the ref. Reason: makes the main conversion feel effortless and memorable.
-3. **The garage (fleet):** desktop: pinned horizontal pan through the fleet with category chips that re-flow cards using GSAP Flip; mobile: native scroll-snap carousel. Cards tilt slightly in 3D on hover (desktop only). Reason: browsing the fleet should feel like walking a showroom.
-4. **Route map:** a transit-map style diagram (Lahore → Islamabad → Murree → Naran → Hunza → Skardu, plus Sialkot, Faisalabad, Multan) whose lines draw themselves on scroll, with distance and drive-time counters. Reason: outstation trips are a big revenue line and the map makes them tangible.
-5. **How renting works:** sticky-stack of 3 cards (Tell us your trip → We confirm on WhatsApp → Drive or get driven). Reason: removes uncertainty for first-time renters.
-6. **Neighbourhood index:** big typographic list of Lahore areas we serve; hovering/focusing an area reveals pickup notes and links to its area page. Reason: local SEO + "they know my area".
-7. **Page transitions:** cross-document View Transitions (`@view-transition { navigation: auto; }`) with a short fade/slide, progressive enhancement only.
+1. **Preloader, "Ignition":** black screen. The C mark draws itself as a brass hairline, its stroke tied to real load progress with a thin Bodoni percentage counter. When ready, the bar of the C lights, two headlight beams sweep outward, and the screen parts like a garage door onto the opening's first frame, whose light carries on from the preloader's seam. The full sequence plays on the home page only (BaseLayout `preloadMedia`, `<html data-preload="media">`), following the real load of the opening's first frames through the `cantt:load-progress` and `cantt:load-ready` events. A first visit to any other page gets the quick sequence (the C draws, the bar lights, the doors part, about 1.2s). Later pages get a short 500ms obsidian curtain with a brass edge. Hard cap of 7 seconds, it never traps the visitor. Pure inline CSS and JS in the document so it paints at once. Hidden without JS. Short fade under reduced motion.
+2. **The opening (home, pictures, scroll-driven, pinned; `src/components/home/HomeHero.astro`):** five full-bleed frames on a sticky stage, played by the scroll like the first minute of a car launch film.
+   - Act 1, *Arrive like it's yours:* a night arrival. The H1, "Arrive like it's yours" with "Luxury rent a car in Lahore" inside the same H1, and "Get a quote".
+   - Act 2, *With a driver, or the keys:* the chauffeur at the open door.
+   - Act 3, *Dressed for the baraat:* the wedding car.
+   - Act 4, *From Lahore to the north:* a northern road (licensed photo), else the terrain still.
+   - Act 5, *After dark, on time:* Lahore at night with ember light trails, dissolving into the Collection.
+   - Each frame lists its pictures in order of preference and takes the first that exists and is not already in the opening, so the sequence improves by itself as images arrive. Phones get the same five frames, cropped per picture (`object-position`), not a reduced version.
+   - Motion: only the imagery is scrubbed. A frame arrives by a strip-light sweep (it wipes in from the left behind a vertical bar of light with an anamorphic streak) or by a garage door (the frame before lifts away, light spilling under its edge). Slow Ken Burns and parallax throughout, a soft band of light across each frame as it settles, ember trails in the last act, the film grain on top. Type plays in on its own clock when an act starts, so a line never rests half cut. CSS and GSAP only, transforms and opacity, no WebGL.
+   - The first frame's picture is the LCP element: eager, `fetchpriority="high"`, width and height set, responsive `srcset`. Chrome ignores a picture that covers the whole viewport for LCP, so that frame stops 1px short of the top edge.
+   - Reduced motion and JS off: the five frames stacked, each with its words and its image note. The `fallback` tier (Save-Data, little memory, no WebGL2) keeps the frames and wipes and drops the extra light (sweeping bands, trail glow and flowing trails).
+3. **The 3D concept car is removed from the whole site** (owner decision, 2026-11-02: up close its bodywork looked melted). No car film, no Private Viewing, no car model, no concept car stills or renders anywhere, and no model credit. A car is only ever shown in a picture.
+4. **The Collection:** fleet as a pinned horizontal gallery, largest and most luxurious cars first, huge Bodoni names sliding past images at a different speed, with clip-path reveals and a custom "View" cursor. Phones: swipeable full-bleed stack.
+5. **Occasions:** services as tall image columns that expand on hover or tap (wedding, chauffeur, airport, corporate, self drive, long-term, north).
+6. **The Road North:** a 3D particle terrain of mountains, with the route from Lahore to Skardu drawn as a glowing line that the camera flies along on scroll.
+7. **Site-wide motion:** split-line text reveals, clip-path image reveals, slow image parallax and Ken Burns, magnetic buttons, custom cursor on desktop, hairlines that draw themselves, smooth scroll on desktop, brass-curtain page transitions.
+8. **Inner page heroes:** full-bleed image with Ken Burns and a large serif title, never a text-only hero.
 
 ## Motion rules
 
-- GSAP + ScrollTrigger only where something is pinned, scrubbed or sequenced. Simple reveals use CSS scroll-driven animations (`animation-timeline: view()`) with an IntersectionObserver fallback.
-- Lenis smooth scroll only on fine-pointer desktop, driven by `gsap.ticker`; never on touch.
-- Animate only transform and opacity. Every animation collapses to static under `prefers-reduced-motion: reduce`.
-- Clean up ScrollTriggers/WebGL on `astro:before-swap` or page hide.
+- Easing: slow and heavy, `cubic-bezier(0.16, 1, 0.3, 1)` or GSAP `expo.out`/`power4.out`, 0.9 to 1.6s. Nothing bounces, nothing elastic.
+- GSAP plus ScrollTrigger plus Lenis (fine pointer only). Animate transform, opacity, clip-path. Everything collapses to a calm static layout under `prefers-reduced-motion`.
+- Content must be readable with JS off: never hide text with CSS unless `html.js` is set, and every reveal has a timeout fallback.
 
-## Performance budget
+## 3D rules (The Road North only)
 
-- LCP ≤ 2.5 s on 4G mid-range Android, CLS ≤ 0.05, INP ≤ 200 ms. Lighthouse mobile ≥ 95 on every template.
-- ≤ 50 KB gzip JS on content pages before interaction. Three.js chunk loads only after idle + visibility on capable devices.
-- Images: AVIF/WebP, explicit width/height, lazy below the fold, one `fetchpriority="high"` image max per page.
+- The only 3D on the site is The Road North's particle terrain (`src/scripts/terrain3d.ts`). No other WebGL scene, and no 3D car.
+- Runs on phones as well, on two quality tiers (`src/scripts/tier.ts`). Only Save-Data, reduced motion, very low memory (under 3 GB), or no WebGL2 fall back to the plain list of stops, so nobody sees an empty stage.
+- Pause rendering off screen and in hidden tabs. Lower DPR when frame rate drops. Dispose of everything on page hide.
+- three.js loads lazily, only when The Road North comes near, and never blocks the H1 or the preloader's first paint.
 
-## Pages (all prerendered)
+## Images
+
+- Pictures live in `public/media/`. Manifest: `src/data/media.json`. Fleet images are only fallbacks: a real photo from the catalog (`model.images`) always wins.
+- **Sources:** cars, people and studio scenes come from Canva AI only. Free licensed real photos (Unsplash or Pexels) are allowed for places only: `public/media/roads/*` and the place scenes such as `lahore-night` and `badshahi`.
+- **Image honesty:** every AI image that shows a vehicle (or the inside of one) carries a small **"Representative image"** note, scenes included, not only fleet images. Every real licensed photo carries a small, quiet photographer credit, for example "Photo: Name / Unsplash", built from the manifest entry's `credit` object. The no-car stills (light trails, terrain) need no note.
+- Pictures come from `@/lib/media` (`fleetImage`, `scene`, `road`, `heroFor`, and `still()` for the no-car stills). Any lookup may return undefined, so code renders well without it and picks up new images by itself when they land. Never hardcode a manifest image path.
+- `loading="lazy"` below the fold, explicit width and height, WebP, one `fetchpriority="high"` per page at most.
+
+## Performance
+
+Home is a deliberate exception: it may ship the pinned picture opening and The Road North's WebGL terrain. Content pages keep the previous budget (LCP 2.5s or better, CLS 0.05 or less, under 50 KB gzip JS before interaction, excluding the shared motion chunk loaded on idle).
+
+## Pages (all prerendered; routes must not change)
 
 - `/` home
 - Services: `/rent-a-car-with-driver-lahore/`, `/self-drive-car-rental-lahore/`, `/monthly-car-rental-lahore/`, `/lahore-airport-car-rental/`, `/wedding-car-rental-lahore/`, `/corporate-car-rental-lahore/`, `/luxury-car-rental-lahore/`, `/van-coaster-rental-lahore/`
 - Fleet: `/cars/`, `/cars/<category>/`, `/cars/<model-slug>/`
-- Areas: `/areas/`, `/areas/<slug>/` (lahore-cantt, dha-lahore, gulberg, johar-town, model-town, bahria-town-lahore, askari, wapda-town)
+- Areas: `/areas/`, `/areas/<slug>/`
 - Routes: `/routes/`, `/routes/lahore-to-<city>/`
 - Guides: `/guides/`, `/guides/<slug>/`
-- `/rates/`, `/about/`, `/contact/`, `/faq/`, `/policies/`, `/quote/` (full-page composer), `/partner-with-us/` (investors who want to attach their car)
+- `/rates/`, `/about/`, `/contact/`, `/faq/`, `/policies/`, `/quote/`, `/partner-with-us/`
 - `/404`, `sitemap-index.xml`, `robots.txt`, `llms.txt`

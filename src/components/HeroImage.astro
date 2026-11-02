@@ -1,0 +1,56 @@
+---
+/**
+ * The image layer of a full-bleed hero: picture, Ken Burns, film grain and scrims, plus an optional small
+ * caption tucked into the bottom right (captionFor(img): "Representative image" on an AI picture with a vehicle,
+ * a photographer credit on a licensed photo). A licensed photo is graded into the site's night. The AI sources
+ * are 1200 to 1800px wide, so at full bleed they are slightly soft: the grain gives the eye a sharp texture to rest on and the darker scrim
+ * and slow push-in do the rest. Fill a positioned, overflow-hidden parent with it.
+ *
+ *   <div class="absolute inset-0 -z-10 overflow-hidden"><HeroImage image={img} caption={captionFor(img)} /></div>
+ */
+import type { Img } from "@/lib/media";
+
+interface Props {
+  image: Img;
+  /** The page's LCP element: eager, fetchpriority high. Default true. */
+  priority?: boolean;
+  objectPosition?: string;
+  /** Decorative here: empty alt. */
+  decorative?: boolean;
+  caption?: string;
+}
+
+const { image, priority = true, objectPosition, decorative = false, caption } = Astro.props;
+---
+
+<img
+  src={image.src}
+  srcset={image.srcset || undefined}
+  sizes="100vw"
+  width={image.width}
+  height={image.height}
+  alt={decorative ? "" : image.alt}
+  loading={priority ? "eager" : "lazy"}
+  fetchpriority={priority ? "high" : undefined}
+  decoding={priority ? "sync" : "async"}
+  style={objectPosition ? `object-position:${objectPosition}` : undefined}
+  class:list={["hero-image absolute inset-0 size-full object-cover", image.credit && "is-photo"]}
+  data-fx="kenburns"
+/>
+<div class="hero-grain absolute inset-0" aria-hidden="true"></div>
+<div class="hero-scrim absolute inset-0" aria-hidden="true"></div>
+{caption && <p class="hero-caption absolute right-[var(--gutter)] bottom-3 z-[1] text-[0.625rem] leading-none tracking-[0.04em] text-fg/70">{caption}</p>}
+
+<style>
+  .hero-image {
+    filter: saturate(0.92) contrast(1.06);
+  }
+  .hero-image.is-photo {
+    filter: sepia(0.34) saturate(0.5) brightness(0.78) contrast(1.08);
+  }
+  .hero-scrim {
+    background:
+      linear-gradient(180deg, rgb(7 7 8 / 0.56) 0%, rgb(7 7 8 / 0.12) 28%, rgb(7 7 8 / 0.42) 68%, var(--bg) 100%),
+      linear-gradient(90deg, rgb(7 7 8 / 0.72) 0%, rgb(7 7 8 / 0.34) 48%, transparent 82%);
+  }
+</style>

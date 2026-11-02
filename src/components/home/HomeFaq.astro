@@ -1,11 +1,10 @@
 ---
 /**
- * Home FAQ: high-intent Lahore questions (answers built from catalog facts in home-data.ts),
- * native <details> accordion with FAQPage JSON-LD. Narrow reading column.
+ * Home FAQ: high-intent Lahore questions (answers built from catalog facts in home-data.ts), native
+ * <details> accordion, all closed, with FAQPage JSON-LD. Heading on the left, questions on the right.
  */
 import Container from "@/components/Container.astro";
 import FaqList from "@/components/FaqList.astro";
-import Icon from "@/components/Icon.astro";
 import type { FaqItem } from "@/lib/schema";
 import { urls } from "@/lib/urls";
 
@@ -16,21 +15,58 @@ interface Props {
 const { faqs } = Astro.props;
 ---
 
-<section id="faq" class="border-t border-line py-section" aria-labelledby="faq-title">
-  <Container width="narrow">
-    <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-      <div class="flex max-w-2xl flex-col gap-4">
-        <h2 id="faq-title" class="text-display-lg text-fg">Renting a car in Lahore: quick answers</h2>
-        <p class="text-muted">Prices, documents, fuel, airport runs and trips out of the city.</p>
-      </div>
-      <a
-        href={urls.faq()}
-        class="group inline-flex shrink-0 items-center gap-2 self-start font-semibold text-fg underline decoration-line-strong decoration-1 underline-offset-[0.3em] transition-colors hover:decoration-accent md:self-end"
-      >
-        All questions
-        <Icon name="ph:arrow-right" size={18} class="transition-transform duration-300 group-hover:translate-x-1" />
-      </a>
+<section id="faq" class="faq" aria-labelledby="faq-title">
+  <Container class="faq-grid">
+    <div class="faq-head">
+      <h2 id="faq-title" class="faq-title" data-fx="lines">Renting a car in Lahore: quick <em>answers</em></h2>
+      <p class="faq-text">Prices, documents, fuel, airport runs and trips out of the city.</p>
+      <a href={urls.faq()} class="faq-all link-draw">All questions</a>
     </div>
-    <FaqList faqs={faqs} schema exclusive openFirst id="home-faq" class="mt-10" />
+    <div class="faq-list" data-fx="fade">
+      <FaqList faqs={faqs} schema exclusive id="home-faq" />
+    </div>
   </Container>
 </section>
+
+<style>
+  .faq {
+    padding-block: clamp(3rem, 5vw, 5rem);
+  }
+  .faq :global(.faq-grid) {
+    display: grid;
+    gap: 1.75rem;
+  }
+  @media (width >= 64rem) {
+    .faq :global(.faq-grid) {
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+      gap: 4rem;
+      align-items: start;
+    }
+    .faq-head {
+      position: sticky;
+      top: calc(var(--header-h) + 2rem);
+    }
+  }
+  .faq-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.75rem, 1.9rem + 2.4vw, 4.25rem);
+    line-height: 1.02;
+    letter-spacing: -0.008em;
+    color: var(--text);
+  }
+  .faq-text {
+    margin-top: 1rem;
+    color: var(--muted);
+  }
+  /* Tighter rows than the shared list, so eight closed questions stay short. */
+  .faq-list :global(summary) {
+    padding-block: 1.1rem;
+  }
+  .faq-all {
+    display: inline-block;
+    margin-top: 0.75rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+</style>

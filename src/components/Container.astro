@@ -1,6 +1,6 @@
 ---
 /**
- * Page-width container: max 1400px, 16px gutters on phones (24px tablet, 40px desktop),
+ * Page-width container: max 1536px, 20px gutters on phones (32px tablet, 56px desktop),
  * safe-area aware.
  *
  *   <Container>...</Container>
@@ -12,7 +12,7 @@ type Width = "default" | "narrow" | "prose" | "wide";
 
 interface Props extends HTMLAttributes<"div"> {
   as?: "div" | "section" | "header" | "footer" | "nav" | "article" | "aside";
-  /** default = 1400px, wide = full bleed with gutters, narrow = 960px, prose = 704px. */
+  /** default = 1536px, wide = full bleed with gutters, narrow = 960px, prose = 704px. */
   width?: Width;
   class?: string;
 }

@@ -1,0 +1,343 @@
+---
+/**
+ * One car in the image-led gallery: the picture, a Bodoni name laid across its lower edge, one spec line,
+ * the price small. The whole plate is one link and shows the "View" cursor.
+ *
+ * A model with no image is not a blank frame: it becomes a hairline row with the name set large, which
+ * reads as an index entry on purpose. So does any model when layout="row" (short lists, related cars).
+ *
+ * Size comes from the data-slot on the surrounding <li> (see gallery-slots.ts), so the /cars/ filter can
+ * change it without touching this markup. Grid styles (.plate-grid) live here because every list using
+ * this component needs them.
+ *
+ *   <ul class="plate-grid"><li data-slot="full"><GalleryPlate model={model} categoryName="SUVs" /></li></ul>
+ */
+import PriceTag from "@/components/PriceTag.astro";
+import type { CatalogModel } from "@/lib/catalog-types";
+import { fuelLabel, modelYears, transmissionLabel } from "@/lib/catalog";
+import { formatPKR } from "@/lib/format";
+import { urls } from "@/lib/urls";
+import { CITY_DAY_HOURS, availabilityLabel, fromPriceBasis, singularName } from "./fleet-data";
+import { REPRESENTATIVE, modelVisual } from "./model-visual";
+
+interface Props {
+  model: CatalogModel;
+  categoryName?: string;
+  headingLevel?: "h2" | "h3" | "h4";
+  /** "row" forces the index layout, with a small picture when one exists. */
+  layout?: "plate" | "row";
+  /** Short lists: add the description and the other headline rates. */
+  detailed?: boolean;
+  class?: string;
+}
+
+const { model, categoryName, headingLevel: Heading = "h3", layout = "plate", detailed = false, class: className } = Astro.props;
+
+const visual = modelVisual(model);
+const asRow = layout === "row" || !visual;
+const href = urls.car(model.slug);
+const spec = [`${model.seats} seats`, transmissionLabel(model.transmission), availabilityLabel(model)].join(" · ");
+const fine = [model.variant, modelYears(model), fuelLabel(model.fuel)].filter(Boolean).join(" · ");
+const basis = fromPriceBasis(model);
+const basisText = basis === "self drive" ? "Self drive rate" : basis === "with driver" ? `With driver, ${CITY_DAY_HOURS} hour day` : null;
+const extraRates = detailed
+  ? [
+      model.rates.withDriver && basis !== "with driver" ? { label: `With driver, ${CITY_DAY_HOURS} hour day`, value: model.rates.withDriver.daily } : null,
+      model.rates.withDriver?.outstationDaily ? { label: "Outstation, per day", value: model.rates.withDriver.outstationDaily } : null,
+      model.rates.selfDrive && basis !== "self drive" ? { label: "Self drive, per day", value: model.rates.selfDrive.daily } : null,
+    ].filter((r): r is { label: string; value: number } => r !== null)
+  : [];
+---
+
+{
+  asRow ? (
+    <article class:list={["plate-row group relative", className]} data-cursor="View" data-category={model.category}>
+      {(visual || layout === "row") && (
+        <figure class="plate-row__thumb relative overflow-hidden bg-surface" aria-hidden="true">{visual && <img src={visual.img.src} srcset={visual.img.srcset} sizes="12rem" width={visual.img.width} height={visual.img.height} alt="" loading="lazy" decoding="async" class="size-full object-cover" />}{visual?.representative && <figcaption class="plate-row__cap absolute right-0 bottom-0">{REPRESENTATIVE}</figcaption>}</figure>
+      )}
+      <Heading class="plate-row__name text-fg">
+        <a href={href} class="plate-link">
+          <span class="label plate-row__make block text-muted">{model.make}</span>
+          <span class="plate-row__model block">{model.model}</span>
+        </a>
+      </Heading>
+      <div class="plate-row__meta">
+        <p class="text-sm text-muted">{spec}</p>
+        {categoryName && <p class="label mt-2 text-accent-fg">{singularName(categoryName)}</p>}
+        {detailed && <p class="mt-4 max-w-prose text-[0.9375rem] leading-relaxed text-muted">{model.shortDescription}</p>}
+      </div>
+      <div class="plate-row__price">
+        <PriceTag amount={model.rates.fromPrice} size="md" />
+        {basisText && <span class="mt-1 block text-xs text-muted">{basisText}</span>}
+        {
+          extraRates.length > 0 && (
+            <dl class="mt-3 flex flex-col gap-2">
+              {extraRates.map((r) => (
+                <div>
+                  <dt class="text-xs text-muted">{r.label}</dt>
+                  <dd class="tabular text-sm font-medium text-fg">{formatPKR(r.value)}</dd>
+                </div>
+              ))}
+            </dl>
+          )
+        }
+      </div>
+      {visual?.representative && <p class="sr-only">{REPRESENTATIVE}</p>}
+    </article>
+  ) : (
+    <article class:list={["plate group relative", className]} data-cursor="View" data-category={model.category}>
+      <figure class="plate__frame relative overflow-hidden bg-surface" data-fx="image">
+        <img
+          src={visual!.img.src}
+          srcset={visual!.img.srcset}
+          sizes="(min-width: 768px) 80vw, 100vw"
+          width={visual!.img.width}
+          height={visual!.img.height}
+          alt={visual!.img.alt || `${model.make} ${model.model}`}
+          loading="lazy"
+          decoding="async"
+          class="plate__img absolute inset-0 size-full object-cover"
+          data-fx="parallax"
+          data-speed="0.08"
+        />
+        <div class="plate__scrim absolute inset-0" aria-hidden="true"></div>
+        {visual!.representative && <figcaption class="plate__caption absolute top-3 right-3 z-[1]">{REPRESENTATIVE}</figcaption>}
+      </figure>
+      <div class="plate__body relative z-[1]">
+        <Heading class="plate__name text-fg">
+          <a href={href} class="plate-link">
+            <span class="label plate__make block text-fg/70">{model.make}</span>
+            <span class="plate__model block">{model.model}</span>
+          </a>
+        </Heading>
+        <div class="plate__meta">
+          <p class="text-sm text-muted">{spec}</p>
+          <p class="mt-1.5 text-sm text-muted">
+            <PriceTag amount={model.rates.fromPrice} size="md" />
+            {basisText && <span class="ml-2 text-xs">{basisText}</span>}
+          </p>
+          {fine && <p class="sr-only">{fine}</p>}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+<style>
+  /* The heading link covers the plate: one tab stop per car. */
+  .plate-link {
+    outline: none;
+  }
+  .plate-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+  }
+  .plate:has(.plate-link:focus-visible),
+  .plate-row:has(.plate-link:focus-visible) {
+    outline: 1px solid var(--accent);
+    outline-offset: 6px;
+  }
+
+  /* ---- Picture plate ----
+     The name is laid across the picture's lower edge (DESIGN.md): the make and the top of the name sit on the
+     image's dark foot, so the name can only belong to the picture it is printed on. --name drives both the
+     size and the overlap. */
+  .plate {
+    --name: clamp(3rem, 13vw, 4.5rem);
+  }
+  .plate__frame {
+    aspect-ratio: 4 / 3;
+    margin-inline: calc(var(--gutter) * -1);
+  }
+  .plate__scrim {
+    background: linear-gradient(180deg, transparent 52%, rgb(7 7 8 / 0.55) 78%, var(--bg) 100%);
+  }
+  .plate__caption {
+    background: rgb(7 7 8 / 0.55);
+    padding: 0.25rem 0.5rem;
+    color: rgb(242 236 224 / 0.82);
+    font-size: 0.6875rem;
+    line-height: 1;
+    letter-spacing: 0.04em;
+  }
+  .plate__img {
+    transition: filter 1.2s var(--ease-heavy);
+  }
+  .plate__body {
+    margin-top: calc(var(--name) * -0.62 - 1.45rem);
+  }
+  .plate__name {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--name);
+    line-height: 0.98;
+    letter-spacing: -0.01em;
+    transition: color 0.9s var(--ease-heavy);
+  }
+  .plate__make {
+    margin-bottom: 0.65rem;
+    font-family: var(--font-sans);
+  }
+  .plate__meta {
+    margin-top: 1rem;
+  }
+  .group:hover .plate__name {
+    color: var(--accent);
+  }
+
+  @media (width >= 48rem) {
+    .plate__frame {
+      margin-inline: 0;
+      aspect-ratio: 3 / 2;
+    }
+    :global([data-slot="full"]) .plate__frame {
+      aspect-ratio: 2 / 1;
+      max-height: 84svh;
+      width: 100%;
+    }
+    :global([data-slot="full"]) .plate__body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 2rem;
+    }
+    :global([data-slot="full"]) .plate {
+      --name: clamp(4.5rem, 10.5vw, 11rem);
+    }
+    :global([data-slot="full"]) .plate__meta {
+      margin-top: 0;
+      padding-bottom: 0.5rem;
+      text-align: right;
+    }
+    :global([data-slot="wide"]) .plate {
+      --name: clamp(3.25rem, 6.2vw, 6.5rem);
+    }
+    :global([data-slot="narrow"]) .plate__frame {
+      aspect-ratio: 1 / 1;
+    }
+    :global([data-slot="narrow"]) .plate {
+      --name: clamp(2.75rem, 4.6vw, 5rem);
+    }
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .plate__img {
+      filter: brightness(0.92);
+    }
+    .group:hover .plate__img {
+      filter: brightness(1.08);
+    }
+  }
+
+  /* ---- Row: a model with no picture, or a compact list ---- */
+  .plate-row {
+    display: grid;
+    gap: 0.9rem;
+    padding-block: 1.75rem;
+    border-top: 1px solid var(--line);
+  }
+  .plate-row__model {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.75rem, 12vw, 3.5rem);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    transition:
+      color 0.8s var(--ease-heavy),
+      transform 1.1s var(--ease-heavy);
+  }
+  .plate-row__make {
+    margin-bottom: 0.5rem;
+  }
+  .plate-row__thumb {
+    display: none;
+  }
+  /* The thumbnail's small print, as on CarVisual: the picture is an AI image, not this car's photo. */
+  .plate-row__cap {
+    background: rgb(7 7 8 / 0.6);
+    padding: 0.2rem 0.35rem;
+    color: rgb(242 236 224 / 0.8);
+    font-size: 0.5625rem;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .group:hover .plate-row__model {
+    color: var(--accent);
+  }
+
+  @media (width >= 48rem) {
+    .plate-row {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 15rem) minmax(0, 13rem);
+      align-items: end;
+      column-gap: clamp(1.5rem, 3vw, 3.5rem);
+      padding-block: clamp(1.75rem, 2.6vw, 2.75rem);
+    }
+    .plate-row:has(.plate-row__thumb) {
+      grid-template-columns: 9rem minmax(0, 1fr) minmax(0, 15rem) minmax(0, 13rem);
+    }
+    .plate-row__thumb {
+      display: block;
+      aspect-ratio: 3 / 2;
+    }
+    .plate-row__model {
+      font-size: clamp(3.25rem, 6vw, 6rem);
+    }
+    .plate-row__price {
+      text-align: right;
+    }
+    .plate-row:has(.plate-row__thumb) .plate-row__model {
+      font-size: clamp(2.75rem, 4vw, 4.25rem);
+    }
+    /* A compact list keeps the picture column for every row, so names line up; without a picture it is a hairline. */
+    .plate-row__thumb:empty {
+      align-self: center;
+      height: 1px;
+      aspect-ratio: auto;
+      background: var(--line);
+    }
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .group:hover .plate-row__model {
+      transform: translateX(0.35em);
+    }
+  }
+</style>
+
+<style is:global>
+  .plate-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: clamp(1.25rem, 3vw, 3rem);
+  }
+  .plate-grid > li {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .plate-grid > li[hidden] {
+    display: none;
+  }
+  .plate-grid > li:not([data-slot="row"]) {
+    padding-block: clamp(1.75rem, 4vw, 4.5rem);
+  }
+  .plate-grid > li:first-child {
+    padding-top: 0;
+  }
+  /* Between the pictures and the name-only rows: a quiet label, the first row's hairline under it. */
+  .plate-grid > li.plate-divider {
+    padding-top: clamp(3rem, 7vw, 7rem);
+    padding-bottom: 1rem;
+  }
+  @media (width >= 48rem) {
+    .plate-grid > li[data-slot="wide"] {
+      grid-column: span 7;
+    }
+    .plate-grid > li[data-slot="narrow"] {
+      grid-column: span 5;
+      margin-top: clamp(3rem, 7vw, 8rem);
+    }
+  }
+</style>

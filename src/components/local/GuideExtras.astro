@@ -89,8 +89,8 @@ const hours = formatOpeningHours();
 const lineText = (e: QuoteEstimate) => e.lines.map((l) => `${plural(l.quantity, l.unit)} x ${formatPKR(l.rate)}`).join(" + ");
 ---
 
-<section aria-labelledby={extra.id} class="guide-extras mt-16 border-t border-line pt-12">
-  <h2 id={extra.id} class="scroll-mt-[calc(var(--header-h)+1.5rem)] text-display-md text-fg">{extra.title}</h2>
+<section aria-labelledby={extra.id} class="guide-extras mt-24 border-t border-line pt-14">
+  <h2 id={extra.id} class="scroll-mt-[calc(var(--header-h)+1.5rem)] text-display-md text-fg" data-fx="lines">{extra.title}</h2>
 
   {
     extra.kind === "cost" && (
@@ -98,29 +98,29 @@ const lineText = (e: QuoteEstimate) => e.lines.map((l) => `${plural(l.quantity, 
         <p class="mt-4 max-w-2xl text-muted">
           Starting prices by car type, taken straight from our current fleet rates. They change when our rates change, so this page is always up to date.
         </p>
-        <div class="mt-8 overflow-x-auto rounded-card border border-line" tabindex="0" role="region" aria-label="Starting prices by car type">
+        <div class="mt-8 overflow-x-auto border-t border-line" tabindex="0" role="region" aria-label="Starting prices by car type">
           <table class="w-full min-w-[40rem] text-left text-sm tabular">
-            <thead class="bg-surface">
+            <thead>
               <tr>
-                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Car type</th>
-                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">With driver, city day</th>
-                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Outstation day</th>
-                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Self drive day</th>
-                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Monthly</th>
+                <th scope="col" class="label px-4 py-4 font-medium text-muted first:pl-0">Car type</th>
+                <th scope="col" class="label px-4 py-4 font-medium text-muted first:pl-0">With driver, city day</th>
+                <th scope="col" class="label px-4 py-4 font-medium text-muted first:pl-0">Outstation day</th>
+                <th scope="col" class="label px-4 py-4 font-medium text-muted first:pl-0">Self drive day</th>
+                <th scope="col" class="label px-4 py-4 font-medium text-muted first:pl-0">Monthly</th>
               </tr>
             </thead>
             <tbody>
               {categoryRows.map((r) => (
-                <tr class="border-t border-line">
-                  <th scope="row" class="px-4 py-3.5 font-semibold">
-                    <a href={urls.category(r.slug)} class="text-fg underline-offset-4 hover:text-accent-fg hover:underline">
+                <tr class="border-b border-line">
+                  <th scope="row" class="py-4 pr-4 font-normal">
+                    <a href={urls.category(r.slug)} class="link-draw text-fg">
                       {r.name}
                     </a>
                   </th>
-                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{r.withDriver ? `from ${formatRate(r.withDriver)}` : "Not offered"}</td>
-                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{r.outstation ? `from ${formatRate(r.outstation)}` : "Not offered"}</td>
-                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{r.selfDrive ? `from ${formatRate(r.selfDrive)}` : "With driver only"}</td>
-                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{r.monthly ? `from ${formatRate(r.monthly, "month")}` : "On request"}</td>
+                  <td class="px-4 py-4 whitespace-nowrap text-muted">{r.withDriver ? `from ${formatRate(r.withDriver)}` : "Not offered"}</td>
+                  <td class="px-4 py-4 whitespace-nowrap text-muted">{r.outstation ? `from ${formatRate(r.outstation)}` : "Not offered"}</td>
+                  <td class="px-4 py-4 whitespace-nowrap text-muted">{r.selfDrive ? `from ${formatRate(r.selfDrive)}` : "With driver only"}</td>
+                  <td class="px-4 py-4 whitespace-nowrap text-muted">{r.monthly ? `from ${formatRate(r.monthly, "month")}` : "On request"}</td>
                 </tr>
               ))}
             </tbody>
@@ -132,7 +132,7 @@ const lineText = (e: QuoteEstimate) => e.lines.map((l) => `${plural(l.quantity, 
             <h3 class="mt-12 text-display-sm text-fg">Worked examples at today's rates</h3>
             <ul class="mt-6 grid gap-4 sm:grid-cols-2">
               {examples.map((ex) => (
-                <li class="flex flex-col gap-3 rounded-card border border-line bg-surface p-5">
+                <li class="flex flex-col gap-3 border-t border-accent bg-surface p-6">
                   <p class="font-semibold text-fg">{ex.title}</p>
                   <p class="text-sm text-muted">
                     {ex.note} Example car: <a href={urls.car(ex.model.slug)} class="font-semibold text-accent-fg underline underline-offset-2">{modelName(ex.model)}</a>.
@@ -142,7 +142,7 @@ const lineText = (e: QuoteEstimate) => e.lines.map((l) => `${plural(l.quantity, 
                       <p class="text-xs text-muted tabular">{lineText(ex.estimate)}</p>
                       <p class="mt-auto flex items-baseline justify-between gap-3 border-t border-line pt-3">
                         <span class="text-sm text-muted">Estimate</span>
-                        <span class="font-display text-xl font-semibold tracking-[-0.03em] text-fg tabular">{formatPKR(ex.estimate.total)}</span>
+                        <span class="text-xl text-fg tabular">{formatPKR(ex.estimate.total)}</span>
                       </p>
                       <p class="text-xs text-muted">{ex.estimate.serviceType === "self_drive" ? "Plus fuel. Refundable deposit not included." : "Plus fuel, tolls and parking."}</p>
                     </>
@@ -167,34 +167,34 @@ const lineText = (e: QuoteEstimate) => e.lines.map((l) => `${plural(l.quantity, 
               ? `Self drive deposits currently range from ${formatPKR(Math.min(...deposits))} to ${formatPKR(Math.max(...deposits))}, depending on the car. All deposits are refundable as per your agreement.`
               : "Self drive deposits depend on the car and are confirmed in your quote."}
         </p>
-        <div class="mt-8 overflow-x-auto rounded-card border border-line" tabindex="0" role="region" aria-label={`${extra.title}, scrollable table`}>
+        <div class="mt-8 overflow-x-auto border-t border-line" tabindex="0" role="region" aria-label={`${extra.title}, scrollable table`}>
           <table class="w-full min-w-[36rem] text-left text-sm tabular">
-            <thead class="bg-surface">
+            <thead>
               <tr>
-                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Car</th>
+                <th scope="col" class="label px-4 py-4 font-medium text-muted first:pl-0">Car</th>
                 {extra.kind === "compare" && (
-                  <th scope="col" class="px-4 py-3.5 font-semibold text-fg">
+                  <th scope="col" class="label px-4 py-4 font-medium text-muted first:pl-0">
                     With driver
                   </th>
                 )}
-                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Self drive</th>
-                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Deposit</th>
-                <th scope="col" class="px-4 py-3.5 font-semibold text-fg">Km per day</th>
+                <th scope="col" class="label px-4 py-4 font-medium text-muted first:pl-0">Self drive</th>
+                <th scope="col" class="label px-4 py-4 font-medium text-muted first:pl-0">Deposit</th>
+                <th scope="col" class="label px-4 py-4 font-medium text-muted first:pl-0">Km per day</th>
               </tr>
             </thead>
             <tbody>
               {(extra.kind === "compare" ? bothRates : selfDriveModels).map((m) => (
-                <tr class="border-t border-line">
-                  <th scope="row" class="px-4 py-3.5 font-semibold">
-                    <a href={urls.car(m.slug)} class="text-fg underline-offset-4 hover:text-accent-fg hover:underline">
+                <tr class="border-b border-line">
+                  <th scope="row" class="py-4 pr-4 font-normal">
+                    <a href={urls.car(m.slug)} class="link-draw text-fg">
                       {modelName(m)}
                     </a>
                     <span class="block text-xs font-normal text-muted">{catName(m.category)}</span>
                   </th>
-                  {extra.kind === "compare" && <td class="px-4 py-3.5 whitespace-nowrap text-muted">{m.rates.withDriver ? formatRate(m.rates.withDriver.daily) : "Not offered"}</td>}
-                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{m.rates.selfDrive ? formatRate(m.rates.selfDrive.daily) : "Not offered"}</td>
-                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{m.rates.selfDrive?.securityDeposit ? formatPKR(m.rates.selfDrive.securityDeposit) : "On request"}</td>
-                  <td class="px-4 py-3.5 whitespace-nowrap text-muted">{m.rates.selfDrive?.kmPerDay ? `${m.rates.selfDrive.kmPerDay} km` : "On request"}</td>
+                  {extra.kind === "compare" && <td class="px-4 py-4 whitespace-nowrap text-muted">{m.rates.withDriver ? formatRate(m.rates.withDriver.daily) : "Not offered"}</td>}
+                  <td class="px-4 py-4 whitespace-nowrap text-muted">{m.rates.selfDrive ? formatRate(m.rates.selfDrive.daily) : "Not offered"}</td>
+                  <td class="px-4 py-4 whitespace-nowrap text-muted">{m.rates.selfDrive?.securityDeposit ? formatPKR(m.rates.selfDrive.securityDeposit) : "On request"}</td>
+                  <td class="px-4 py-4 whitespace-nowrap text-muted">{m.rates.selfDrive?.kmPerDay ? `${m.rates.selfDrive.kmPerDay} km` : "On request"}</td>
                 </tr>
               ))}
             </tbody>
@@ -222,18 +222,18 @@ const lineText = (e: QuoteEstimate) => e.lines.map((l) => `${plural(l.quantity, 
   {
     extra.kind === "overseas" && (
       <div class="mt-8 grid gap-4 md:grid-cols-2" data-fab-hide>
-        <div class="rounded-card border border-line bg-surface p-5">
+        <div class="border-t border-accent bg-surface p-6">
           <p class="flex items-center gap-2 font-semibold text-fg">
             <Icon name="ph:wallet" size={20} class="text-accent" />
             Payment methods we accept
           </p>
-          <ul class="mt-4 flex flex-wrap gap-2">
+          <ul class="mt-4 border-t border-line">
             {site.paymentAccepted.map((p) => (
-              <li class="rounded-full border border-line px-3 py-1.5 text-sm text-fg">{p}</li>
+              <li class="border-b border-line py-2.5 text-sm text-fg">{p}</li>
             ))}
           </ul>
         </div>
-        <div class="rounded-card border border-line bg-surface p-5">
+        <div class="border-t border-accent bg-surface p-6">
           <p class="flex items-center gap-2 font-semibold text-fg">
             <Icon name="ph:clock" size={20} class="text-accent" />
             Office hours (Pakistan time)
@@ -245,7 +245,7 @@ const lineText = (e: QuoteEstimate) => e.lines.map((l) => `${plural(l.quantity, 
           </ul>
           <p class="mt-3 text-xs text-muted">WhatsApp works across time zones: send your details whenever it suits you.</p>
         </div>
-        <div class="flex flex-col gap-4 rounded-card border border-line bg-surface p-5 md:col-span-2 md:flex-row md:items-center md:justify-between">
+        <div class="flex flex-col gap-4 border-t border-accent bg-surface p-6 md:col-span-2 md:flex-row md:items-center md:justify-between">
           <p class="flex items-start gap-2 text-fg">
             <Icon name="ph:airplane-landing" size={20} class="mt-0.5 shrink-0 text-accent" />
             <span>

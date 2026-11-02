@@ -1,6 +1,6 @@
 /**
  * GSAP + ScrollTrigger, loaded lazily and only where something is pinned, scrubbed or sequenced.
- * Simple reveals should use data-reveal (CSS) instead.
+ * Simple reveals should use data-fx attributes (src/scripts/fx/index.ts) instead.
  *
  * Usage in a component <script>:
  *
@@ -45,7 +45,7 @@ export function loadGsap(): Promise<{ gsap: Gsap; ScrollTrigger: ScrollTriggerTy
     const gsap = g.gsap;
     const ScrollTrigger = st.ScrollTrigger;
     gsap.registerPlugin(ScrollTrigger);
-    gsap.defaults({ ease: "power3.out", duration: 0.8 });
+    gsap.defaults({ ease: "expo.out", duration: 1.2 }); // Slow and heavy, DESIGN.md.
     announceGsap(gsap, ScrollTrigger); // lets Lenis (if running) switch to gsap.ticker
     // Fonts change layout metrics; recalculate trigger positions once they are ready.
     document.fonts?.ready.then(() => ScrollTrigger.refresh()).catch(() => {});

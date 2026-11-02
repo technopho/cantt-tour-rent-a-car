@@ -1,28 +1,28 @@
 ---
 /**
- * /cars/<model-slug>/: one page per catalog model. H1 "<Make> <Model> on rent in Lahore", gallery,
- * spec cards, catalog rates (with driver / self drive), "best for" links, staff description,
- * TripComposer (sticky side panel on desktop, inline on phones), related models and model FAQs.
+ * /cars/<model-slug>/: one page per catalog model. Full-bleed hero picture with the H1 "<Make> <Model>
+ * on rent in Lahore", rates band, real-photo gallery when the catalog has photos, quiet specs, catalog
+ * rates (with driver / self drive), "best for" links, staff description, TripComposer (sticky side column
+ * on desktop, inline on phones), related models and model FAQs.
  * JSON-LD: Car + Offer (carOfferSchema), BreadcrumbList (Breadcrumbs). The templated model FAQs repeat
  * on every car page, so they carry no FAQPage markup (see FaqList.astro).
  */
 import type { GetStaticPaths } from "astro";
 import Breadcrumbs, { type Crumb } from "@/components/Breadcrumbs.astro";
 import Button from "@/components/Button.astro";
-import CarCard from "@/components/CarCard.astro";
 import Container from "@/components/Container.astro";
 import FaqList from "@/components/FaqList.astro";
-import HeroTrails from "@/components/HeroTrails.astro";
-import Icon from "@/components/Icon.astro";
 import JsonLd from "@/components/JsonLd.astro";
-import PriceTag from "@/components/PriceTag.astro";
+import HeroImage from "@/components/HeroImage.astro";
 import Prose from "@/components/Prose.astro";
 import SampleFleetNote from "@/components/SampleFleetNote.astro";
 import Section from "@/components/Section.astro";
 import SectionHeading from "@/components/SectionHeading.astro";
 import BestFor from "@/components/fleet/BestFor.astro";
+import GalleryList from "@/components/fleet/GalleryList.astro";
 import ModelGallery from "@/components/fleet/ModelGallery.astro";
 import ModelRates from "@/components/fleet/ModelRates.astro";
+import PriceBand from "@/components/fleet/PriceBand.astro";
 import QuotePanel from "@/components/fleet/QuotePanel.astro";
 import SpecGrid from "@/components/fleet/SpecGrid.astro";
 import { categoryLinkText } from "@/components/fleet/category-copy";
@@ -40,10 +40,13 @@ import {
   modelWhatsappMessage,
 } from "@/components/fleet/fleet-data";
 import { renderCatalogMarkdown } from "@/components/fleet/markdown";
+import { modelScenes, modelVisual } from "@/components/fleet/model-visual";
 import { site } from "@/config/site";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { getCategories, getModels, modelYears, transmissionLabel, type CatalogModel } from "@/lib/catalog";
+import { captionFor, showsVehicle } from "@/lib/media";
 import { toComposerModels } from "@/lib/composer";
+import { formatPKR } from "@/lib/format";
 import { whatsappUrl } from "@/lib/links";
 import { carOfferSchema } from "@/lib/schema";
 import { urls } from "@/lib/urls";
@@ -86,8 +89,19 @@ const faqs = modelFaqs(model, { northernPick });
 const composerModels = toComposerModels(models, allCategories);
 const descriptionHtml = renderCatalogMarkdown(model.description);
 const hasBestFor = modelUseCases(model).length > 0;
-/** Sections in the main column (specs, rates, best for, about, FAQ): the sticky quote column spans all of them. */
-const mainRows = hasBestFor ? 5 : 4;
+// A real catalog photo, else the representative image, which the hero captions.
+const visual = modelVisual(model);
+// No picture of this car: the hero opens on a scene of how it is hired, which shows no particular car.
+const scenes = modelScenes(model);
+const heroImg = visual?.img ?? scenes[0];
+// One picture between the specs and the rates, so the column is not text from the hero to the FAQ. Under this
+// car's specs another car would read as this one, so it shows no vehicle when the page has such a picture.
+const breather = scenes.find((img) => img.src !== heroImg?.src && !showsVehicle(img)) ?? scenes.find((img) => img.src !== heroImg?.src);
+// Small print for both (captionFor): "Representative image" on an AI picture with a vehicle, a photographer credit on a photo.
+const heroCaption = heroImg && captionFor(heroImg);
+const breatherCaption = breather && captionFor(breather);
+/** Rows in the main column (specs, picture, rates, best for, about, FAQ): the sticky quote column spans all of them. */
+const mainRows = (hasBestFor ? 5 : 4) + (breather ? 1 : 0);
 
 const crumbs: Crumb[] = [{ label: "Fleet", href: urls.cars() }];
 if (categoryHref) crumbs.push({ label: categoryName, href: categoryHref });
@@ -96,8 +110,15 @@ crumbs.push({ label: name });
 const cover = model.images[0];
 const ogImage = cover ? { src: cover.src, width: cover.width, height: cover.height, alt: cover.alt || name } : undefined;
 const whatsappMessage = modelWhatsappMessage(model);
-const metaLine = [model.variant, years, `${model.seats} seats`, transmissionLabel(model.transmission)].filter(Boolean).join(" · ");
 const sectionHead = "scroll-mt-[calc(var(--header-h)+1.5rem)]";
+type PriceItem = { label: string; value: string; note?: string; text?: boolean };
+const prices = ([
+  wd ? { label: "With driver", value: formatPKR(wd.daily), note: `per day, ${CITY_DAY_HOURS} hour city day` } : null,
+  sd ? { label: "Self drive", value: formatPKR(sd.daily), note: "per day, 24 hours, you drive" } : null,
+  { label: "Seats", value: `${model.seats} seats`, text: true },
+  { label: "Gearbox", value: transmissionLabel(model.transmission), text: true },
+  model.variant || years ? { label: "Version", value: [model.variant, years].filter(Boolean).join(", "), text: true } : null,
+] as (PriceItem | null)[]).filter((p): p is PriceItem => p !== null);
 ---
 
 <BaseLayout
@@ -109,72 +130,79 @@ const sectionHead = "scroll-mt-[calc(var(--header-h)+1.5rem)]";
 >
   <JsonLd slot="jsonld" data={carOfferSchema(model, { categoryName })} />
 
-  <section class="relative isolate overflow-hidden border-b border-line pt-[calc(var(--header-h)+2rem)] pb-12 md:pt-[calc(var(--header-h)+3rem)] md:pb-16">
-    <HeroTrails />
-    <Container class="relative">
-      <Breadcrumbs items={crumbs} />
-      <div class="mt-7 grid gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-center lg:gap-14">
-        <div class="flex min-w-0 flex-col">
-          <h1 class="text-fg">
-            <span class="block text-display-lg">{name}</span>{" "}
-            <span class="mt-2 block text-display-sm font-medium text-muted">on rent in Lahore</span>
-          </h1>
-          <p class="mt-4 text-sm text-muted">{metaLine}</p>
-          <p class="text-lede mt-5 max-w-xl text-muted">{model.shortDescription}</p>
-
-          <div class="mt-8 flex flex-wrap items-end gap-x-10 gap-y-5">
-            {
-              wd && (
-                <div>
-                  <p class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] text-muted">
-                    <Icon name="ph:steering-wheel" size={14} class="text-accent" />
-                    With driver
-                  </p>
-                  <PriceTag amount={wd.daily} from={false} size="xl" class="mt-1.5" />
-                  <p class="text-xs text-muted">{CITY_DAY_HOURS} hour city day</p>
-                </div>
-              )
-            }
-            {
-              sd && (
-                <div>
-                  <p class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] text-muted">
-                    <Icon name="ph:key" size={14} class="text-accent" />
-                    Self drive
-                  </p>
-                  <PriceTag amount={sd.daily} from={false} size="xl" class="mt-1.5" />
-                  <p class="text-xs text-muted">24 hours, you drive</p>
-                </div>
-              )
-            }
-          </div>
-
-          <div class="mt-8 flex flex-wrap gap-3" data-fab-hide>
-            <Button href="#quote" size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
-            <Button
-              href={whatsappUrl(whatsappMessage)}
-              variant="secondary"
-              size="lg"
-              icon="simple-icons:whatsapp"
-              iconClass="text-whatsapp"
-              external
-            >
-              {site.cta.whatsapp.label}
-            </Button>
-          </div>
+  <!--
+    Hero: the car full bleed. Desktop sets the title over the picture; a phone gets the picture as a full-width
+    block under the header and the title beneath it, so the car is seen whole instead of behind the text.
+  -->
+  <section class:list={["model-hero relative isolate overflow-hidden", !heroImg && "model-hero--plain"]}>
+    {
+      heroImg ? (
+        <div class="model-hero__media overflow-hidden bg-surface">
+          <HeroImage image={heroImg} caption={heroCaption} />
         </div>
-
-        <ModelGallery model={model} categoryName={categoryName} priority />
+      ) : (
+        <div class="absolute inset-0 -z-10" aria-hidden="true">
+          <div class="absolute inset-0 bg-[radial-gradient(60%_70%_at_78%_30%,color-mix(in_oklab,var(--accent)_10%,transparent),transparent_70%)]"></div>
+          <div class="absolute inset-x-0 top-[68%] hidden h-px bg-[linear-gradient(90deg,transparent_40%,var(--line-strong)_75%,transparent)] opacity-50 md:block"></div>
+          <div class="absolute inset-x-0 top-[68%] h-[32%] bg-[radial-gradient(40%_70%_at_72%_0%,color-mix(in_oklab,var(--ember)_10%,transparent),transparent_75%)]"></div>
+        </div>
+      )
+    }
+    <Container class="model-hero__copy relative w-full">
+      <div data-fx="fade"><Breadcrumbs items={crumbs} /></div>
+      <h1 class="text-display-xl mt-6 max-w-[16ch] text-fg [overflow-wrap:anywhere] md:[overflow-wrap:normal]" data-fx="lines" data-delay="0.1">
+        <span class="block">{name}</span>{" "}
+        <span class="mt-3 block text-display-sm text-fg/75">on rent in Lahore</span>
+      </h1>
+      <p class="text-lede mt-6 max-w-2xl text-fg/80" data-fx="fade" data-delay="0.35">{model.shortDescription}</p>
+      <div class="mt-9 flex flex-wrap gap-3" data-fx="fade" data-delay="0.5" data-fab-hide>
+        <Button href="#quote" size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+        <Button href={whatsappUrl(whatsappMessage)} variant="secondary" size="lg" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
+          {site.cta.whatsapp.label}
+        </Button>
       </div>
     </Container>
   </section>
 
+  <Container class="pt-10 md:pt-14">
+    <PriceBand items={prices} />
+  </Container>
+
+  {
+    model.images.length > 0 && (
+      <Container class="pt-16 md:pt-24">
+        <ModelGallery model={model} categoryName={categoryName} />
+      </Container>
+    )
+  }
+
   <Container class="py-[calc(var(--section-space)*0.7)]">
-    <div class="grid gap-x-12 gap-y-16 md:gap-y-20 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem] xl:gap-x-16">
+    <div class="grid gap-x-16 gap-y-20 md:gap-y-28 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-x-24">
       <section id="specs" aria-labelledby="specs-title" class:list={["min-w-0 lg:col-start-1", sectionHead]}>
         <SectionHeading id="specs-title" size="md" title={`${model.model} specs and features`} />
-        <SpecGrid model={model} categoryName={categoryName} categoryHref={categoryHref} class="mt-8" />
+        <SpecGrid model={model} categoryName={categoryName} categoryHref={categoryHref} class="mt-10" />
       </section>
+
+      {
+        breather && (
+          <figure class="model-breather relative min-w-0 overflow-hidden bg-surface lg:col-start-1" data-fx="image">
+            <img
+              src={breather.src}
+              srcset={breather.srcset || undefined}
+              sizes="(min-width: 64rem) 60vw, 100vw"
+              width={breather.width}
+              height={breather.height}
+              alt={breather.alt}
+              loading="lazy"
+              decoding="async"
+              class="absolute inset-0 size-full object-cover"
+              data-fx="parallax"
+              data-speed="0.1"
+            />
+            {breatherCaption && <figcaption class="model-breather__cap absolute right-(--gutter) bottom-3 z-[1] text-[0.625rem] leading-none tracking-[0.04em] text-fg/75 md:right-3">{breatherCaption}</figcaption>}
+          </figure>
+        )
+      }
 
       <section id="rates" aria-labelledby="rates-title" class:list={["min-w-0 lg:col-start-1", sectionHead]}>
         <SectionHeading
@@ -187,7 +215,7 @@ const sectionHead = "scroll-mt-[calc(var(--header-h)+1.5rem)]";
               ? "Booked with one of our drivers. Fuel, motorway tolls and parking are paid separately."
               : "Rented for self drive. Fuel, motorway tolls and parking are paid separately."}
         />
-        <ModelRates model={model} class="mt-8" />
+        <ModelRates model={model} class="mt-10" />
         <SampleFleetNote class="mt-6" />
       </section>
 
@@ -204,7 +232,7 @@ const sectionHead = "scroll-mt-[calc(var(--header-h)+1.5rem)]";
         hasBestFor && (
           <section id="best-for" aria-labelledby="best-for-title" class:list={["min-w-0 lg:col-start-1", sectionHead]}>
             <SectionHeading id="best-for-title" size="md" title={`What the ${model.model} is best for`} />
-            <BestFor model={model} class="mt-8" />
+            <BestFor model={model} class="mt-10" />
           </section>
         )
       }
@@ -212,21 +240,19 @@ const sectionHead = "scroll-mt-[calc(var(--header-h)+1.5rem)]";
       <section id="about" aria-labelledby="about-title" class:list={["min-w-0 lg:col-start-1", sectionHead]}>
         <SectionHeading id="about-title" size="md" title={`About the ${name}`} />
         {descriptionHtml ? <Prose html={descriptionHtml} class="mt-6" /> : <p class="mt-6 text-muted">{model.shortDescription}</p>}
-        <ul class="mt-8 flex flex-wrap gap-2 text-sm">
+        <ul class="mt-8 flex flex-wrap gap-x-8 gap-y-2 text-sm">
           {
             categoryHref && category && (
               <li>
-                <a href={categoryHref} class="inline-flex h-10 items-center gap-2 rounded-full border border-line px-4 font-medium text-fg transition-colors hover:bg-surface">
+                <a href={categoryHref} class="text-accent-fg underline underline-offset-4">
                   {categoryLinkText(category)}
-                  <Icon name="ph:arrow-right" size={14} class="text-muted" />
                 </a>
               </li>
             )
           }
           <li>
-            <a href={urls.rates()} class="inline-flex h-10 items-center gap-2 rounded-full border border-line px-4 font-medium text-fg transition-colors hover:bg-surface">
+            <a href={urls.rates()} class="text-accent-fg underline underline-offset-4">
               Rent a car rates in Lahore
-              <Icon name="ph:arrow-right" size={14} class="text-muted" />
             </a>
           </li>
         </ul>
@@ -234,27 +260,74 @@ const sectionHead = "scroll-mt-[calc(var(--header-h)+1.5rem)]";
 
       <section id="faq" aria-labelledby="faq-title" class:list={["min-w-0 lg:col-start-1", sectionHead]}>
         <SectionHeading id="faq-title" size="md" title={`${model.model} rental questions`} />
-        <FaqList faqs={faqs} exclusive id={`faq-${model.slug}`} class="mt-6" />
+        <FaqList faqs={faqs} exclusive id={`faq-${model.slug}`} class="mt-8" />
       </section>
     </div>
   </Container>
 
   {
     related.length > 0 && (
-      <Section id="related" labelledby="related-title" divider>
+      <Section id="related" labelledby="related-title" class="pt-0!">
         <SectionHeading id="related-title" title={`Other cars like the ${model.model}`} size="md">
-          <Button slot="actions" href={urls.cars()} variant="secondary" iconRight="ph:arrow-right">
+          <a slot="actions" href={urls.cars()} class="link-draw text-sm text-fg">
             See the full fleet
-          </Button>
+          </a>
         </SectionHeading>
-        <ul class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {related.map((m, i) => (
-            <li data-reveal data-reveal-delay={i % 4 ? String(Math.min(3, i % 4)) : undefined}>
-              <CarCard model={m} categoryName={categoryLabel(m.category, allCategories)} variant="compact" headingLevel="h3" />
-            </li>
-          ))}
-        </ul>
+        <GalleryList models={related} categoryName={(m) => categoryLabel(m.category, allCategories)} layout="row" order="given" class="mt-10" />
       </Section>
     )
   }
 </BaseLayout>
+
+<style>
+  .model-hero__copy {
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+  }
+  /* Phone: the picture is a block of its own under the overlay header. */
+  .model-hero__media {
+    position: relative;
+    height: min(62svh, 112vw);
+  }
+  /* No text sits on the picture here, so it only needs the header's shade at the top and the fade below. */
+  @media (width < 48rem) {
+    .model-hero__media :global(.hero-scrim) {
+      background: linear-gradient(180deg, rgb(7 7 8 / 0.55) 0%, transparent 26%, transparent 72%, var(--bg) 100%);
+    }
+  }
+  .model-breather {
+    aspect-ratio: 4 / 3;
+    margin-inline: calc(var(--gutter) * -1);
+  }
+  @media (width >= 48rem) {
+    .model-breather {
+      aspect-ratio: 16 / 9;
+      margin-inline: 0;
+    }
+  }
+  .model-hero--plain {
+    display: flex;
+    align-items: flex-end;
+    min-height: 72svh;
+  }
+  .model-hero--plain .model-hero__copy {
+    padding-top: calc(var(--header-h) + 2.5rem);
+  }
+  @media (width >= 48rem) {
+    .model-hero {
+      display: flex;
+      align-items: flex-end;
+      min-height: 86svh;
+    }
+    .model-hero__media {
+      position: absolute;
+      inset: 0;
+      z-index: -10;
+      height: auto;
+    }
+    .model-hero__copy {
+      padding-top: calc(var(--header-h) + 2.5rem);
+      padding-bottom: 4rem;
+    }
+  }
+</style>

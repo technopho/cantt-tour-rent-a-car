@@ -5,7 +5,6 @@
  * (and hovering a dot lights up the row). Everything is plain links and text in the HTML;
  * the sync script is a few lines and only adds classes.
  */
-import Icon from "@/components/Icon.astro";
 import { urls } from "@/lib/urls";
 import LahoreMap from "./LahoreMap.astro";
 
@@ -31,34 +30,19 @@ const { items } = Astro.props;
       {
         items.map((item, i) => (
           <li class="border-b border-line" data-reveal="fade">
-            <a
-              href={urls.area(item.slug)}
-              class="area-row group grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-start gap-x-4 py-6 md:py-7"
-              data-area-row={item.slug}
-            >
-              <span class="pt-2 font-display text-sm font-semibold text-muted tabular transition-colors duration-300 group-hover:text-accent-fg group-focus-visible:text-accent-fg">
+            <a href={urls.area(item.slug)} class="area-row group grid grid-cols-[2.25rem_minmax(0,1fr)] items-start gap-x-4 py-7 md:py-9" data-area-row={item.slug}>
+              <span class="pt-2 text-sm text-muted tabular transition-colors duration-500 group-hover:text-accent-fg group-focus-visible:text-accent-fg">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span class="flex min-w-0 flex-col gap-2">
-                <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span class="area-name font-display text-[clamp(1.5rem,1rem+2.2vw,2.75rem)] leading-[1.05] font-semibold tracking-[-0.04em] text-fg">
-                    {item.name}
+              <span class="flex min-w-0 flex-col gap-3">
+                <span class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                  <span class="area-name text-display-lg text-fg">
+                    <span class="sr-only">Rent a car in </span>{item.name}
                   </span>
-                  {item.tag && (
-                    <span class="rounded-badge border border-line px-2 py-1 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-accent-fg">{item.tag}</span>
-                  )}
+                  {item.tag && <span class="eyebrow">{item.tag}</span>}
                 </span>
-                <span class="max-w-xl text-sm leading-relaxed text-muted md:text-[0.9375rem]">{item.note}</span>
-                {typeof item.airportMinutes === "number" && (
-                  <span class="flex items-center gap-1.5 text-xs font-semibold text-fg tabular">
-                    <Icon name="ph:airplane-tilt" size={14} class="text-accent" />
-                    Airport in about {item.airportMinutes} min
-                  </span>
-                )}
-              </span>
-              <span class="mt-2 grid size-10 place-items-center rounded-full border border-line text-muted transition-[color,border-color,transform,background-color] duration-300 ease-(--ease-out) group-hover:translate-x-1 group-hover:border-transparent group-hover:bg-accent-fill group-hover:text-accent-ink group-focus-visible:bg-accent-fill group-focus-visible:text-accent-ink">
-                <Icon name="ph:arrow-right" size={18} />
-                <span class="sr-only">Rent a car in {item.name}</span>
+                <span class="max-w-xl text-[0.9375rem] leading-relaxed text-muted">{item.note}</span>
+                {typeof item.airportMinutes === "number" && <span class="text-sm text-fg tabular">Airport in about {item.airportMinutes} min</span>}
               </span>
             </a>
           </li>
@@ -75,15 +59,17 @@ const { items } = Astro.props;
 
 <style>
   .area-name {
-    transition: transform 0.4s var(--ease-out);
+    transition:
+      transform 0.9s var(--ease-out),
+      color 0.5s linear;
   }
   .area-row:hover .area-name,
   .area-row:focus-visible .area-name,
   .area-row.is-active .area-name {
-    transform: translateX(0.35rem);
+    transform: translateX(0.6rem);
   }
   .area-row.is-active .area-name {
-    color: var(--text);
+    color: var(--accent-fg);
   }
 </style>
 

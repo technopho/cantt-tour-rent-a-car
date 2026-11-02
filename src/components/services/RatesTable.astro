@@ -1,8 +1,11 @@
 ---
 /**
- * Service rate table. Every amount comes from the catalog through the column getters in
- * service-data.ts and is formatted with formatPKR. Scrolls horizontally inside its own wrapper on
- * small screens (html/body clip overflow), with the car column pinned to the left.
+ * Service rate table. Every amount comes from the catalog through the column getters in service-data.ts
+ * and is formatted with formatPKR. Hairlines only. From 1024px it is a real table that fits its column;
+ * below that each car stacks as label and value pairs, so nothing scrolls sideways on a phone.
+ * Roles are set explicitly because display changes would otherwise drop the table semantics.
+ * On phones a long table shows its first three cars and an "All rates" button: every row stays in the HTML,
+ * and with JS off (nothing folds it) every row shows.
  */
 import type { CatalogCategory, CatalogModel } from "@/lib/catalog-types";
 import { formatNumber, formatPKR } from "@/lib/format";
@@ -20,50 +23,45 @@ interface Props {
 const { models, columns, categories, caption, id } = Astro.props;
 const categoryName = (slug: string) => categories.find((c) => c.slug === slug)?.name ?? slug;
 const captionId = `${id}-caption`;
+const regionId = `${id}-region`;
+const SHOWN = 3;
+const folds = models.length > SHOWN + 1;
 ---
 
-<div
-  class="rates-scroll relative overflow-x-auto overscroll-x-contain rounded-card border border-line bg-bg"
-  role="region"
-  aria-label={`${caption}, scrollable table`}
-  tabindex="0"
-  data-lenis-prevent-wheel
->
-  <table class="w-full min-w-[42rem] border-collapse text-left text-sm tabular-nums">
+<div id={regionId} class="svc-rates relative" role="region" aria-label={caption} data-lenis-prevent-wheel>
+  <table role="table" aria-labelledby={captionId} class="w-full border-collapse text-left text-[0.9375rem] tabular-nums">
     <caption id={captionId} class="sr-only">{caption}</caption>
-    <thead>
-      <tr class="border-b border-line bg-surface">
-        <th scope="col" class="sticky left-0 z-10 bg-surface px-4 py-3.5 text-xs font-bold tracking-[0.12em] text-muted uppercase sm:px-5">
-          Car
-        </th>
+    <thead role="rowgroup">
+      <tr role="row" class="border-b border-line-strong">
+        <th role="columnheader" scope="col" class="label py-4 pr-6 font-medium text-muted">Car</th>
         {
           columns.map((c) => (
-            <th scope="col" class="px-4 py-3.5 text-xs font-bold tracking-[0.12em] whitespace-nowrap text-muted uppercase">
+            <th role="columnheader" scope="col" class="label px-4 py-4 text-right font-medium whitespace-nowrap text-muted last:pr-0">
               {c.label}
             </th>
           ))
         }
       </tr>
     </thead>
-    <tbody>
+    <tbody role="rowgroup">
       {
         models.map((m) => (
-          <tr class="group border-b border-line last:border-b-0">
-            <th scope="row" class="sticky left-0 z-10 bg-bg px-4 py-4 font-normal transition-colors group-hover:bg-surface sm:px-5">
-              <a href={urls.car(m.slug)} class="font-semibold whitespace-nowrap text-fg transition-colors hover:text-accent-fg">
+          <tr role="row" class="group border-b border-line">
+            <th role="rowheader" scope="row" class="py-5 pr-6 font-normal">
+              <a href={urls.car(m.slug)} class="text-[1.0625rem] font-medium text-fg transition-colors duration-500 hover:text-accent-fg">
                 {m.make} {m.model}
               </a>
-              <span class="mt-0.5 block text-xs text-muted">{categoryName(m.category)}</span>
+              <span class="mt-1 block text-xs text-muted">{categoryName(m.category)}</span>
             </th>
             {columns.map((c) => {
               const v = c.get(m);
               return (
-                <td class="px-4 py-4 whitespace-nowrap transition-colors group-hover:bg-surface">
+                <td role="cell" data-label={c.label} class="px-4 py-5 text-right whitespace-nowrap last:pr-0">
                   {v === null || v === undefined ? (
                     <span class="text-muted">Ask us</span>
                   ) : c.kind === "money" && typeof v === "number" ? (
                     <span>
-                      <data value={v} class="font-display font-semibold tracking-[-0.02em] text-fg">
+                      <data value={v} class="font-medium text-fg">
                         {formatPKR(v)}
                       </data>
                       {c.unit && <span class="text-muted">/{c.unit}</span>}
@@ -85,3 +83,100 @@ const captionId = `${id}-caption`;
     </tbody>
   </table>
 </div>
+{
+  folds && (
+    <>
+      <button type="button" class="svc-rates__more" data-rates-more={regionId} aria-controls={regionId} aria-expanded="false">
+        <span>All rates</span>
+        <span class="text-muted">{models.length} cars</span>
+      </button>
+      <script is:inline define:vars={{ regionId }}>
+        try {
+          if (window.matchMedia("(max-width: 47.99rem)").matches) document.getElementById(regionId)?.setAttribute("data-folded", "");
+        } catch (e) {}
+      </script>
+    </>
+  )
+}
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-rates-more]")) {
+    button.addEventListener("click", () => {
+      const region = document.getElementById(button.dataset.ratesMore ?? "");
+      if (!region) return;
+      region.removeAttribute("data-folded");
+      button.setAttribute("aria-expanded", "true");
+      // The button steps aside once the rows are open: hand focus to the first row it revealed.
+      region.querySelector<HTMLElement>("tbody tr:nth-child(4) a")?.focus({ preventScroll: true });
+      import("@/scripts/fx").then((m) => m.refreshFx(region)).catch(() => {});
+    });
+  }
+</script>
+
+<style>
+  .svc-rates__more {
+    display: none;
+  }
+  @media (width < 48rem) {
+    .svc-rates[data-folded] tbody tr:nth-child(n + 4) {
+      display: none;
+    }
+    .svc-rates[data-folded] + .svc-rates__more {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      width: 100%;
+      min-height: 3.5rem;
+      padding-block: 0.9rem;
+      border-block: 1px solid var(--line);
+      color: var(--text);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+    }
+    .svc-rates__more:focus-visible {
+      outline: 1px solid var(--accent);
+      outline-offset: 4px;
+    }
+  }
+  @media (width < 64rem) {
+    .svc-rates thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    .svc-rates table,
+    .svc-rates tbody {
+      display: block;
+    }
+    .svc-rates tbody tr {
+      display: block;
+      padding-block: 1.25rem;
+      border-top: 1px solid var(--line);
+      border-bottom: 0;
+    }
+    .svc-rates tbody th {
+      display: block;
+      padding: 0 0 0.75rem;
+    }
+    .svc-rates tbody td {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.35rem 0;
+      text-align: right;
+      white-space: normal;
+    }
+    .svc-rates tbody td::before {
+      content: attr(data-label);
+      color: var(--muted);
+      font-size: 0.8125rem;
+      text-align: left;
+    }
+  }
+</style>

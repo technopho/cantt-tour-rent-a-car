@@ -10,6 +10,8 @@ import JsonLd from "@/components/JsonLd.astro";
 import Section from "@/components/Section.astro";
 import SectionHeading from "@/components/SectionHeading.astro";
 import AreaIndex, { type AreaIndexItem } from "@/components/local/AreaIndex.astro";
+import Interlude from "@/components/local/Interlude.astro";
+import { fleetPlate, picker, scenePlate, trails } from "@/components/local/plates";
 import QuoteBand from "@/components/local/QuoteBand.astro";
 import { AREA_META } from "@/components/local/area-meta";
 import { poiForLabel, type PoiKey } from "@/components/local/geo";
@@ -68,6 +70,13 @@ const otherAreas = [
   "Raiwind Road",
 ];
 
+// Lahore by night opens the page, the Badshahi Mosque carries the interlude, and the quote band gets a third
+// picture rather than the hero again.
+const pick = picker("/areas/", { pool: [trails()] });
+const hero = pick(scenePlate("lahore-night", "badshahi")) ?? trails();
+const interlude = pick(scenePlate("badshahi", "chauffeur"), fleetPlate("mercedes-s-class"));
+const band = pick(trails());
+
 const faqs = [
   {
     q: "Do you pick up outside these eight areas?",
@@ -98,6 +107,9 @@ const faqs = [
   h1="Areas we serve in Lahore"
   intro="From our head office in Lahore Cantt to Bahria Town on the far side of the city. Pick your area to see pickup points, drive times and the cars locals book."
   crumbs={[{ label: "Areas we serve" }]}
+  heroImage={hero.img}
+  heroCaption={hero.caption}
+  heroPosition={hero.position}
 >
   <JsonLd slot="jsonld" data={itemListSchema("Areas we serve in Lahore", areas.map((a) => ({ name: a.data.h1, url: urls.area(a.id) })))} />
 
@@ -108,8 +120,30 @@ const faqs = [
     </Button>
   </Fragment>
 
+
   <Section id="areas" aria-label="Lahore neighbourhoods we serve">
     <AreaIndex items={items} />
+  </Section>
+
+  <Interlude plate={interlude} decorative>From the Walled City to Raiwind Road.</Interlude>
+
+  <Section id="elsewhere" labelledby="elsewhere-title">
+    <div class="grid gap-12 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:gap-16 lg:gap-24">
+      <SectionHeading
+        id="elsewhere-title"
+        title="Not on the list? We still come to you."
+        intro="The eight areas above have their own pages because we work there most. We pick up across Lahore, including these neighbourhoods."
+        size="md"
+      />
+      <div class="flex flex-col gap-8">
+        <ul class="grid grid-cols-1 border-t border-line sm:grid-cols-2 sm:gap-x-10" aria-label="Other Lahore neighbourhoods we cover" data-fx="stagger" data-stagger="0.04">
+          {otherAreas.map((name) => <li class="border-b border-line py-3.5 text-fg">{name}</li>)}
+        </ul>
+        <p class="text-sm text-muted">
+          Going further? Our <a href={urls.routes()} class="link-draw text-accent-fg">outstation routes</a> cover Islamabad, Murree, the northern areas, Sialkot, Faisalabad, Multan and more.
+        </p>
+      </div>
+    </div>
   </Section>
 
   <Section id="drive-times" labelledby="drive-times-title" divider>
@@ -118,14 +152,14 @@ const faqs = [
       title="Drive times from each area"
       intro="Approximate minutes in normal traffic, with distances in kilometres. Add a margin at school and office peaks, in fog and on event days."
     />
-    <div class="mt-10 overflow-x-auto rounded-card border border-line" tabindex="0" role="region" aria-label="Drive times from each area, scrollable table">
-      <table class="w-full min-w-[46rem] border-collapse text-left text-sm">
-        <thead class="bg-surface">
-          <tr>
-            <th scope="col" class="px-5 py-4 font-semibold text-fg">Area</th>
+    <div class="mt-12 overflow-x-auto border-t border-line" tabindex="0" role="region" aria-label="Drive times from each area, scrollable table">
+      <table class="w-full min-w-[46rem] border-collapse text-left">
+        <thead>
+          <tr class="border-b border-line">
+            <th scope="col" class="label py-4 pr-5 text-muted">Area</th>
             {
               columns.map((c) => (
-                <th scope="col" class="px-5 py-4 font-semibold text-fg">
+                <th scope="col" class="label px-5 py-4 text-muted">
                   {c.label}
                 </th>
               ))
@@ -135,19 +169,19 @@ const faqs = [
         <tbody>
           {
             areas.map((entry) => (
-              <tr class="border-t border-line transition-colors hover:bg-surface/60">
-                <th scope="row" class="px-5 py-4 font-semibold">
-                  <a href={urls.area(entry.id)} class="text-fg underline-offset-4 hover:text-accent-fg hover:underline">
+              <tr class="border-b border-line transition-colors duration-500 hover:bg-surface">
+                <th scope="row" class="py-5 pr-5 font-normal">
+                  <a href={urls.area(entry.id)} class="link-draw text-fg">
                     {entry.data.areaName}
                   </a>
                 </th>
                 {columns.map((c) => {
                   const d = minutesTo(entry, c.key);
                   return (
-                    <td class="px-5 py-4 text-muted tabular">
+                    <td class="px-5 py-5 text-muted tabular">
                       {d ? (
                         <>
-                          <span class="font-semibold text-fg">{d.minutes} min</span>
+                          <span class="text-fg">{d.minutes} min</span>
                           <span class="block text-xs">
                             {d.km} km{c.key === "ravi" ? (/thokar/i.test(d.via) ? ", Thokar" : ", Ravi toll plaza") : ""}
                           </span>
@@ -166,29 +200,12 @@ const faqs = [
     </div>
   </Section>
 
-  <Section id="elsewhere" labelledby="elsewhere-title" divider>
-    <div class="grid gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:gap-16">
-      <SectionHeading
-        id="elsewhere-title"
-        title="Not on the list? We still come to you."
-        intro="The eight areas above have their own pages because we work there most. We pick up across Lahore, including these neighbourhoods."
-        size="md"
-      />
-      <div class="flex flex-col gap-6">
-        <ul class="flex flex-wrap gap-2.5" aria-label="Other Lahore neighbourhoods we cover">
-          {otherAreas.map((name) => <li class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-fg">{name}</li>)}
-        </ul>
-        <p class="text-sm text-muted">
-          Going further? Our <a href={urls.routes()} class="font-semibold text-accent-fg underline underline-offset-2">outstation routes</a> cover Islamabad, Murree, the northern areas, Sialkot, Faisalabad, Multan and more.
-        </p>
-      </div>
+  <QuoteBand title="Tell us where to pick you up" intro="Choose a car and your dates, and add your area. We confirm the price and pickup time on WhatsApp." plate={band} />
+
+  <Section id="faq" labelledby="faq-title" divider>
+    <div class="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
+      <SectionHeading id="faq-title" title="Pickups across Lahore: questions" size="md" />
+      <FaqList faqs={faqs} exclusive id="areas-faq" />
     </div>
-  </Section>
-
-  <QuoteBand title="Tell us where to pick you up" intro="Choose a car and your dates, and add your area. We confirm the price and pickup time on WhatsApp." />
-
-  <Section id="faq" labelledby="faq-title" width="narrow" divider>
-    <SectionHeading id="faq-title" title="Pickups across Lahore: questions" size="md" />
-    <FaqList faqs={faqs} exclusive id="areas-faq" class="mt-10" />
   </Section>
 </PageLayout>

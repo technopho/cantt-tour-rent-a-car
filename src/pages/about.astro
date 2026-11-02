@@ -1,15 +1,17 @@
 ---
 /**
- * /about/: who we are, what we stand for, how the cars are looked after, how the team works,
- * the fleet today (catalog) and where we work. No invented history, years or numbers: facts come
+ * /about/: an editorial story told in images and large statements: who we are, what we stand for, how the
+ * cars are looked after, how the team works, the fleet today (catalog) and where we work. No invented history, years or numbers: facts come
  * from site.ts and the catalog only.
  */
 import Button from "@/components/Button.astro";
-import Icon from "@/components/Icon.astro";
 import JsonLd from "@/components/JsonLd.astro";
 import SampleFleetNote from "@/components/SampleFleetNote.astro";
 import Section from "@/components/Section.astro";
 import SectionHeading from "@/components/SectionHeading.astro";
+import Interlude from "@/components/local/Interlude.astro";
+import Plate from "@/components/local/Plate.astro";
+import { fleetPlate, picker, scenePlate, trails } from "@/components/local/plates";
 import { companyPageSchema } from "@/components/services/page-schema";
 import { formatOpeningHours, primaryPhone, site } from "@/config/site";
 import PageLayout from "@/layouts/PageLayout.astro";
@@ -29,6 +31,20 @@ const fleet = categories
 const pageTitle = "About Us, Car Rental Based in Lahore Cantt";
 const pageDescription =
   "Cantt Rent a Car is a car rental based in Lahore Cantt. Cars with drivers and self drive across Lahore, verified drivers, maintained cars, clear prices.";
+
+// Lahore at night opens the page (a real photo, credited), the Badshahi Mosque stands beside "who we are", each
+// promise gets the scene it describes, and the night road closes the story. Captions come with each plate.
+const pick = picker("/about/");
+const hero = pick(scenePlate("lahore-night", "garage"), fleetPlate("mercedes-s-class")) ?? trails();
+const whoPlate = pick(scenePlate("badshahi", "garage"), fleetPlate("toyota-land-cruiser"));
+const promisePlates = [
+  pick(scenePlate("airport"), fleetPlate("toyota-prado")),
+  pick(scenePlate("chauffeur"), fleetPlate("toyota-fortuner")),
+  pick(scenePlate("corporate"), fleetPlate("honda-civic")),
+];
+const carePlate = pick(scenePlate("cabin", "selfdrive"), fleetPlate("toyota-corolla"));
+const fleetPlateSide = pick(scenePlate("luxury"), fleetPlate("toyota-land-cruiser"), fleetPlate("toyota-fortuner"));
+const closingPlate = pick(trails());
 
 const promises = [
   {
@@ -54,7 +70,6 @@ const promises = [
 const care = [
   {
     title: "Before every booking",
-    icon: "ph:list-checks",
     items: [
       "Washed outside, vacuumed inside",
       "Tyres and tyre pressure checked",
@@ -65,7 +80,6 @@ const care = [
   },
   {
     title: "On schedule",
-    icon: "ph:wrench",
     items: [
       "Oil and filters changed by kilometres, not guesswork",
       "Brakes, battery and suspension checked at every service",
@@ -75,7 +89,6 @@ const care = [
   },
   {
     title: "With the seasons",
-    icon: "ph:sun-horizon",
     items: [
       "AC gas and condenser checked before the June heat",
       "Wipers, fog lights and tyres before the winter fog on the motorways",
@@ -106,6 +119,9 @@ const team = [
   h1="On time, from Lahore Cantt"
   intro="Cars with verified drivers and self drive across Lahore, from our Cantt base, at prices you agree upfront."
   crumbs={[{ label: "About us" }]}
+  heroImage={hero.img}
+  heroCaption={hero.caption}
+  heroPosition={hero.position}
 >
   <JsonLd slot="jsonld" data={companyPageSchema("AboutPage", { url: urls.about(), name: pageTitle, description: pageDescription })} />
   <div slot="actions" class="grid w-full gap-3 sm:flex sm:w-auto sm:flex-wrap" data-fab-hide>
@@ -115,45 +131,20 @@ const team = [
     </Button>
   </div>
 
-  <div slot="aside" class="rounded-card border border-line bg-surface/85 p-6 shadow-soft backdrop-blur-sm sm:p-7">
-    <p class="text-sm font-medium text-muted">Our base</p>
-    <p class="mt-2 font-display text-display-sm text-fg">{site.address.area}, {site.address.city}</p>
-    <dl class="mt-6 flex flex-col gap-4 border-t border-line pt-6 text-sm">
-      <div>
-        <dt class="sr-only">Opening hours</dt>
-        <dd class="flex gap-3 text-fg">
-          <Icon name="ph:clock" size={18} class="mt-0.5 text-accent" />
-          <span>{formatOpeningHours().map((line) => <span class="block">{line}</span>)}</span>
-        </dd>
-      </div>
-      <div>
-        <dt class="sr-only">Phone</dt>
-        <dd class="flex gap-3">
-          <Icon name="ph:phone" size={18} class="mt-0.5 text-accent" />
-          <a href={telUrl()} class="font-semibold text-fg tabular-nums underline-offset-4 hover:underline">{primaryPhone.display}</a>
-        </dd>
-      </div>
-      <div>
-        <dt class="sr-only">Service area</dt>
-        <dd class="flex gap-3 text-fg">
-          <Icon name="ph:map-trifold" size={18} class="mt-0.5 text-accent" />
-          <span>All of Lahore, and outstation trips across Pakistan</span>
-        </dd>
-      </div>
-    </dl>
-  </div>
 
   <!-- Who we are -->
   <Section id="who" labelledby="who-title">
-    <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] lg:gap-20">
-      <h2 id="who-title" class="text-display-lg text-fg">Who we are</h2>
-      <div class="prose-site max-w-none text-lede [&>*+*]:mt-6">
+    <h2 id="who-title" class="eyebrow">Who we are</h2>
+    <p class="text-display-xl mt-8 max-w-[17ch] text-fg" data-fx="lines">The name is a promise as much as an <em>address.</em></p>
+    <div class="mt-16 grid gap-12 md:mt-24 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-end lg:gap-24">
+      <Plate plate={whoPlate} ratio="aspect-[4/5] md:aspect-[5/4]" sizes="(min-width: 48rem) 55vw, 100vw" />
+      <div class="flex max-w-[60ch] flex-col gap-6 text-[1.0625rem] leading-[1.75] text-fg/85" data-fx="stagger">
         <p>
           {site.name} is a car rental business based in {site.address.area}. We rent sedans, SUVs, vans, coasters and wedding cars, with a
           driver or for self drive, to families, visitors and companies across Lahore, and for trips out of the city.
         </p>
         <p>
-          The name is a promise as much as an address. Cantt is where Lahore keeps time: wide roads, ordered traffic, gates that open at
+          Cantt is where Lahore keeps time: wide roads, ordered traffic, gates that open at
           the hour they say. That is the standard we bring to every booking, whether it is an early morning airport pickup in DHA or a
           baraat convoy through Gulberg on a December evening.
         </p>
@@ -166,63 +157,62 @@ const team = [
   </Section>
 
   <!-- What we stand for -->
-  <Section id="values" labelledby="values-title" divider>
+  <div class="overflow-hidden border-y border-line py-6" aria-hidden="true">
+    <div class="flex" data-fx="marquee" data-speed="40">
+      {promises.map((p) => <span class="text-display-md whitespace-nowrap pr-16 text-fg/45">{p.title}</span>)}
+    </div>
+  </div>
+
+  <Section id="values" labelledby="values-title">
     <SectionHeading id="values-title" eyebrow="What we stand for" title="Three things we will not compromise on" />
-    <ol class="mt-14 border-t border-line">
+    <ol class="mt-20 flex flex-col gap-24 md:mt-28 md:gap-40">
       {
-        promises.map((p) => (
-          <li class="grid gap-6 border-b border-line py-10 md:grid-cols-[7rem_minmax(0,1.4fr)_minmax(0,1fr)] md:gap-10 lg:py-14" data-reveal>
-            <p class="promise-no font-display text-[clamp(3rem,2rem+3vw,4.5rem)] leading-none font-bold tracking-[-0.06em]" aria-hidden="true">
-              {p.no}
-            </p>
+        promises.map((p, i) => (
+          <li class="grid items-center gap-10 md:grid-cols-2 lg:gap-24">
+            <Plate plate={promisePlates[i]} ratio="aspect-[4/5] md:aspect-[4/3]" sizes="(min-width: 48rem) 50vw, 100vw" class={i % 2 === 1 ? "md:order-2" : undefined} />
             <div>
-              <h3 class="text-display-md text-fg">{p.title}</h3>
-              <p class="mt-4 max-w-xl leading-relaxed text-muted">{p.text}</p>
+              <p class="label text-accent-fg tabular" aria-hidden="true">{p.no}</p>
+              <h3 class="text-display-lg mt-5 text-fg" data-fx="lines">{p.title}</h3>
+              <p class="mt-6 max-w-[56ch] text-[1.0625rem] leading-[1.75] text-muted" data-fx="fade">{p.text}</p>
+              <ul class="mt-8 border-t border-line" data-fx="stagger">
+                {p.how.map((h) => (
+                  <li class="border-b border-line py-3.5 text-[0.9375rem] text-fg">{h}</li>
+                ))}
+              </ul>
             </div>
-            <ul class="flex flex-col gap-3 self-center text-[0.9375rem]">
-              {p.how.map((h) => (
-                <li class="flex gap-3 text-fg">
-                  <Icon name="ph:check" size={18} class="mt-0.5 text-accent" />
-                  {h}
-                </li>
-              ))}
-            </ul>
           </li>
         ))
       }
     </ol>
   </Section>
 
+  <Interlude plate={carePlate}>A clean car is the minimum. A car that will not let you down is the <em>job.</em></Interlude>
+
   <!-- Car care -->
-  <Section id="care" labelledby="care-title" divider>
-    <div class="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
+  <Section id="care" labelledby="care-title">
+    <div class="grid gap-14 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-24">
       <div class="lg:sticky lg:top-[calc(var(--header-h)+2rem)] lg:self-start">
-        <h2 id="care-title" class="text-display-lg text-fg">How we look after the cars</h2>
-        <p class="text-lede mt-5 text-muted">
+        <h2 id="care-title" class="text-display-lg text-fg" data-fx="lines">How we look after the cars</h2>
+        <p class="text-lede mt-6 text-muted" data-fx="fade">
           Lahore is hard on cars: summer heat above 40 degrees, winter fog, monsoon water in the underpasses and stop-start traffic
-          all year. A clean car is the minimum. A car that will not let you down is the job.
+          all year.
         </p>
-        <p class="mt-5 text-muted">
+        <p class="mt-5 text-muted" data-fx="fade">
           Every car is photographed at handover and return, so its condition is on record, and any car with a fault stays off the road
           until it is fixed.
         </p>
       </div>
-      <div class="flex flex-col">
+      <div class="flex flex-col gap-14">
         {
-          care.map((c) => (
-            <div class="border-t border-line py-8 first:pt-0 first:border-t-0 lg:first:pt-2" data-reveal>
-              <h3 class="flex items-center gap-3 text-display-sm text-fg">
-                <span class="grid size-10 place-items-center rounded-full bg-accent-soft text-accent">
-                  <Icon name={c.icon} size={20} />
-                </span>
+          care.map((c, i) => (
+            <div>
+              <h3 class="flex items-baseline gap-5 border-b border-line pb-5 text-display-md text-fg">
+                <span class="font-sans text-sm text-accent-fg tabular" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
                 {c.title}
               </h3>
-              <ul class="mt-5 grid gap-x-8 gap-y-3 text-[0.9375rem] text-muted md:grid-cols-2">
+              <ul class="grid gap-x-10 md:grid-cols-2" data-fx="stagger" data-stagger="0.05">
                 {c.items.map((item) => (
-                  <li class="flex gap-3">
-                    <Icon name="ph:check" size={18} class="mt-0.5 shrink-0 text-accent" />
-                    {item}
-                  </li>
+                  <li class="border-b border-line py-4 text-[0.9375rem] leading-relaxed text-muted">{item}</li>
                 ))}
               </ul>
             </div>
@@ -239,12 +229,12 @@ const team = [
       title="The team behind the wheel"
       intro="A team with clear jobs. Everyone knows who is responsible for your booking, and so do you."
     />
-    <dl class="mt-12 border-t border-line">
+    <dl class="mt-16 border-t border-line">
       {
         team.map((t) => (
-          <div class="grid gap-3 border-b border-line py-7 md:grid-cols-[14rem_minmax(0,1fr)] md:gap-10">
-            <dt class="font-display text-display-sm text-fg">{t.role}</dt>
-            <dd class="max-w-2xl leading-relaxed text-muted">{t.text}</dd>
+          <div class="grid gap-4 border-b border-line py-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-baseline md:gap-14 lg:py-14">
+            <dt class="text-display-lg text-fg" data-fx="lines">{t.role}</dt>
+            <dd class="max-w-[56ch] text-[1.0625rem] leading-[1.75] text-muted" data-fx="fade">{t.text}</dd>
           </div>
         ))
       }
@@ -253,85 +243,89 @@ const team = [
 
   <!-- Fleet today, from the catalog -->
   <Section id="fleet" labelledby="fleet-title" divider>
-    <SectionHeading id="fleet-title" title="The fleet today" intro="Every category we rent, with current starting prices from our rate list.">
-      <Button slot="actions" href={urls.cars()} variant="secondary" iconRight="ph:arrow-right">See every car</Button>
-    </SectionHeading>
-    <ul class="mt-12 grid gap-px overflow-hidden rounded-card border border-line bg-line md:grid-cols-2 lg:grid-cols-4">
-      {
-        fleet.map((c) => (
-          <li class="bg-bg">
-            <a href={urls.category(c.slug)} class="group flex h-full flex-col gap-2 p-6 transition-colors duration-300 hover:bg-surface">
-              <span class="font-display text-display-sm text-fg">{c.name}</span>
-              <span class="text-sm text-muted">
-                {c.count} {c.count === 1 ? "model" : "models"}
-                {typeof c.from === "number" && (
-                  <>
-                    , from <span class="font-semibold text-fg tabular-nums">{formatPKR(c.from)}</span>/day
-                  </>
-                )}
-              </span>
-              <Icon
-                name="ph:arrow-right"
-                size={18}
-                class="mt-auto pt-2 text-muted transition-[color,transform] duration-300 group-hover:translate-x-1 group-hover:text-accent"
-              />
-            </a>
-          </li>
-        ))
-      }
-    </ul>
-    <SampleFleetNote class="mt-8" />
+    <div class="grid gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-24">
+      <div class="flex flex-col gap-10">
+        <SectionHeading id="fleet-title" title="The fleet today" intro="Every category we rent, with current starting prices from our rate list." />
+        <Plate plate={fleetPlateSide} ratio="aspect-[3/2]" sizes="(min-width: 64rem) 50vw, 100vw" />
+        <div class="flex flex-wrap items-center gap-5">
+          <Button href={urls.cars()} variant="secondary" iconRight="ph:arrow-right">See every car</Button>
+          <SampleFleetNote />
+        </div>
+      </div>
+      <ul class="self-start border-t border-line">
+        {
+          fleet.map((c) => (
+            <li class="border-b border-line">
+              <a href={urls.category(c.slug)} class="group flex flex-col gap-2 py-7" data-cursor="View">
+                <span class="text-display-md text-fg transition-[color,transform] duration-700 ease-(--ease-out) group-hover:translate-x-2 group-hover:text-accent-fg">{c.name}</span>
+                <span class="text-sm text-muted">
+                  {c.count} {c.count === 1 ? "model" : "models"}
+                  {typeof c.from === "number" && (
+                    <>
+                      , from <span class="text-fg tabular-nums">{formatPKR(c.from)}</span>/day
+                    </>
+                  )}
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
   </Section>
 
+  <Interlude plate={closingPlate} height="mid" />
+
   <!-- Where we work -->
-  <Section id="where" labelledby="where-title" divider>
-    <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] lg:gap-20">
-      <div>
-        <h2 id="where-title" class="text-display-lg text-fg">Where we work</h2>
-        <p class="text-lede mt-5 text-muted">
-          From {site.address.area} to every part of Lahore, and out on the motorways to Islamabad, the north and the cities of Punjab.
-        </p>
-      </div>
-      <div class="flex flex-col gap-10">
-        <ul class="flex flex-wrap gap-2.5">
+  <Section id="where" labelledby="where-title">
+    <h2 id="where-title" class="text-display-xl text-fg" data-fx="lines">Where we work</h2>
+    <p class="text-lede mt-6 max-w-2xl text-muted" data-fx="fade">
+      From {site.address.area} to every part of Lahore, and out on the motorways to Islamabad, the north and the cities of Punjab.
+    </p>
+
+    <div class="mt-16 grid gap-16 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-24">
+      <div class="flex flex-col gap-12">
+        <ul class="grid border-t border-line sm:grid-cols-2 sm:gap-x-10">
           {
             site.areasServed.map((a) => (
-              <li>
-                <a
-                  href={urls.area(a.slug)}
-                  class="inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 py-2.5 pr-4 pl-3.5 text-sm font-medium text-fg transition-colors hover:border-line-strong hover:bg-surface-2"
-                >
-                  <Icon name="ph:map-pin" size={16} class="text-accent" />
-                  Rent a car in {a.name}
-                </a>
+              <li class="border-b border-line">
+                <a href={urls.area(a.slug)} class="block py-4 text-lg text-fg transition-colors duration-500 hover:text-accent-fg">Rent a car in {a.name}</a>
               </li>
             ))
           }
         </ul>
-        <ul class="flex flex-wrap gap-x-6 gap-y-3 text-sm">
+        <ul class="flex flex-wrap gap-x-7 gap-y-3 text-[0.9375rem]">
           {
             site.routes.map((r) => (
               <li>
-                <a href={urls.route(r.slug)} class="text-muted underline decoration-line-strong underline-offset-4 transition-colors hover:text-fg">
-                  Lahore to {r.city}
-                </a>
+                <a href={urls.route(r.slug)} class="link-draw text-muted transition-colors duration-500 hover:text-fg">Lahore to {r.city}</a>
               </li>
             ))
           }
         </ul>
-        <p class="text-sm text-muted">
-          Want to work with us instead? Car owners can <a href={urls.partner()} class="font-semibold text-accent-fg underline underline-offset-4"
-            >attach their car with us</a
-          >, and our <a href={urls.contact()} class="font-semibold text-accent-fg underline underline-offset-4">contact page</a> has every way to reach the team.
+      </div>
+
+      <div class="self-start border-t border-accent pt-6">
+        <p class="label text-muted">Our base</p>
+        <p class="text-display-md mt-4 text-fg">{site.address.area}, {site.address.city}</p>
+        <dl class="mt-8 flex flex-col gap-5">
+          <div>
+            <dt class="label text-muted">Opening hours</dt>
+            <dd class="mt-2 text-fg">{formatOpeningHours().map((line) => <span class="block">{line}</span>)}</dd>
+          </div>
+          <div>
+            <dt class="label text-muted">Phone</dt>
+            <dd class="mt-2"><a href={telUrl()} class="link-draw text-lg text-fg tabular-nums">{primaryPhone.display}</a></dd>
+          </div>
+          <div>
+            <dt class="label text-muted">Service area</dt>
+            <dd class="mt-2 text-fg">All of Lahore, and outstation trips across Pakistan</dd>
+          </div>
+        </dl>
+        <p class="mt-8 text-sm leading-relaxed text-muted">
+          Want to work with us instead? Car owners can <a href={urls.partner()} class="link-draw text-accent-fg">attach their car with us</a>, and our <a href={urls.contact()} class="link-draw text-accent-fg">contact page</a> has every way to reach the team.
         </p>
       </div>
     </div>
   </Section>
 </PageLayout>
-
-<style>
-  .promise-no {
-    color: transparent;
-    -webkit-text-stroke: 1px color-mix(in oklab, var(--accent) 80%, transparent);
-  }
-</style>

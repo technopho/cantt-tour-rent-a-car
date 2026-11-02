@@ -27,13 +27,13 @@ const lastIndex = trail.length - 1;
 ---
 
 <nav aria-label="Breadcrumb" class={className}>
-  <ol class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted">
+  <ol class="label flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-fg/70">
     {
       trail.map((crumb, i) => (
-        <li class="flex items-center gap-1.5">
-          {i > 0 && <Icon name="ph:caret-right" size={12} class="opacity-60" />}
+        <li class="flex items-center gap-2.5">
+          {i > 0 && <Icon name="ph:caret-right" size={10} class="text-accent" />}
           {i < lastIndex && crumb.href ? (
-            <a href={crumb.href} class="underline-offset-4 transition-colors hover:text-fg hover:underline">
+            <a href={crumb.href} class="link-draw transition-colors duration-500 hover:text-fg">
               {crumb.label}
             </a>
           ) : (

@@ -5,7 +5,6 @@
  *
  *   <BestFor model={model} />
  */
-import Icon from "@/components/Icon.astro";
 import type { CatalogModel } from "@/lib/catalog-types";
 import { bestFor } from "./fleet-data";
 
@@ -22,23 +21,13 @@ const items = bestFor(model);
   items.length > 0 && (
     <ul class:list={["border-t border-line", className]}>
       {items.map((item) => (
-        <li class="grid gap-3 border-b border-line py-5 sm:grid-cols-[2.75rem_minmax(0,1fr)_auto] sm:items-center sm:gap-5" data-reveal="fade">
-          <span class="grid size-11 place-items-center rounded-full bg-accent-soft text-accent max-sm:hidden" aria-hidden="true">
-            <Icon name={item.icon} size={22} />
-          </span>
+        <li class="grid gap-2 border-b border-line py-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-baseline sm:gap-8">
           <div class="min-w-0">
-            <h3 class="flex items-center gap-2 text-[1.0625rem] font-semibold text-fg">
-              <Icon name={item.icon} size={18} class="text-accent sm:hidden" />
-              {item.label}
-            </h3>
-            <p class="mt-1 max-w-2xl text-[0.9375rem] leading-relaxed text-muted">{item.text}</p>
+            <h3 class="text-[1.0625rem] font-medium text-fg">{item.label}</h3>
+            <p class="mt-1.5 max-w-2xl text-[0.9375rem] leading-relaxed text-muted">{item.text}</p>
           </div>
-          <a
-            href={item.href}
-            class="group/link inline-flex items-center gap-1.5 text-sm font-semibold text-accent-fg underline-offset-4 hover:underline sm:justify-self-end sm:text-right"
-          >
+          <a href={item.href} class="text-sm text-accent-fg underline underline-offset-4 sm:text-right">
             {item.linkLabel}
-            <Icon name="ph:arrow-right" size={15} class="transition-transform duration-300 group-hover/link:translate-x-0.5" />
           </a>
         </li>
       ))}

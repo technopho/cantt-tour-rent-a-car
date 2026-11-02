@@ -1,20 +1,22 @@
 ---
 /**
- * /cars/ fleet grid with category chips and an optional service filter.
+ * /cars/ fleet gallery with hairline type filters and an optional service filter. Largest cars first.
  *
  * Progressive enhancement:
- *  - Without JS the chips are plain links to /cars/<category>/ and every car is listed.
- *  - With JS the chips filter the grid in place (modifier clicks still open the category page),
+ *  - Without JS the type filters are plain links to /cars/<category>/ and every car is listed.
+ *  - With JS they filter the gallery in place (modifier clicks still open the category page), the gallery
+ *    re-flows its rhythm around what is left (gallery-slots.ts),
  *    the "Any / With driver / Self drive" switch appears, the URL keeps ?type=&service= for sharing,
  *    and the re-flow animates with a same-document View Transition where supported (no library).
  *
  *   <FleetBrowser models={models} categories={categories} />
  */
-import CarCard from "@/components/CarCard.astro";
-import Icon from "@/components/Icon.astro";
 import type { CatalogCategory, CatalogModel } from "@/lib/catalog-types";
 import { urls } from "@/lib/urls";
+import GalleryPlate from "./GalleryPlate.astro";
 import { categoryLabel } from "./fleet-data";
+import { gallerySlots, picturesFirst } from "./gallery-slots";
+import { byLargest, modelVisual } from "./model-visual";
 
 interface Props {
   models: CatalogModel[];
@@ -26,24 +28,27 @@ interface Props {
 const { models, categories, class: className } = Astro.props;
 const chips = categories.map((c) => ({ ...c, count: models.filter((m) => m.category === c.slug).length })).filter((c) => c.count > 0);
 const names = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
+// Cars with a picture first, then name-only rows under "Also in the fleet": a name row must never sit
+// straight above another car's picture. Filtering keeps this order, so it holds for every filter.
+const ordered = picturesFirst([...models].sort(byLargest), (m) => Boolean(modelVisual(m)));
+const slots = gallerySlots(ordered.map((m) => Boolean(modelVisual(m))));
+const dividerAt = slots.findIndex((slot) => slot === "row");
 ---
 
 <div class:list={["fleet-browser", className]} data-fleet-browser data-names={JSON.stringify(names)}>
-  <div
-    class="z-20 -mx-[var(--gutter)] md:sticky md:top-(--header-h) flex flex-col gap-3 border-b border-line bg-(--header-bg) px-(--gutter) py-3 backdrop-blur-xl backdrop-saturate-150 md:flex-row md:items-center md:justify-between not-supports-[backdrop-filter:blur(1px)]:bg-bg"
-  >
-    <nav aria-label="Car types" class="-mx-1 overflow-x-auto px-1 py-0.5 scrollbar-none" data-lenis-prevent-wheel>
-      <ul class="flex w-max items-center gap-2">
+  <div class="fleet-bar z-20 -mx-(--gutter) flex flex-col gap-1 border-b border-line bg-(--header-bg) px-(--gutter) py-1 backdrop-blur-xl not-supports-[backdrop-filter:blur(1px)]:bg-bg md:sticky md:flex-row md:items-center md:justify-between md:gap-8">
+    <nav aria-label="Car types" class="-mx-1 min-w-0 overflow-x-auto px-1 scrollbar-none" data-lenis-prevent-wheel>
+      <ul class="flex w-max items-center gap-x-6">
         <li>
           <a href={urls.cars()} class="fleet-chip" data-filter="all" data-active="true">
-            All cars <span class="fleet-chip__count">{models.length}</span>
+            All cars <sup class="fleet-chip__count">{models.length}</sup>
           </a>
         </li>
         {
           chips.map((c) => (
             <li>
               <a href={urls.category(c.slug)} class="fleet-chip" data-filter={c.slug}>
-                {c.name} <span class="fleet-chip__count">{c.count}</span>
+                {c.name} <sup class="fleet-chip__count">{c.count}</sup>
               </a>
             </li>
           ))
@@ -51,116 +56,105 @@ const names = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
       </ul>
     </nav>
 
-    <div
-      role="group"
-      aria-label="Service"
-      class="inline-flex shrink-0 self-start rounded-full border border-line bg-surface p-1 md:self-auto"
-      data-service-filter
-      hidden
-    >
+    <div role="group" aria-label="Service" class="flex shrink-0 items-center gap-x-5 self-start md:self-auto" data-service-filter hidden>
       <button type="button" class="fleet-seg" data-service="any" aria-pressed="true">Any</button>
-      <button type="button" class="fleet-seg" data-service="driver" aria-pressed="false">
-        <Icon name="ph:steering-wheel" size={15} />With driver
-      </button>
-      <button type="button" class="fleet-seg" data-service="self" aria-pressed="false">
-        <Icon name="ph:key" size={15} />Self drive
-      </button>
+      <button type="button" class="fleet-seg" data-service="driver" aria-pressed="false">With driver</button>
+      <button type="button" class="fleet-seg" data-service="self" aria-pressed="false">Self drive</button>
     </div>
   </div>
 
   <p class="sr-only" aria-live="polite" data-fleet-status></p>
 
-  <ul class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6" data-fleet-grid>
+  <ul class="plate-grid mt-12 md:mt-20" data-fleet-grid>
     {
-      models.map((model) => (
+      ordered.map((model, i) => (
+        <>
+        {i === dividerAt && i > 0 && (
+          <li class="plate-divider" aria-hidden="true" data-fleet-divider>
+            <p class="label text-muted">Also in the fleet</p>
+          </li>
+        )}
         <li
           class="fleet-item"
           data-slug={model.slug}
           data-category={model.category}
           data-driver={String(model.rates.withDriver !== null)}
           data-self-drive={String(model.rates.selfDrive !== null)}
+          data-has-image={String(Boolean(modelVisual(model)))}
+          data-slot={slots[i]}
         >
-          <CarCard model={model} categoryName={categoryLabel(model.category, categories)} headingLevel="h3" />
+          <GalleryPlate model={model} categoryName={categoryLabel(model.category, categories)} headingLevel="h3" />
         </li>
+        </>
       ))
     }
   </ul>
 
-  <div class="mt-8 flex flex-col items-start gap-4 rounded-card border border-dashed border-line p-6 sm:flex-row sm:items-center sm:justify-between" data-fleet-empty hidden>
-    <p class="text-muted">No cars match this combination. Try another type or service.</p>
-    <button type="button" class="fleet-seg border border-line" data-fleet-reset>
-      <Icon name="ph:arrow-counter-clockwise" size={15} />Show all cars
-    </button>
+  <div class="mt-8 flex flex-col items-start gap-4 border-y border-line py-8 sm:flex-row sm:items-center sm:justify-between" data-fleet-empty hidden>
+    <p class="text-display-sm text-fg">No cars match this combination.</p>
+    <button type="button" class="fleet-seg" data-fleet-reset>Show all cars</button>
   </div>
 </div>
 
 <style>
-  .fleet-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    height: 2.5rem;
-    padding-inline: 1rem;
-    border-radius: 9999px;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    color: var(--muted);
-    font-size: 0.9375rem;
-    font-weight: 600;
-    white-space: nowrap;
-    transition:
-      background-color 0.25s var(--ease-out),
-      color 0.25s var(--ease-out),
-      border-color 0.25s var(--ease-out),
-      transform 0.15s var(--ease-out);
+  /* Stays under the header, and takes its place when the header hides on the way down. */
+  .fleet-bar {
+    top: var(--header-h);
+    transition: top 0.6s var(--ease-heavy);
   }
-  .fleet-chip:hover {
-    color: var(--text);
-    border-color: color-mix(in oklab, var(--text) 22%, transparent);
-  }
-  .fleet-chip:active {
-    transform: scale(0.97);
-  }
-  .fleet-chip[data-active="true"] {
-    background: var(--accent-fill);
-    border-color: transparent;
-    color: var(--accent-ink);
-  }
-  /* Full colour (no opacity): 12px text needs 4.5:1, and dimming it failed on the active (accent) chip
-     and on light surfaces. A lighter weight keeps it secondary to the label. */
-  .fleet-chip__count {
-    font-variant-numeric: tabular-nums;
-    font-size: 0.75rem;
-    font-weight: 500;
-  }
-  /* Before the script runs, "All cars" is a plain link to this page: keep it neutral. */
-  :global(html:not(.js)) .fleet-chip[data-active="true"] {
-    background: var(--surface);
-    color: var(--muted);
-    border-color: var(--line);
+  :global(html:has([data-site-header][data-hidden="true"])) .fleet-bar {
+    top: 0;
   }
 
+  /* Hairline text controls: the active one carries a brass rule. */
+  .fleet-chip,
   .fleet-seg {
+    position: relative;
     display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    height: 2.25rem;
-    padding-inline: 0.875rem;
-    border-radius: 9999px;
+    align-items: baseline;
+    gap: 0.3rem;
+    padding-block: 0.95rem;
     color: var(--muted);
     font-size: 0.875rem;
-    font-weight: 600;
     white-space: nowrap;
-    transition:
-      background-color 0.25s var(--ease-out),
-      color 0.25s var(--ease-out);
+    transition: color 0.5s var(--ease-heavy);
   }
+  .fleet-chip::after,
+  .fleet-seg::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0.5rem 0;
+    height: 1px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: 100% 50%;
+    transition: transform 0.7s var(--ease-heavy);
+  }
+  .fleet-chip:hover,
   .fleet-seg:hover {
     color: var(--text);
   }
+  .fleet-chip[data-active="true"],
   .fleet-seg[aria-pressed="true"] {
-    background: var(--surface-2);
     color: var(--text);
+  }
+  .fleet-chip[data-active="true"]::after,
+  .fleet-seg[aria-pressed="true"]::after {
+    transform: scaleX(1);
+    transform-origin: 0 50%;
+  }
+  .fleet-chip__count {
+    color: var(--muted);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    vertical-align: baseline;
+    position: relative;
+    top: -0.35em;
+    line-height: 0;
+  }
+  /* Before the script runs, "All cars" is a plain link to this page: keep it neutral. */
+  :global(html:not(.js)) .fleet-chip[data-active="true"]::after {
+    transform: scaleX(0);
   }
 </style>
 
@@ -195,6 +189,8 @@ const names = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
 </style>
 
 <script>
+  import { gallerySlots } from "./gallery-slots";
+
   type Service = "any" | "driver" | "self";
 
   const root = document.querySelector<HTMLElement>("[data-fleet-browser]");
@@ -206,6 +202,7 @@ const names = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
     const status = root.querySelector<HTMLElement>("[data-fleet-status]");
     const empty = root.querySelector<HTMLElement>("[data-fleet-empty]");
     const reset = root.querySelector<HTMLButtonElement>("[data-fleet-reset]");
+    const divider = root.querySelector<HTMLElement>("[data-fleet-divider]");
     const names: Record<string, string> = JSON.parse(root.dataset.names || "{}");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -221,11 +218,19 @@ const names = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
 
     const render = () => {
       let shown = 0;
+      const visibleItems: HTMLElement[] = [];
       for (const el of items) {
         const visible = matches(el);
         el.hidden = !visible;
-        if (visible) shown++;
+        if (visible) {
+          shown++;
+          visibleItems.push(el);
+        }
       }
+      const slots = gallerySlots(visibleItems.map((el) => el.dataset.hasImage === "true"));
+      visibleItems.forEach((el, i) => (el.dataset.slot = slots[i]));
+      // "Also in the fleet" only separates pictures from name rows: with either side empty it goes.
+      if (divider) divider.hidden = !(slots.includes("row") && slots.some((slot) => slot !== "row"));
       chips.forEach((chip) => {
         const active = chip.dataset.filter === category;
         chip.dataset.active = String(active);
@@ -249,6 +254,11 @@ const names = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
       history.replaceState(history.state, "", url);
     };
 
+    // Layout changed: scroll-triggered reveals and parallax must measure again.
+    const remeasure = () => {
+      import("@/scripts/fx").then((m) => m.refreshFx(root)).catch(() => {});
+    };
+
     const update = () => {
       syncUrl();
       // When the chip bar is stuck (the user is deep in the grid), bring the results' start back into view.
@@ -263,6 +273,7 @@ const names = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
       };
       if (!doc.startViewTransition || reduced.matches || document.visibilityState !== "visible") {
         apply();
+        remeasure();
         return;
       }
       // Name only the cards involved so they glide into their new grid positions.
@@ -277,6 +288,7 @@ const names = Object.fromEntries(categories.map((c) => [c.slug, c.name]));
       transition.finished.catch(() => {}).finally(() => {
         named.forEach((el) => (el.style.viewTransitionName = ""));
         document.documentElement.classList.remove("vt-fleet");
+        remeasure();
       });
     };
 

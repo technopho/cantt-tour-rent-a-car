@@ -1,6 +1,6 @@
 ---
 /**
- * /quote/ : "Get a car rental quote in Lahore". The full-width TripComposer above the fold, then
+ * /quote/ : "Get a car rental quote in Lahore". Calm and focused: the full-width TripComposer above the fold, then
  * short reassurance (how it works, pickup areas, documents, payment), an FAQ and contact options.
  * Deep links prefill the composer: /quote/?model=<slug>&service=<with_driver|self_drive>&trip=<tripType>&pickup=<text>&to=<text>
  */
@@ -8,11 +8,10 @@ import Breadcrumbs from "@/components/Breadcrumbs.astro";
 import Button from "@/components/Button.astro";
 import Container from "@/components/Container.astro";
 import FaqList from "@/components/FaqList.astro";
-import HeroTrails from "@/components/HeroTrails.astro";
-import Icon from "@/components/Icon.astro";
 import SampleFleetNote from "@/components/SampleFleetNote.astro";
 import Section from "@/components/Section.astro";
 import SectionHeading from "@/components/SectionHeading.astro";
+import { firstPlate, scenePlate, trails } from "@/components/local/plates";
 import TripComposer from "@/components/quote/TripComposer.svelte";
 import { TERMS } from "@/components/services/terms";
 import { formatOpeningHours, primaryPhone, site } from "@/config/site";
@@ -40,8 +39,7 @@ const inSentence = (method: string) => (/^(cash|bank transfer|card|cheque)/i.tes
 const payments = site.paymentAccepted;
 /** "every day, 8:00 am to 10:00 pm" for use mid-sentence. */
 const hoursInSentence = hours.map((line) => line.charAt(0).toLowerCase() + line.slice(1)).join("; ");
-const paymentIcon = (method: string) =>
-  /cash/i.test(method) ? "ph:money" : /bank/i.test(method) ? "ph:bank" : /jazz|easy|wallet/i.test(method) ? "ph:device-mobile" : "ph:wallet";
+const backdrop = firstPlate(scenePlate("cabin", "chauffeur")) ?? trails();
 
 const steps = [
   {
@@ -105,31 +103,36 @@ const faqs: FaqItem[] = [
   whatsappMessage="Assalam o Alaikum! I'd like a quote for a car in Lahore."
 >
   <section class="relative isolate overflow-hidden pt-[calc(var(--header-h)+1.75rem)] pb-[calc(var(--section-space)*0.7)] md:pt-[calc(var(--header-h)+2.75rem)]">
-    <HeroTrails placement="bottom" />
+    <div class="absolute inset-x-0 top-0 -z-10 h-[34rem] overflow-hidden md:h-[38rem]" aria-hidden="true">
+      <img src={backdrop.img.src} srcset={backdrop.img.srcset || undefined} sizes="100vw" width={backdrop.img.width} height={backdrop.img.height} alt="" fetchpriority="high" class="size-full object-cover opacity-45" style={backdrop.position ? `object-position:${backdrop.position}` : undefined} data-fx="kenburns" />
+      <div class="absolute inset-0 bg-[linear-gradient(180deg,rgb(7_7_8/0.55)_0%,rgb(7_7_8/0.5)_45%,var(--bg)_100%)]"></div>
+    </div>
+    {/* The picture's small print sits on the picture, top right, rather than far below it under the composer. */}
+    {backdrop.caption && <p class="absolute top-[calc(var(--header-h)+0.75rem)] right-(--gutter) z-[1] text-[0.625rem] leading-none tracking-[0.04em] text-fg/70">{backdrop.caption}</p>}
     <Container>
       <Breadcrumbs items={[{ label: "Get a quote" }]} />
       <div class="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-end lg:gap-14">
-        <h1 class="text-display-xl text-fg">Get a car rental quote in <span class="text-accent">Lahore</span></h1>
-        <p class="text-lede max-w-xl text-muted lg:pb-1.5">
+        <h1 class="text-display-xl max-w-[14ch] text-fg" data-fx="lines">Get a car rental quote in <em>Lahore</em></h1>
+        <p class="text-lede max-w-xl text-fg/80 lg:pb-1.5" data-fx="fade" data-delay="0.3">
           Finish one sentence to see an estimate from our current rates. Our team confirms the final price on WhatsApp.
         </p>
       </div>
 
-      <div class="mt-9 md:mt-12">
+      <div class="mt-10 md:mt-14">
         <TripComposer client:visible models={composerModels} />
       </div>
 
-      <ul class="mt-6 flex flex-col gap-3 text-sm text-muted md:flex-row md:flex-wrap md:items-center md:gap-x-8">
-        <li class="flex items-center gap-2"><Icon name="ph:lock-simple" size={16} class="text-accent" />No payment on this website</li>
-        <li class="flex items-center gap-2"><Icon name="ph:chats-circle" size={16} class="text-accent" />Final price on WhatsApp</li>
-        <li class="flex items-center gap-2"><Icon name="ph:calendar-check" size={16} class="text-accent" />Nothing is booked until you confirm</li>
+      <ul class="mt-8 grid gap-x-10 border-t border-line text-sm text-muted md:grid-cols-3">
+        <li class="border-b border-line py-4">No payment on this website</li>
+        <li class="border-b border-line py-4">Final price on WhatsApp</li>
+        <li class="border-b border-line py-4">Nothing is booked until you confirm</li>
       </ul>
       <SampleFleetNote class="mt-5" />
     </Container>
   </section>
 
   <Section id="how-it-works" labelledby="how-title" divider>
-    <div class="grid gap-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-16">
+    <div class="grid gap-14 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-20">
       <div class="md:sticky md:top-[calc(var(--header-h)+2rem)] md:self-start">
         <SectionHeading
           id="how-title"
@@ -137,19 +140,19 @@ const faqs: FaqItem[] = [
           intro="The form is the first step. Everything after it happens on WhatsApp, with a real person from our Lahore Cantt team."
         />
         <p class="mt-6 text-muted">
-          Want to compare first? See the <a href={urls.rates()} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">daily rates</a> or{" "}
-          <a href={urls.cars()} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">browse the fleet</a>.
+          Want to compare first? See the <a href={urls.rates()} class="link-draw text-fg">daily rates</a> or{" "}
+          <a href={urls.cars()} class="link-draw text-fg">browse the fleet</a>.
         </p>
       </div>
-      <ol class="relative flex flex-col gap-12 border-l border-dashed border-line-strong/50 pl-9 md:pl-12">
+      <ol class="flex flex-col border-t border-line">
         {
           steps.map((s, i) => (
-            <li class="relative" data-reveal data-reveal-delay={i ? String(i) : undefined}>
-              <span class="absolute top-0 -left-9 grid size-10 -translate-x-1/2 place-items-center rounded-full border border-line bg-bg font-display text-sm text-accent-fg tabular-nums md:-left-12">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <h3 class="text-display-sm text-fg">{s.title}</h3>
-              <p class="mt-3 max-w-xl text-muted">{s.body}</p>
+            <li class="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-x-4 border-b border-line py-9" data-reveal data-reveal-delay={i ? String(i) : undefined}>
+              <span class="pt-2 text-sm text-accent-fg tabular">{String(i + 1).padStart(2, "0")}</span>
+              <div>
+                <h3 class="text-display-sm text-fg">{s.title}</h3>
+                <p class="mt-3 max-w-xl leading-relaxed text-muted">{s.body}</p>
+              </div>
             </li>
           ))
         }
@@ -163,118 +166,91 @@ const faqs: FaqItem[] = [
       title="Pickup anywhere we serve in Lahore"
       intro="Choose an area in the form or type your exact address. Drivers know the city well, from the lanes of the Walled City to the wide boulevards of DHA."
     />
-    <ul class="mt-10 grid border-t border-line md:grid-cols-2 md:gap-x-8 lg:grid-cols-4" aria-label="Car rental pickup areas">
+    <ul class="mt-12 grid border-t border-line md:grid-cols-2 md:gap-x-10 lg:grid-cols-4" aria-label="Car rental pickup areas">
       {
         site.areasServed.map((area) => (
           <li class="border-b border-line">
-            <a
-              href={urls.area(area.slug)}
-              class="group flex items-center justify-between gap-4 py-4 font-display text-display-sm text-fg transition-colors hover:text-accent-fg"
-            >
+            <a href={urls.area(area.slug)} class="block py-5 text-display-sm text-fg transition-[color,transform] duration-700 ease-(--ease-out) hover:translate-x-1.5 hover:text-accent-fg">
               {area.name}
-              <Icon name="ph:arrow-up-right" size={18} class="text-muted transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </a>
           </li>
         ))
       }
     </ul>
-    <div class="mt-12 grid gap-10 md:grid-cols-2 md:gap-16">
-      <div class="flex gap-4" data-reveal>
-        <span class="grid size-11 shrink-0 place-items-center rounded-full bg-accent-soft text-accent"><Icon name="ph:airplane-tilt" size={22} /></span>
-        <div>
-          <h3 class="text-display-sm text-fg">Allama Iqbal International Airport (LHE)</h3>
-          <p class="mt-2 text-muted">
-            The airport is about 15 minutes from Lahore Cantt in normal traffic, so early morning and late night flights are easy to cover. Add your flight
-            number in the form. More on <a href={urls.service("lahore-airport-car-rental")} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">airport pick and drop in Lahore</a>.
-          </p>
-        </div>
+    <div class="mt-16 grid gap-12 md:grid-cols-2 md:gap-20">
+      <div data-reveal>
+        <h3 class="text-display-sm text-fg">Allama Iqbal International Airport (LHE)</h3>
+        <p class="mt-3 max-w-[56ch] leading-relaxed text-muted">
+          The airport is about 15 minutes from Lahore Cantt in normal traffic, so early morning and late night flights are easy to cover. Add your flight
+          number in the form. More on <a href={urls.service("lahore-airport-car-rental")} class="link-draw text-accent-fg">airport pick and drop in Lahore</a>.
+        </p>
       </div>
-      <div class="flex gap-4" data-reveal data-reveal-delay="1">
-        <span class="grid size-11 shrink-0 place-items-center rounded-full bg-accent-soft text-accent"><Icon name="ph:train" size={22} /></span>
-        <div>
-          <h3 class="text-display-sm text-fg">Lahore Railway Station</h3>
-          <p class="mt-2 text-muted">
-            About 25 minutes from Lahore Cantt in normal traffic, longer at rush hour around Garhi Shahu. Tell us your train and arrival time so the driver
-            is waiting when you come out.
-          </p>
-        </div>
+      <div data-reveal data-reveal-delay="1">
+        <h3 class="text-display-sm text-fg">Lahore Railway Station</h3>
+        <p class="mt-3 max-w-[56ch] leading-relaxed text-muted">
+          About 25 minutes from Lahore Cantt in normal traffic, longer at rush hour around Garhi Shahu. Tell us your train and arrival time so the driver
+          is waiting when you come out.
+        </p>
       </div>
     </div>
   </Section>
 
   <Section id="before-you-book" labelledby="docs-title" divider>
-    <div class="grid gap-14 md:grid-cols-2 md:gap-16">
+    <div class="grid gap-16 md:grid-cols-2 md:gap-20">
       <div>
         <SectionHeading id="docs-title" size="md" title="What to keep ready" intro="Nothing is needed to get a quote. These help when you book." />
-        <div class="mt-8 grid gap-8 lg:grid-cols-2">
+        <div class="mt-10 grid gap-10 lg:grid-cols-2">
           <div>
-            <h3 class="flex items-center gap-2 font-sans text-base font-bold text-fg"><Icon name="ph:steering-wheel" size={18} class="text-accent" />With a driver</h3>
-            <ul class="mt-4 flex flex-col gap-3 text-sm text-muted">
-              {
-                withDriverDocs.map((d) => (
-                  <li class="flex gap-2.5">
-                    <Icon name="ph:check" size={16} class="mt-0.5 text-accent" />
-                    {d}
-                  </li>
-                ))
-              }
+            <h3 class="label text-muted">With a driver</h3>
+            <ul class="mt-4 border-t border-line text-[0.9375rem] leading-relaxed text-fg/85">
+              {withDriverDocs.map((d) => <li class="border-b border-line py-3.5">{d}</li>)}
             </ul>
-            <p class="mt-4 text-sm text-muted">
-              More on <a href={urls.service("rent-a-car-with-driver-lahore")} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">renting a car with a driver in Lahore</a>{" "}
-              and <a href={urls.routes()} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">outstation trips from Lahore</a>.
+            <p class="mt-4 text-sm leading-relaxed text-muted">
+              More on <a href={urls.service("rent-a-car-with-driver-lahore")} class="link-draw text-accent-fg">renting a car with a driver in Lahore</a>{" "}
+              and <a href={urls.routes()} class="link-draw text-accent-fg">outstation trips from Lahore</a>.
             </p>
           </div>
           <div>
-            <h3 class="flex items-center gap-2 font-sans text-base font-bold text-fg"><Icon name="ph:key" size={18} class="text-accent" />Self drive</h3>
-            <ul class="mt-4 flex flex-col gap-3 text-sm text-muted">
-              {
-                selfDriveDocs.map((d) => (
-                  <li class="flex gap-2.5">
-                    <Icon name="ph:check" size={16} class="mt-0.5 text-accent" />
-                    {d}
-                  </li>
-                ))
-              }
+            <h3 class="label text-muted">Self drive</h3>
+            <ul class="mt-4 border-t border-line text-[0.9375rem] leading-relaxed text-fg/85">
+              {selfDriveDocs.map((d) => <li class="border-b border-line py-3.5">{d}</li>)}
             </ul>
-            <p class="mt-4 text-sm text-muted">
-              More on <a href={urls.service("self-drive-car-rental-lahore")} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">self drive car rental in Lahore</a>.
+            <p class="mt-4 text-sm leading-relaxed text-muted">
+              More on <a href={urls.service("self-drive-car-rental-lahore")} class="link-draw text-accent-fg">self drive car rental in Lahore</a>.
             </p>
           </div>
         </div>
       </div>
       <div>
         <SectionHeading id="pay-title" size="md" title="How you pay" intro="Pay only after our team has confirmed the car and the price on WhatsApp." />
-        <ul class="mt-8 flex flex-wrap gap-2.5" aria-label="Payment methods">
-          {
-            payments.map((method) => (
-              <li class="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-fg">
-                <Icon name={paymentIcon(method)} size={18} class="text-accent" />
-                {method}
-              </li>
-            ))
-          }
+        <ul class="mt-10 border-t border-line" aria-label="Payment methods">
+          {payments.map((method) => <li class="border-b border-line py-4 text-lg text-fg">{method}</li>)}
         </ul>
-        <p class="mt-6 max-w-lg text-sm text-muted">
+        <p class="mt-6 max-w-lg text-sm leading-relaxed text-muted">
           No card details or payments are taken on this website. Self drive rentals also need the refundable security deposit at handover. Read the full{" "}
-          <a href={urls.policies()} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">rental policies</a>.
+          <a href={urls.policies()} class="link-draw text-accent-fg">rental policies</a>.
         </p>
       </div>
     </div>
   </Section>
 
-  <Section id="faq" labelledby="faq-title" width="narrow" divider>
-    <SectionHeading id="faq-title" title="Quote questions" />
-    <FaqList faqs={faqs} exclusive id="quote-faq" class="mt-10" />
-    <p class="mt-8 text-sm text-muted">
-      More answers on the <a href={urls.faq()} class="font-semibold text-fg underline underline-offset-4 hover:text-accent-fg">car rental FAQ</a>.
-    </p>
+  <Section id="faq" labelledby="faq-title" divider>
+    <div class="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
+      <div>
+        <SectionHeading id="faq-title" title="Quote questions" />
+        <p class="mt-6 text-sm text-muted">
+          More answers on the <a href={urls.faq()} class="link-draw text-accent-fg">car rental FAQ</a>.
+        </p>
+      </div>
+      <FaqList faqs={faqs} exclusive id="quote-faq" />
+    </div>
   </Section>
 
   <section aria-labelledby="talk-title" class="relative border-t border-line" data-fab-hide>
-    <Container class="grid items-end gap-8 py-[calc(var(--section-space)*0.7)] lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+    <Container class="grid items-end gap-8 py-section lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
       <div>
-        <h2 id="talk-title" class="text-display-lg text-fg">Rather talk it through?</h2>
-        <p class="text-lede mt-4 max-w-xl text-muted">
+        <h2 id="talk-title" class="text-display-lg text-fg" data-fx="lines">Rather talk it through?</h2>
+        <p class="text-lede mt-5 max-w-xl text-muted">
           Gari chahiye but not sure which one? Message or call us. We are open {hoursInSentence}.
         </p>
       </div>

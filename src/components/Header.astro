@@ -1,15 +1,18 @@
 ---
 /**
- * Site header (rendered by BaseLayout). Fixed, transparent over the hero; turns solid + blurred
- * once the page scrolls past a sentinel (IntersectionObserver, no scroll listener).
- * Desktop: single-line nav from site.nav.primary, call + WhatsApp shortcuts (xl), "Get a quote".
- * Mobile: native <dialog> sheet (focus is trapped by showModal, Escape and backdrop close it).
- * Focus lands on "Close menu" (autofocus) and returns to the menu button on close. Invoker commands
- * (commandfor/command) open and close the sheet even before the module script has loaded; the
- * script adds aria-expanded, the Lenis scroll lock, backdrop/link closing and the resize close.
+ * Site header (rendered by BaseLayout). Slim and fixed. Transparent over the hero, hairline and blur once
+ * the page scrolls past a sentinel, slides away on scroll down and returns on scroll up. Nav in small
+ * tracked caps with an underline that draws itself.
+ *
+ * Menu (all widths): a full-screen native <dialog>. Focus is trapped by showModal, Escape closes it, focus
+ * lands on "Close menu" (autofocus) and returns to the menu button on close. Invoker commands
+ * (commandfor/command) open and close it even before the module script has loaded; the script adds
+ * aria-expanded, the Lenis scroll lock and link closing. Giant Bodoni links stagger in with CSS alone
+ * (@starting-style), beside a mood image from the media manifest, or the C drawn large until one exists.
  */
 import { formatOpeningHours, primaryPhone, site } from "@/config/site";
 import { telUrl, whatsappUrl } from "@/lib/links";
+import { captionFor, heroFor } from "@/lib/media";
 import { isActivePath } from "@/lib/urls";
 import Button from "./Button.astro";
 import Container from "./Container.astro";
@@ -18,51 +21,49 @@ import Logo from "./Logo.astro";
 
 const current = Astro.url.pathname;
 const hours = formatOpeningHours();
+const mood = heroFor("/about/");
+const moodCaption = mood && captionFor(mood);
 ---
 
 <div data-header-sentinel class="pointer-events-none absolute inset-x-0 top-0 h-6" aria-hidden="true"></div>
 
-<header class="site-header group/header fixed inset-x-0 top-0 z-50" data-site-header data-scrolled="false">
+<header class="site-header group/header fixed inset-x-0 top-0 z-50" data-site-header data-scrolled="false" data-hidden="false">
+  <div class="site-header__scrim pointer-events-none absolute inset-x-0 top-0 h-[150%]" aria-hidden="true"></div>
   <div
-    class="absolute inset-0 border-b border-transparent opacity-0 transition-[opacity,border-color] duration-300 ease-(--ease-out) group-data-[scrolled=true]/header:border-line group-data-[scrolled=true]/header:opacity-100 bg-(--header-bg) backdrop-blur-xl backdrop-saturate-150 not-supports-[backdrop-filter:blur(1px)]:bg-bg"
+    class="site-header__glass absolute inset-0 border-b border-line bg-(--header-bg) opacity-0 backdrop-blur-xl backdrop-saturate-125 not-supports-[backdrop-filter:blur(1px)]:bg-bg group-data-[scrolled=true]/header:opacity-100"
     aria-hidden="true"
   >
   </div>
 
-  <Container class="relative flex h-(--header-h) items-center gap-4 lg:gap-8">
+  <Container class="relative flex h-(--header-h) items-center gap-4 lg:gap-6 xl:gap-10">
     <Logo size="md" class="max-sm:hidden" />
     <Logo size="sm" class="sm:hidden" />
 
-    <nav aria-label="Main" class="hidden lg:block">
-      <ul class="flex items-center gap-0.5">
+    <nav aria-label="Main" class="hidden lg:block xl:ml-8">
+      <ul class="flex items-center gap-4 xl:gap-8">
         {
-          site.nav.primary.map((link) => {
-            const active = isActivePath(link.href, current);
-            return (
-              <li>
-                <a
-                  href={link.href}
-                  aria-current={active ? "page" : undefined}
-                  class="relative inline-flex h-10 items-center rounded-full px-3 text-[0.9375rem] font-medium text-muted transition-colors duration-200 hover:text-fg aria-[current=page]:text-fg"
-                >
-                  {link.label}
-                  {active && (
-                    <span class="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-accent" aria-hidden="true" />
-                  )}
-                </a>
-              </li>
-            );
-          })
+          site.nav.primary.map((link) => (
+            <li>
+              <a
+                href={link.href}
+                aria-current={isActivePath(link.href, current) ? "page" : undefined}
+                class="link-draw label inline-block py-2 whitespace-nowrap text-fg/80 transition-colors duration-500 hover:text-fg aria-[current=page]:text-accent-fg max-xl:!text-[0.625rem] max-xl:!tracking-[0.16em]"
+              >
+                {link.label}
+              </a>
+            </li>
+          ))
         }
       </ul>
     </nav>
 
-    <div class="ml-auto flex items-center gap-1.5 sm:gap-2">
+    <div class="ml-auto flex items-center gap-1.5 sm:gap-2.5">
       <Button
         href={telUrl()}
         variant="ghost"
         iconOnly
         icon="ph:phone"
+        iconClass="text-accent"
         label={`${site.cta.call.label}: ${primaryPhone.display}`}
         class="max-md:hidden lg:max-xl:hidden"
       />
@@ -76,12 +77,13 @@ const hours = formatOpeningHours();
         external
         class="max-md:hidden lg:max-xl:hidden"
       />
-      <Button href={site.cta.quote.href} size="sm" class="sm:hidden">{site.cta.quote.label}</Button>
+      <!-- Outlined on phones: the page hero right under it carries the one filled brass "Get a quote". -->
+      <Button href={site.cta.quote.href} size="sm" variant="secondary" class="sm:hidden">{site.cta.quote.label}</Button>
       <Button href={site.cta.quote.href} size="md" class="max-sm:hidden">{site.cta.quote.label}</Button>
 
       <button
         type="button"
-        class="inline-flex size-11 items-center justify-center rounded-full text-fg transition-[background-color,transform] duration-200 hover:bg-surface-2 active:scale-95 lg:hidden"
+        class="menu-toggle group/menu -mr-2 inline-flex h-11 min-w-11 items-center justify-center gap-3 px-2 text-fg"
         aria-haspopup="dialog"
         aria-controls="site-menu"
         aria-expanded="false"
@@ -89,92 +91,86 @@ const hours = formatOpeningHours();
         command="show-modal"
         data-menu-open
       >
-        <Icon name="ph:list" size={24} />
-        <span class="sr-only">Menu</span>
+        <span class="label max-xl:sr-only">Menu</span>
+        <span class="menu-toggle__lines relative block h-2.5 w-7" aria-hidden="true"></span>
       </button>
     </div>
   </Container>
 </header>
 
-<dialog
-  id="site-menu"
-  class="menu-sheet m-0 ml-auto h-dvh max-h-dvh w-full max-w-[min(100vw,26rem)] bg-bg p-0 text-fg backdrop:bg-black/55 backdrop:backdrop-blur-sm"
-  aria-labelledby="site-menu-title"
-  data-scroll-lock
-  closedby="any"
->
-  <div class="flex h-full flex-col border-l border-line">
-    <div class="flex h-(--header-h) shrink-0 items-center justify-between border-b border-line px-(--gutter)">
+<dialog id="site-menu" class="menu-sheet m-0 h-dvh max-h-none w-full max-w-none overflow-hidden bg-bg p-0 text-fg" aria-labelledby="site-menu-title" data-scroll-lock closedby="any">
+  <div class="relative isolate flex h-full flex-col">
+    {/* Mood image: the right column on desktop, a dim backdrop behind the links on phones. */}
+    <div class="menu-mood absolute inset-y-0 right-0 -z-10 w-full overflow-hidden lg:w-[42%]" aria-hidden="true">
+      {
+        mood ? (
+          <img src={mood.src} srcset={mood.srcset || undefined} sizes="(min-width: 1024px) 42vw, 100vw" width={mood.width} height={mood.height} alt="" loading="lazy" decoding="async" class="menu-mood__img size-full object-cover" />
+        ) : (
+          <svg viewBox="0 0 64 64" fill="none" class="menu-mood__mark absolute top-1/2 left-1/2 w-[120%] max-w-none -translate-x-1/2 -translate-y-1/2 lg:w-[105%]">
+            <path d="M43.31 20.69A16 16 0 1 0 43.31 43.31" stroke="var(--line-strong)" stroke-width="0.12" />
+            <rect x="35.2" y="31.86" width="18.8" height="0.28" fill="var(--accent)" />
+          </svg>
+        )
+      }
+      <div class="absolute inset-0 bg-[linear-gradient(90deg,var(--bg)_0%,rgb(7_7_8/0.72)_60%,rgb(7_7_8/0.8)_100%)] lg:bg-[linear-gradient(90deg,var(--bg)_0%,rgb(7_7_8/0.1)_45%,rgb(7_7_8/0.28)_100%)]"></div>
+      {moodCaption && <p class="absolute right-[var(--gutter)] bottom-3 text-[0.625rem] leading-none tracking-[0.04em] text-fg/70 max-lg:hidden">{moodCaption}</p>}
+    </div>
+
+    <Container class="flex h-(--header-h) shrink-0 items-center justify-between">
       <p id="site-menu-title" class="sr-only">Menu</p>
-      <Logo size="sm" />
-      <button
-        type="button"
-        class="inline-flex size-11 items-center justify-center rounded-full text-fg transition-colors hover:bg-surface-2"
-        commandfor="site-menu"
-        command="close"
-        autofocus
-        data-menu-close
-      >
-        <Icon name="ph:x" size={24} />
+      <Logo size="md" class="max-sm:hidden" />
+      <Logo size="sm" class="sm:hidden" />
+      <button type="button" class="-mr-2 inline-flex h-11 min-w-11 items-center justify-center gap-3 px-2 text-fg" commandfor="site-menu" command="close" autofocus data-menu-close>
+        <span class="label max-lg:sr-only">Close</span>
         <span class="sr-only">Close menu</span>
+        <span class="menu-toggle__close relative block h-5 w-7" aria-hidden="true"></span>
       </button>
-    </div>
+    </Container>
 
-    <nav aria-label="Mobile" class="flex-1 overflow-y-auto overscroll-contain px-(--gutter) py-6">
-      <ul class="flex flex-col">
-        {
-          site.nav.primary.map((link) => (
-            <li>
-              <a
-                href={link.href}
-                aria-current={isActivePath(link.href, current) ? "page" : undefined}
-                class="group flex items-center justify-between border-b border-line py-3.5 font-display text-[1.375rem] font-semibold tracking-[-0.03em] text-fg aria-[current=page]:text-accent-fg"
-              >
-                {link.label}
-                <Icon
-                  name="ph:arrow-up-right"
-                  size={18}
-                  class="text-muted transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                />
-              </a>
-            </li>
-          ))
-        }
-      </ul>
+    <Container class="grid min-h-0 flex-1 grid-rows-[1fr_auto] overflow-y-auto overscroll-contain pb-[max(1.25rem,env(safe-area-inset-bottom))] lg:grid-cols-[minmax(0,1fr)_42%] lg:gap-x-12 lg:overflow-visible">
+      <nav aria-label="Menu" class="flex flex-col justify-center py-4 lg:row-span-2 lg:py-0">
+        <ul class="flex flex-col">
+          {
+            site.nav.primary.map((link, i) => (
+              <li class="menu-link overflow-clip" style={`--i:${i}`}>
+                <a
+                  href={link.href}
+                  aria-current={isActivePath(link.href, current) ? "page" : undefined}
+                  class="menu-link__a group/ml inline-flex items-baseline gap-4 py-[0.04em] font-display text-[clamp(2.625rem,min(9.4vh,11.5vw),6.75rem)] leading-[1.04] text-fg transition-colors duration-500 hover:text-accent aria-[current=page]:text-accent"
+                >
+                  <span class="group-hover/ml:italic">{link.label}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
 
-      <p class="mt-8 text-xs font-bold uppercase tracking-[0.16em] text-muted">Services</p>
-      <ul class="mt-3 grid grid-cols-1 gap-1 min-[400px]:grid-cols-2">
-        {
-          site.services.map((s) => (
-            <li>
-              <a
-                href={`/${s.slug}/`}
-                class="flex items-center gap-2.5 rounded-badge px-2 py-2 text-[0.9375rem] text-muted transition-colors hover:bg-surface-2 hover:text-fg"
-              >
-                <Icon name={s.icon} size={18} class="text-accent" />
-                {s.shortName}
-              </a>
-            </li>
-          ))
-        }
-      </ul>
-    </nav>
-
-    <div class="grid shrink-0 gap-3 border-t border-line px-(--gutter) pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <Button href={site.cta.quote.href} size="lg" fullWidth iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
-      <div class="grid grid-cols-2 gap-3">
-        <Button
-          href={whatsappUrl()}
-          variant="secondary"
-          icon="simple-icons:whatsapp"
-          iconClass="text-whatsapp"
-          external
-          fullWidth>{site.cta.whatsapp.label}</Button
-        >
-        <Button href={telUrl()} variant="secondary" icon="ph:phone" fullWidth>{site.cta.call.label}</Button>
+      <div class="menu-foot flex flex-col gap-6 border-t border-line pt-5 lg:col-start-2 lg:row-start-2 lg:border-0 lg:bg-[linear-gradient(0deg,rgb(7_7_8/0.75),transparent)] lg:p-6">
+        <div>
+          <p class="label text-muted">Services</p>
+          <ul class="mt-3 grid grid-cols-2 gap-x-6 gap-y-1">
+            {
+              site.services.map((s) => (
+                <li>
+                  <a href={`/${s.slug}/`} class="inline-block py-1 text-sm text-fg/85 transition-colors duration-500 hover:text-accent-fg">
+                    {s.shortName}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-[1.4fr_1fr_1fr]">
+          <Button href={site.cta.quote.href} size="md" fullWidth iconRight="ph:arrow-right" class="max-sm:h-12">{site.cta.quote.label}</Button>
+          <div class="contents max-sm:grid max-sm:grid-cols-2 max-sm:gap-3">
+            <Button href={whatsappUrl()} variant="secondary" size="md" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external fullWidth class="max-[23rem]:px-2 lg:px-2">{site.cta.whatsapp.label}</Button>
+            <Button href={telUrl()} variant="secondary" size="md" icon="ph:phone" fullWidth class="max-[23rem]:px-2 lg:px-2">{site.cta.call.label}</Button>
+          </div>
+        </div>
+        <p class="text-xs text-muted">{hours.join(" · ")}</p>
       </div>
-      <p class="text-center text-sm text-muted">{hours.join(" · ")}</p>
-    </div>
+    </Container>
   </div>
 </dialog>
 
@@ -187,14 +183,40 @@ const hours = formatOpeningHours();
     }).observe(sentinel);
   }
 
+  // Slides away on scroll down, returns on scroll up. Never hides near the top of the page.
+  if (header) {
+    let lastY = Math.max(0, window.scrollY);
+    let queued = false;
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => {
+          queued = false;
+          const y = Math.max(0, window.scrollY);
+          const delta = y - lastY;
+          if (Math.abs(delta) < 6) return;
+          header.dataset.hidden = String(delta > 0 && y > window.innerHeight * 0.3);
+          lastY = y;
+        });
+      },
+      { passive: true },
+    );
+  }
+
   const dialog = document.getElementById("site-menu") as HTMLDialogElement | null;
   const openButton = document.querySelector<HTMLButtonElement>("[data-menu-open]");
 
   const lock = (locked: boolean) => window.dispatchEvent(new CustomEvent("cantt:scroll-lock", { detail: { locked } }));
 
+  // Where the browser supports commandfor, the button opens the dialog itself after this listener has run;
+  // opening it here as well logs "already open Dialog". Only older browsers need the script to open it.
+  const nativeCommand = "commandForElement" in HTMLButtonElement.prototype;
+
   if (dialog && openButton) {
     openButton.addEventListener("click", () => {
-      dialog.showModal();
+      if (!nativeCommand && !dialog.open) dialog.showModal();
       openButton.setAttribute("aria-expanded", "true");
       lock(true);
     });
@@ -205,54 +227,134 @@ const hours = formatOpeningHours();
     });
     dialog.addEventListener("click", (event) => {
       const target = event.target as HTMLElement;
-      // Backdrop click (the dialog element itself) or any link / close button inside.
-      if (target === dialog || target.closest("[data-menu-close], a")) dialog.close();
-    });
-    window.matchMedia("(min-width: 64rem)").addEventListener("change", (event) => {
-      if (event.matches && dialog.open) dialog.close();
+      if (target.closest("[data-menu-close], a")) dialog.close();
     });
   }
 </script>
 
 <style>
-  /* Sheet slides in from the right; @starting-style gives an entry animation without JS. */
-  .menu-sheet {
-    transition:
-      translate 0.38s var(--ease-out),
-      opacity 0.3s var(--ease-out),
-      overlay 0.38s allow-discrete,
-      display 0.38s allow-discrete;
-    translate: 100% 0;
+  .site-header {
+    transition: transform 0.9s var(--ease-heavy);
+  }
+  /* Keyboard users never lose it: focus inside the header holds it in place. */
+  .site-header[data-hidden="true"]:not(:focus-within) {
+    transform: translate3d(0, -100%, 0);
+  }
+  .site-header__scrim {
+    background: linear-gradient(180deg, rgb(7 7 8 / 0.62), transparent);
+    transition: opacity 0.6s linear;
+  }
+  .site-header[data-scrolled="true"] .site-header__scrim {
     opacity: 0;
   }
+  .site-header__glass {
+    transition: opacity 0.6s linear;
+  }
+
+  /* Two hairlines; they close up on hover, and the close icon crosses them. */
+  .menu-toggle__lines::before,
+  .menu-toggle__lines::after,
+  .menu-toggle__close::before,
+  .menu-toggle__close::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: currentColor;
+    transition: transform 0.7s var(--ease-heavy);
+  }
+  .menu-toggle__lines::before {
+    top: 0;
+  }
+  .menu-toggle__lines::after {
+    bottom: 0;
+    transform: scaleX(0.6);
+    transform-origin: 100% 50%;
+  }
+  .menu-toggle:hover .menu-toggle__lines::after {
+    transform: none;
+  }
+  .menu-toggle__close::before,
+  .menu-toggle__close::after {
+    top: 50%;
+  }
+  .menu-toggle__close::before {
+    transform: rotate(32deg);
+  }
+  .menu-toggle__close::after {
+    transform: rotate(-32deg);
+  }
+
+  /* The sheet drops like a door. @starting-style gives the entry without JS. */
+  .menu-sheet {
+    clip-path: inset(0 0 100% 0);
+    transition:
+      clip-path 0.95s var(--ease-door),
+      overlay 0.95s allow-discrete,
+      display 0.95s allow-discrete;
+  }
   .menu-sheet[open] {
-    translate: 0 0;
-    opacity: 1;
+    clip-path: inset(0);
   }
   @starting-style {
     .menu-sheet[open] {
-      translate: 100% 0;
-      opacity: 0;
+      clip-path: inset(0 0 100% 0);
     }
   }
   .menu-sheet::backdrop {
-    transition:
-      opacity 0.3s var(--ease-out),
-      overlay 0.3s allow-discrete,
-      display 0.3s allow-discrete;
-    opacity: 0;
+    background: transparent;
   }
-  .menu-sheet[open]::backdrop {
-    opacity: 1;
+
+  .menu-link__a {
+    transform: translate3d(0, 112%, 0);
+    transition:
+      transform 1.1s var(--ease-heavy),
+      color 0.5s linear;
+  }
+  .menu-sheet[open] .menu-link__a {
+    transform: none;
+    transition-delay: calc(0.22s + var(--i) * 0.07s), 0s;
   }
   @starting-style {
-    .menu-sheet[open]::backdrop {
+    .menu-sheet[open] .menu-link__a {
+      transform: translate3d(0, 112%, 0);
+    }
+  }
+
+  .menu-foot,
+  .menu-mood {
+    opacity: 0;
+    transition: opacity 1.2s linear;
+  }
+  .menu-sheet[open] :is(.menu-foot, .menu-mood) {
+    opacity: 1;
+    transition-delay: 0.5s;
+  }
+  @starting-style {
+    .menu-sheet[open] :is(.menu-foot, .menu-mood) {
       opacity: 0;
     }
   }
+  .menu-mood__img {
+    transform: scale(1.12);
+    transition: transform 2.4s var(--ease-heavy);
+  }
+  .menu-sheet[open] .menu-mood__img {
+    transform: none;
+  }
+  @starting-style {
+    .menu-sheet[open] .menu-mood__img {
+      transform: scale(1.12);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .menu-sheet,
-    .menu-sheet::backdrop {
+    .menu-link__a,
+    .menu-foot,
+    .menu-mood,
+    .menu-mood__img {
       transition: none;
     }
   }

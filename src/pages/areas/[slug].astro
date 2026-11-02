@@ -7,15 +7,17 @@
  */
 import { getCollection, render } from "astro:content";
 import Button from "@/components/Button.astro";
-import CarCard from "@/components/CarCard.astro";
+import GalleryList from "@/components/fleet/GalleryList.astro";
 import FaqList from "@/components/FaqList.astro";
-import Icon from "@/components/Icon.astro";
 import JsonLd from "@/components/JsonLd.astro";
 import PriceTag from "@/components/PriceTag.astro";
-import Prose from "@/components/Prose.astro";
 import SampleFleetNote from "@/components/SampleFleetNote.astro";
 import Section from "@/components/Section.astro";
 import SectionHeading from "@/components/SectionHeading.astro";
+import Interlude from "@/components/local/Interlude.astro";
+import Reading from "@/components/local/Reading.astro";
+import { areaPictures } from "@/components/local/plates";
+import { modelVisual } from "@/components/fleet/model-visual";
 import AreaLinks from "@/components/local/AreaLinks.astro";
 import DistanceBoard from "@/components/local/DistanceBoard.astro";
 import LahoreMap from "@/components/local/LahoreMap.astro";
@@ -48,6 +50,12 @@ const popular = await modelsOrFallback(data.popularModels, "family", 4);
 const fromPrice = cheapestFrom(popular);
 const categoryName = (slug: string) => categories.find((c) => c.slug === slug)?.name;
 
+// The area's own picture leads; the reading plates and the closing interlude never repeat it, nor any car whose
+// picture sits in the "Popular cars" list below.
+const { hero, reading: readingPlates, closing } = areaPictures(
+  entry.id,
+  popular.map((m) => modelVisual(m)?.img),
+);
 const isHq = entry.id === "lahore-cantt";
 const path = urls.area(entry.id);
 const waMessage = `Assalam o Alaikum! I need a car in ${data.areaName}.`;
@@ -64,6 +72,9 @@ const faqs = data.faqs.map((f) => ({ q: fillTerms(f.q), a: fillTerms(f.a) }));
   intro={data.intro}
   crumbs={[{ label: "Areas we serve", href: urls.areas() }, { label: data.areaName }]}
   whatsappMessage={waMessage}
+  heroImage={hero.img}
+  heroCaption={hero.caption}
+  heroPosition={hero.position}
 >
   <JsonLd slot="jsonld" data={areaBusinessSchema({ name: data.areaName, url: path, lat: geo?.lat, lng: geo?.lng })} />
 
@@ -75,20 +86,17 @@ const faqs = data.faqs.map((f) => ({ q: fillTerms(f.q), a: fillTerms(f.a) }));
     <Button href={telUrl()} variant="ghost" size="lg" icon="ph:phone">{site.cta.call.label}</Button>
   </Fragment>
 
-  <Fragment slot="aside">
-    <DistanceBoard from={data.areaName} distances={data.distances} />
-  </Fragment>
 
   {
     isHq && (
       <Section id="office" labelledby="office-title" spacing="sm">
-        <div class="grid gap-8 rounded-card border border-line bg-surface p-6 sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-12">
-          <div class="flex flex-col gap-4">
+        <div class="grid gap-10 border-y border-line py-12 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-16 lg:py-16">
+          <div class="flex flex-col gap-5">
             <p class="eyebrow">Head office</p>
-            <h2 id="office-title" class="text-display-md text-fg">
+            <h2 id="office-title" class="text-display-md text-fg" data-fx="lines">
               Our office is in {data.areaName}
             </h2>
-            <p class="text-muted">
+            <p class="max-w-[52ch] leading-relaxed text-muted">
               Self drive handovers, document checks and most of our trips start here. Message us before you visit so the car and the paperwork are ready.
             </p>
             <div class="flex flex-wrap gap-3">
@@ -100,39 +108,31 @@ const faqs = data.faqs.map((f) => ({ q: fillTerms(f.q), a: fillTerms(f.a) }));
               </Button>
             </div>
           </div>
-          <dl class="grid gap-5 text-sm sm:grid-cols-2">
-            <div class="relative pl-8">
-              <dt class="font-semibold text-fg">
-                <Icon name="ph:map-pin" size={20} class="absolute top-0.5 left-0 text-accent" />Address
-              </dt>
-              <dd class="mt-1 text-muted">
+          <dl class="grid gap-7 sm:grid-cols-2">
+            <div class="flex flex-col gap-2">
+              <dt class="label text-muted">Address</dt>
+              <dd class="text-fg">
                 <address class="not-italic">{formatAddress()}</address>
               </dd>
             </div>
-            <div class="relative pl-8">
-              <dt class="font-semibold text-fg">
-                <Icon name="ph:clock" size={20} class="absolute top-0.5 left-0 text-accent" />Opening hours
-              </dt>
+            <div class="flex flex-col gap-2">
+              <dt class="label text-muted">Opening hours</dt>
               {hours.map((h) => (
-                <dd class="mt-1 text-muted">{h}</dd>
+                <dd class="text-fg">{h}</dd>
               ))}
             </div>
-            <div class="relative pl-8">
-              <dt class="font-semibold text-fg">
-                <Icon name="ph:phone" size={20} class="absolute top-0.5 left-0 text-accent" />Phone
-              </dt>
-              <dd class="mt-1">
-                <a href={telUrl()} class="text-muted tabular transition-colors hover:text-fg">
+            <div class="flex flex-col gap-2">
+              <dt class="label text-muted">Phone</dt>
+              <dd>
+                <a href={telUrl()} class="link-draw text-fg tabular">
                   {primaryPhone.display}
                 </a>
               </dd>
             </div>
-            <div class="relative pl-8">
-              <dt class="font-semibold text-fg">
-                <Icon name="ph:envelope-simple" size={20} class="absolute top-0.5 left-0 text-accent" />Email
-              </dt>
-              <dd class="mt-1 break-all">
-                <a href={`mailto:${site.email}`} class="text-muted transition-colors hover:text-fg">
+            <div class="flex flex-col gap-2">
+              <dt class="label text-muted">Email</dt>
+              <dd class="break-all">
+                <a href={`mailto:${site.email}`} class="link-draw text-fg">
                   {site.email}
                 </a>
               </dd>
@@ -144,73 +144,59 @@ const faqs = data.faqs.map((f) => ({ q: fillTerms(f.q), a: fillTerms(f.a) }));
   }
 
   <Section id="pickup" labelledby="pickup-title" spacing={isHq ? "sm" : "md"}>
-    <div class="grid gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-12 lg:gap-20">
-      <div class="flex flex-col gap-8">
-        <SectionHeading
-          id="pickup-title"
-          title={`Pickup points in ${data.areaName}`}
-          intro="We come to your door. These are the places we pick up from most often, so tell us the nearest one if you are not at home."
-          size="md"
-        />
-        <div class="grid gap-8 sm:grid-cols-2">
-          <div>
-            <h3 class="flex items-center gap-2 font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">
-              <Icon name="ph:map-pin" size={16} class="text-accent" />
-              Pickup points
-            </h3>
-            <ul class="mt-4 flex flex-col gap-3 text-sm leading-relaxed text-muted">
-              {
-                data.pickupPoints.map((p) => (
-                  <li class="flex gap-2.5">
-                    <Icon name="ph:check" size={16} class="mt-0.5 shrink-0 text-accent" />
-                    <span>{p}</span>
-                  </li>
-                ))
-              }
-            </ul>
-          </div>
-          <div>
-            <h3 class="flex items-center gap-2 font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">
-              <Icon name="ph:buildings" size={16} class="text-accent" />
-              Landmarks we know
-            </h3>
-            <ul class="mt-4 flex flex-col gap-3 text-sm leading-relaxed text-muted">
-              {
-                data.landmarks.map((l) => (
-                  <li class="flex gap-2.5">
-                    <span class="mt-2 h-0.5 w-2.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
-                    <span>{l}</span>
-                  </li>
-                ))
-              }
-            </ul>
-          </div>
+    <SectionHeading
+      id="pickup-title"
+      title={`Pickup points in ${data.areaName}`}
+      intro="We come to your door. These are the places we pick up from most often, so tell us the nearest one if you are not at home."
+    />
+    <div class="mt-14 grid gap-14 md:grid-cols-2 lg:gap-24">
+      <div class="flex flex-col gap-12">
+        <div>
+          <h3 class="label text-muted">Pickup points</h3>
+          <ul class="mt-4 border-t border-line" data-fx="stagger">
+            {
+              data.pickupPoints.map((p) => (
+                <li class="border-b border-line py-3.5 text-fg">{p}</li>
+              ))
+            }
+          </ul>
+        </div>
+        <div>
+          <h3 class="label text-muted">Landmarks we know</h3>
+          <ul class="mt-4 border-t border-line" data-fx="stagger">
+            {
+              data.landmarks.map((l) => (
+                <li class="border-b border-line py-3.5 text-muted">{l}</li>
+              ))
+            }
+          </ul>
         </div>
       </div>
-      <LahoreMap mode="locator" highlight={entry.id} distances={data.distances} uid={`map-${entry.id}`} />
+      <div class="flex flex-col gap-12">
+        <LahoreMap mode="locator" highlight={entry.id} distances={data.distances} uid={`map-${entry.id}`} />
+        <DistanceBoard from={data.areaName} distances={data.distances} />
+      </div>
     </div>
   </Section>
 
   <Section id="local-guide" aria-label={`${data.areaName} local guide`} divider>
-    <div class="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-20">
-      <Prose>
-        <Content />
-      </Prose>
-      <aside class="flex flex-col gap-8 lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:self-start" aria-labelledby="trips-title">
+    <div class="grid gap-14 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-20">
+      <aside class="order-2 flex flex-col gap-10 lg:sticky lg:top-[calc(var(--header-h)+2rem)] lg:order-1 lg:self-start" aria-labelledby="trips-title">
         <div>
-          <h2 id="trips-title" class="font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">Popular trips from {data.areaName}</h2>
+          <h2 id="trips-title" class="label text-muted">Popular trips from {data.areaName}</h2>
           <RouteLinks routes={routes} prefer={meta.routes} limit={4} layout="stack" class="mt-4" />
-          <a href={urls.routes()} class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-fg underline-offset-4 hover:underline">
-            All outstation routes <Icon name="ph:arrow-right" size={14} />
-          </a>
+          <a href={urls.routes()} class="link-draw mt-5 inline-block text-[0.9375rem] text-accent-fg">All outstation routes</a>
         </div>
-        <div class="rounded-card border border-line bg-surface p-5">
-          <p class="font-semibold text-fg">Self drive or with a driver?</p>
-          <p class="mt-2 text-sm text-muted">
-            Both work in {data.areaName}. Compare them in our <a href={urls.guide("self-drive-vs-car-with-driver-lahore")} class="font-semibold text-accent-fg underline underline-offset-2">self drive vs driver guide</a>.
+        <div class="border-t border-accent pt-5">
+          <p class="text-fg">Self drive or with a driver?</p>
+          <p class="mt-2 text-sm leading-relaxed text-muted">
+            Both work in {data.areaName}. Compare them in our <a href={urls.guide("self-drive-vs-car-with-driver-lahore")} class="link-draw text-accent-fg">self drive vs driver guide</a>.
           </p>
         </div>
       </aside>
+      <Reading class="order-1 lg:order-2" html={entry.rendered?.html} slug={entry.id} plates={readingPlates} every={1}>
+        <Content />
+      </Reading>
     </div>
   </Section>
 
@@ -220,30 +206,21 @@ const faqs = data.faqs.map((f) => ({ q: fillTerms(f.q), a: fillTerms(f.a) }));
         <SectionHeading
           id="cars-title"
           title={`Popular cars in ${data.areaName}`}
-          intro={`The cars people in ${data.areaName} ask us for most, with live rates. The badges show whether each one comes with a driver, as self drive or both.`}
+          intro={`The cars people in ${data.areaName} ask us for most, with live rates. The line under each name says whether it comes with a driver, as self drive or both.`}
         >
           {fromPrice !== null && <PriceTag amount={fromPrice} size="lg" class="mt-1" />}
           <Button slot="actions" href={urls.cars()} variant="secondary" iconRight="ph:arrow-right">
             See the full fleet
           </Button>
         </SectionHeading>
-        {/* Phones: a native scroll-snap row instead of four tall stacked cards. */}
-        <ul
-          class="mt-12 mx-[calc(var(--gutter)*-1)] flex snap-x snap-mandatory scroll-px-(--gutter) gap-4 overflow-x-auto px-(--gutter) pb-4 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-x-6 sm:gap-y-12 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4"
-          aria-label={`Popular cars in ${data.areaName}`}
-          data-reveal
-        >
-          {/* The reveal sits on the list, not the cards: inside a horizontal scroller a per-card view() timeline would track the wrong scroller. */}
-          {popular.map((model) => (
-            <li class="w-[82%] shrink-0 snap-start sm:w-auto">
-              <CarCard model={model} categoryName={categoryName(model.category)} />
-            </li>
-          ))}
-        </ul>
+        {/* An index of the cars, with a small picture where one exists: no empty plates standing in for a car. */}
+        <GalleryList models={popular} categoryName={(m) => categoryName(m.category)} layout="row" order="given" class="mt-12" />
         <SampleFleetNote class="mt-10" />
       </Section>
     )
   }
+
+  <Interlude plate={closing} height="mid" />
 
   <QuoteBand
     title={`Get a quote for a pickup in ${data.areaName}`}
@@ -254,17 +231,19 @@ const faqs = data.faqs.map((f) => ({ q: fillTerms(f.q), a: fillTerms(f.a) }));
 
   {
     faqs.length > 0 && (
-      <Section id="faq" labelledby="faq-title" width="narrow" divider>
-        <SectionHeading id="faq-title" title={`Renting a car in ${data.areaName}: questions`} size="md" />
-        <FaqList faqs={faqs} exclusive id={`faq-${entry.id}`} class="mt-10" />
+      <Section id="faq" labelledby="faq-title" divider>
+        <div class="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
+          <SectionHeading id="faq-title" title={`Renting a car in ${data.areaName}: questions`} size="md" />
+          <FaqList faqs={faqs} exclusive id={`faq-${entry.id}`} />
+        </div>
       </Section>
     )
   }
 
-  <Section id="nearby" labelledby="nearby-title" divider spacing="sm">
-    <SectionHeading id="nearby-title" title="Nearby areas we serve" size="md">
+  <Section id="nearby" labelledby="nearby-title" divider>
+    <SectionHeading id="nearby-title" title="Nearby areas we serve">
       <Button slot="actions" href={urls.areas()} variant="ghost" iconRight="ph:arrow-right">All areas in Lahore</Button>
     </SectionHeading>
-    <AreaLinks slugs={nearby} areas={allAreas} class="mt-8" />
+    <AreaLinks slugs={nearby} areas={allAreas} class="mt-12" />
   </Section>
 </PageLayout>

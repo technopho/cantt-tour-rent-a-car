@@ -1,8 +1,9 @@
 /**
  * Device capability checks (client only, tiny, no dependencies).
  *
- *   import { canRun3D, prefersReducedMotion } from "@/scripts/capabilities";
- *   if (canRun3D()) import("@/scripts/hero3d").then((m) => m.start(canvas));
+ *   import { hasFinePointer, prefersReducedMotion } from "@/scripts/capabilities";
+ *
+ * The quality gate for the home page's WebGL terrain and heavier motion lives in src/scripts/tier.ts.
  */
 
 interface NavigatorWithHints extends Navigator {
@@ -50,32 +51,33 @@ export function supportsWebGL2(): boolean {
   return webgl2Cache;
 }
 
-/**
- * 3D gate (DESIGN.md / ARCHITECTURE.md): fine-pointer desktop only, deviceMemory >= 4 GB,
- * hardwareConcurrency >= 4, no reduced motion, no Save-Data, WebGL2 available.
- * Phones and tablets (primary pointer coarse / no hover) never get the WebGL scene: field performance
- * on mid-range Android matters more than the effect, so they keep the static poster plus the CSS/GSAP
- * motion. Touchscreen laptops still pass, because their primary pointer is the mouse or trackpad.
- * Browsers that hide deviceMemory (Safari, Firefox) pass that single check; the others still apply.
- */
-export function canRun3D(): boolean {
-  const n = nav();
-  if (!n) return false;
-  if (isTouch() || !hasFinePointer()) return false;
-  if (prefersReducedMotion() || saveData()) return false;
-  if (typeof n.deviceMemory === "number" && n.deviceMemory < 4) return false;
-  if ((n.hardwareConcurrency ?? 0) < 4) return false;
-  return supportsWebGL2();
-}
-
 /** Lenis gate: fine pointer desktop, no reduced motion, viewport >= 1024px. */
 export function canSmoothScroll(): boolean {
   return hasFinePointer() && !isTouch() && !prefersReducedMotion() && mq("(min-width: 64rem)");
+}
+
+declare global {
+  interface Window {
+    __canttPreloaderDone?: boolean;
+    __canttPreloaderParting?: boolean;
+  }
+}
+
+/** Run `fn` once the preloader is gone (immediately if it already is, or if it was skipped). */
+export function afterPreloader(fn: () => void): void {
+  if (window.__canttPreloaderDone) fn();
+  else window.addEventListener("cantt:preloader-done", fn, { once: true });
+}
+
+/** Run `fn` as the preloader's doors start to open: the moment to begin an entrance. */
+export function whenPreloaderParts(fn: () => void): void {
+  if (window.__canttPreloaderParting || window.__canttPreloaderDone) fn();
+  else window.addEventListener("cantt:preloader-parting", fn, { once: true });
 }
 
 /** Run `fn` when the browser is idle (falls back to a timeout). */
 export function whenIdle(fn: () => void, timeout = 2000): void {
   if (typeof window === "undefined") return;
   if ("requestIdleCallback" in window) window.requestIdleCallback(() => fn(), { timeout });
-  else setTimeout(fn, 200);
+  else setTimeout(fn, Math.min(200, timeout));
 }

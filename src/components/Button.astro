@@ -1,6 +1,8 @@
 ---
 /**
- * Pill button / link with a tactile press state.
+ * Button / link: a rectangle with a hairline border and a brass fill that slides in on hover (transform
+ * only). Magnetic on fine pointers. Styles live in global.css (.btn), so a plain <a class="btn btn-primary
+ * btn-md"> looks the same.
  *
  *   <Button href="/quote/">Get a quote</Button>                                  primary link
  *   <Button href={whatsappUrl()} variant="secondary" icon="simple-icons:whatsapp" external>WhatsApp us</Button>
@@ -9,7 +11,8 @@
  *   <Button href={telUrl()} iconOnly icon="ph:phone" label="Call now" variant="secondary" />
  *
  * Labels: one label per intent across the site: "Get a quote", "WhatsApp us", "Call now".
- * Extra attributes (data-*, aria-*, id, ...) pass through to the <a>/<button>.
+ * Extra attributes (data-*, aria-*, id, ...) pass through to the <a>/<button>. A data-fx value is merged
+ * with the magnetic effect.
  */
 import type { HTMLAttributes } from "astro/types";
 import Icon from "./Icon.astro";
@@ -30,12 +33,14 @@ interface Props extends Omit<HTMLAttributes<"a"> & HTMLAttributes<"button">, "ty
   iconClass?: string;
   /** Opens in a new tab with rel="noopener noreferrer". */
   external?: boolean;
-  /** Round icon-only button. Requires `label`. */
+  /** Square icon-only button. Requires `label`. */
   iconOnly?: boolean;
   /** Accessible name (required for iconOnly). */
   label?: string;
   fullWidth?: boolean;
   disabled?: boolean;
+  /** Lean toward the pointer on fine pointers. Default true. */
+  magnetic?: boolean;
   class?: string;
 }
 
@@ -52,53 +57,34 @@ const {
   label,
   fullWidth = false,
   disabled = false,
+  magnetic = true,
   class: className,
+  "data-fx": dataFx,
   ...rest
-} = Astro.props;
+} = Astro.props as Props & { "data-fx"?: string };
 
-const base =
-  "group/btn relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold leading-none tracking-[-0.005em] transition-[transform,background-color,border-color,color,box-shadow] duration-200 ease-(--ease-out) active:scale-[0.97] active:duration-75 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50";
+const iconSizes: Record<Size, number> = { sm: 15, md: 16, lg: 18 };
 
-const variants: Record<Variant, string> = {
-  primary:
-    "bg-accent-fill text-accent-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.2),0_10px_28px_-14px_color-mix(in_oklab,var(--accent)_70%,transparent)] hover:bg-accent-fill-hover",
-  secondary: "border border-line bg-surface-2/70 text-fg backdrop-blur-sm hover:border-line-strong hover:bg-surface-2",
-  ghost: "text-fg hover:bg-surface-2",
-};
-
-const sizes: Record<Size, string> = iconOnly
-  ? { sm: "size-9", md: "size-11", lg: "size-13" }
-  : { sm: "h-9 px-4 text-sm", md: "h-11 px-5 text-[0.9375rem]", lg: "h-13 px-7 text-base" };
-
-const iconSizes: Record<Size, number> = { sm: 16, md: 18, lg: 20 };
-
-const classes = [base, variants[variant], sizes[size], fullWidth && "w-full", className];
+const classes = ["btn group/btn", `btn-${variant}`, `btn-${size}`, iconOnly && "btn-icon", fullWidth && "w-full", className];
+const fx = [dataFx, magnetic && !iconOnly && !disabled && "magnetic"].filter(Boolean).join(" ") || undefined;
 const externalAttrs = external ? { target: "_blank", rel: "noopener noreferrer" } : {};
 ---
 
 {
   href && !disabled ? (
-    <a href={href} class:list={classes} aria-label={label} {...externalAttrs} {...rest}>
+    <a href={href} class:list={classes} aria-label={label} data-fx={fx} {...externalAttrs} {...rest}>
       {icon && <Icon name={icon} size={iconSizes[size]} class={iconClass} />}
       {!iconOnly && <slot />}
       {iconRight && (
-        <Icon
-          name={iconRight}
-          size={iconSizes[size]}
-          class="transition-transform duration-200 ease-(--ease-out) group-hover/btn:translate-x-0.5"
-        />
+        <Icon name={iconRight} size={iconSizes[size]} class="transition-transform duration-700 ease-(--ease-out) group-hover/btn:translate-x-1" />
       )}
     </a>
   ) : (
-    <button type={type} class:list={classes} aria-label={label} disabled={disabled} {...rest}>
+    <button type={type} class:list={classes} aria-label={label} disabled={disabled} data-fx={fx} {...rest}>
       {icon && <Icon name={icon} size={iconSizes[size]} class={iconClass} />}
       {!iconOnly && <slot />}
       {iconRight && (
-        <Icon
-          name={iconRight}
-          size={iconSizes[size]}
-          class="transition-transform duration-200 ease-(--ease-out) group-hover/btn:translate-x-0.5"
-        />
+        <Icon name={iconRight} size={iconSizes[size]} class="transition-transform duration-700 ease-(--ease-out) group-hover/btn:translate-x-1" />
       )}
     </button>
   )

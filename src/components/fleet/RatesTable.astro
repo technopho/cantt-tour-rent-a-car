@@ -86,17 +86,17 @@ const columns = offeredColumns.length > 0 ? offeredColumns : COLUMNS[mode];
 const minWidth = columns.length >= 5 ? "min-w-[46rem]" : columns.length >= 3 ? "min-w-[38rem]" : "min-w-[28rem]";
 ---
 
-<div class:list={["overflow-x-auto rounded-card border border-line bg-surface", columns.length <= 3 && "max-w-4xl", className]} tabindex="0" role="region" aria-label={`${caption}, scrollable table`}>
+<div class:list={["overflow-x-auto", columns.length <= 3 && "max-w-4xl", className]} tabindex="0" role="region" aria-label={`${caption}, scrollable table`}>
   <table class:list={["w-full border-collapse text-left text-[0.9375rem]", minWidth]}>
     <caption class="sr-only">{caption}</caption>
     <thead>
-      <tr class="border-b border-line">
-        <th scope="col" class="px-5 py-4 align-bottom text-xs font-bold uppercase tracking-[0.14em] text-muted">Car</th>
+      <tr class="border-b border-line-strong">
+        <th scope="col" class="label py-4 pr-5 align-bottom font-medium text-muted">Car</th>
         {
           columns.map((c) => (
-            <th scope="col" class="px-4 py-4 text-right align-bottom">
-              <span class="block text-xs font-bold uppercase tracking-[0.14em] text-fg">{c.label}</span>{" "}
-              <span class="block text-xs font-medium text-muted">{c.sub}</span>
+            <th scope="col" class="py-4 pl-4 text-right align-bottom">
+              <span class="label block font-medium text-fg">{c.label}</span>{" "}
+              <span class="mt-1 block text-xs font-normal text-muted">{c.sub}</span>
             </th>
           ))
         }
@@ -106,37 +106,34 @@ const minWidth = columns.length >= 5 ? "min-w-[46rem]" : columns.length >= 3 ? "
       visibleGroups.map((group) => (
         <tbody>
           {!hideGroupHeaders && (
-            <tr class="border-b border-line bg-surface-2/60">
-              <th scope="rowgroup" colspan={columns.length + 1} class="px-5 py-2.5">
-                <a
-                  href={urls.category(group.category.slug)}
-                  class="inline-flex items-center gap-2 text-sm font-bold text-fg underline-offset-4 hover:text-accent-fg hover:underline"
-                >
+            <tr>
+              <th scope="rowgroup" colspan={columns.length + 1} class="pt-10 pb-3 text-left">
+                <a href={urls.category(group.category.slug)} class="label font-medium text-accent-fg underline-offset-4 hover:underline">
                   {group.category.name}
                 </a>
               </th>
             </tr>
           )}
           {group.models.map((m) => (
-            <tr class="border-b border-line transition-colors last:border-b-0 hover:bg-surface-2/50">
-              <th scope="row" class="px-5 py-3.5 font-normal">
-                <a href={urls.car(m.slug)} class="font-semibold text-fg underline-offset-4 hover:text-accent-fg hover:underline">
+            <tr class="border-t border-line transition-colors duration-500 hover:bg-surface">
+              <th scope="row" class="py-4 pr-5 font-normal">
+                <a href={urls.car(m.slug)} class="text-[1.0625rem] font-medium text-fg transition-colors duration-500 hover:text-accent-fg">
                   {carName(m)}
                 </a>{" "}
-                <span class="block text-xs text-muted">
+                <span class="mt-0.5 block text-xs text-muted">
                   {[m.variant, `${m.seats} seats`].filter(Boolean).join(" · ")}
                 </span>
               </th>
               {columns.map((c) => {
                 const cell = c.get(m);
                 return (
-                  <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                  <td class="py-4 pl-4 text-right whitespace-nowrap">
                     {cell.kind === "money" ? (
-                      <data value={cell.value} class="tabular font-display font-semibold tracking-[-0.02em] text-fg">
+                      <data value={cell.value} class="tabular font-medium text-fg">
                         {formatPKR(cell.value)}
                       </data>
                     ) : cell.kind === "km" ? (
-                      <span class="tabular font-semibold text-fg">{formatNumber(cell.value)} km</span>
+                      <span class="tabular font-medium text-fg">{formatNumber(cell.value)} km</span>
                     ) : (
                       <span class="text-sm text-muted">{cell.text}</span>
                     )}

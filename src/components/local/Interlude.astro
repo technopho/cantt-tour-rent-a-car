@@ -1,0 +1,58 @@
+---
+/**
+ * Full-bleed image between sections, with an optional large line set over it (slot) and the image's
+ * caption (the plate's captionFor small print: "Representative image" or a photographer credit). Without an
+ * image it stays a calm dark band, so the statement still reads.
+ *
+ *   <Interlude plate={scenePlate("cabin") ?? trails()}>A car that will not let you down is the job.</Interlude>
+ */
+import type { Plate as PlateData } from "./plates";
+
+interface Props {
+  plate?: PlateData;
+  height?: "tall" | "mid";
+  /** Pull the statement out of the reading order when it repeats body text. */
+  decorative?: boolean;
+  class?: string;
+}
+
+const { plate, height = "tall", decorative = false, class: className } = Astro.props;
+const hasLine = Astro.slots.has("default");
+---
+
+{
+  (plate || hasLine) && (
+    <figure class:list={["interlude relative isolate flex items-end overflow-hidden bg-surface", height === "tall" ? "min-h-[78svh] md:min-h-[92svh]" : "min-h-[60svh] md:min-h-[72svh]", className]}>
+      {plate && (
+        <div class="absolute inset-0 -z-10" data-fx="image">
+          <picture class="absolute inset-0 block size-full">
+            {plate.mobile && <source media="(max-width: 40rem)" srcset={plate.mobile.src} width={plate.mobile.width} height={plate.mobile.height} />}
+            <img
+              src={plate.img.src}
+              srcset={plate.img.srcset || undefined}
+              sizes="100vw"
+              width={plate.img.width}
+              height={plate.img.height}
+              alt={plate.img.alt}
+              loading="lazy"
+              decoding="async"
+              class:list={["size-full object-cover", plate.img.credit && "photo-grade"]}
+              style={plate.position ? `object-position:${plate.position}` : undefined}
+              data-fx="parallax"
+              data-speed="0.14"
+            />
+          </picture>
+        </div>
+      )}
+      <div class="absolute inset-0 -z-10 bg-[linear-gradient(180deg,var(--bg)_0%,rgb(7_7_8/0.1)_22%,rgb(7_7_8/0.1)_52%,rgb(7_7_8/0.82)_88%,var(--bg)_100%)]" aria-hidden="true"></div>
+      <figcaption class="container-site flex w-full flex-col gap-6 pb-10 md:pb-14">
+        {hasLine && (
+          <p class="text-display-lg max-w-[20ch] text-fg" data-fx="lines" aria-hidden={decorative ? "true" : undefined}>
+            <slot />
+          </p>
+        )}
+        {plate?.caption && <span class="text-xs leading-snug text-fg/70">{plate.caption}</span>}
+      </figcaption>
+    </figure>
+  )
+}

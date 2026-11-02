@@ -1,10 +1,9 @@
 ---
 /**
- * Grid of route links with approximate distance and drive time ("Lahore to Murree by car").
+ * Route links set as a typographic list, with approximate distance and drive time ("Lahore to Murree by car").
  *
  *   <RouteLinks routes={entries} exclude="lahore-to-islamabad" limit={6} />
  */
-import Icon from "@/components/Icon.astro";
 import { formatDriveTime, formatKm } from "@/lib/format";
 import { urls } from "@/lib/urls";
 
@@ -18,7 +17,7 @@ interface Props {
   /** Preferred slugs first (e.g. routes near an area). */
   prefer?: string[];
   limit?: number;
-  /** "grid" = 1/2/3 columns; "stack" = 1 column on phones and desktop sidebars, 2 on tablets. */
+  /** "grid" = 1/2 columns; "stack" = one narrow column for side rails. */
   layout?: "grid" | "stack";
   class?: string;
 }
@@ -34,24 +33,15 @@ const sorted = [...routes]
   .slice(0, limit);
 ---
 
-<ul
-  class:list={[
-    "grid gap-px overflow-hidden rounded-card border border-line bg-line",
-    layout === "grid" ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-1",
-    className,
-  ]}
->
+<ul class:list={["grid border-t border-line", layout === "grid" && "md:grid-cols-2 md:gap-x-14", className]}>
   {
     sorted.map((r) => (
-      <li class="bg-bg">
-        <a href={urls.route(r.data.slug)} class="group flex h-full items-center justify-between gap-4 p-5 transition-colors duration-300 hover:bg-surface">
-          <span class="flex flex-col gap-1">
-            <span class="font-semibold text-fg">Lahore to {r.data.to} by car</span>
-            <span class="text-xs text-muted tabular">
-              about {formatKm(r.data.distanceKm)}, {formatDriveTime(r.data.driveHours)}
-            </span>
+      <li class="border-b border-line">
+        <a href={urls.route(r.data.slug)} class:list={["group flex flex-col gap-1", layout === "grid" ? "py-6" : "py-4"]}>
+          <span class:list={["transition-colors duration-500 group-hover:text-accent-fg", layout === "grid" ? "text-display-sm text-fg" : "font-medium text-fg"]}>Lahore to {r.data.to} by car</span>
+          <span class="text-sm text-muted tabular">
+            about {formatKm(r.data.distanceKm)}, {formatDriveTime(r.data.driveHours)}
           </span>
-          <Icon name="ph:arrow-right" size={18} class="shrink-0 text-muted transition-[color,transform] duration-300 group-hover:translate-x-1 group-hover:text-accent" />
         </a>
       </li>
     ))

@@ -1,29 +1,30 @@
 ---
 /**
  * Car image slot with a fixed 16:10 frame (no layout shift).
- *  - With photos: plain <img srcset> from R2 (pre-generated 480/960/1600 widths). Not astro:assets.
- *  - Without photos: a branded night-drive panel (category icon on a polished floor, model name
- *    in display type, tail-light glow from the tokens).
+ *  - A real catalog photo: plain <img srcset> from R2 (pre-generated 480/960/1600 widths). Not astro:assets.
+ *  - No photo: the AI image for this slug from src/data/media.json, captioned "Representative image".
+ *  - Neither: a dignified typographic panel. Never a car icon standing in for a car.
+ * The image zooms slowly on hover, and when a surrounding .group is hovered.
  *
  *   <CarVisual model={model} categoryName="SUVs" />
  *   <CarVisual model={model} priority sizes="(min-width: 1024px) 50vw, 100vw" />   LCP image
  *   <CarVisual model={model} decorative />    when the name is already shown next to it
  */
 import type { CatalogModel } from "@/lib/catalog-types";
-import Icon from "./Icon.astro";
+import { fleetImage } from "@/lib/media";
 
-type VisualModel = Pick<CatalogModel, "make" | "model" | "category" | "images"> & Partial<Pick<CatalogModel, "variant">>;
+type VisualModel = Pick<CatalogModel, "make" | "model" | "category" | "images"> & Partial<Pick<CatalogModel, "variant" | "slug">>;
 
 interface Props {
   model: VisualModel;
-  /** Category label shown as a small badge on the placeholder panel (e.g. "SUVs"). */
+  /** Category label shown as a small label on the typographic panel (e.g. "SUVs"). */
   categoryName?: string;
   /** Above-the-fold hero image: eager load + fetchpriority high. Max one per page. */
   priority?: boolean;
   sizes?: string;
   /** Hide from assistive tech (use when the model name is rendered next to the visual). */
   decorative?: boolean;
-  /** Show the model name on the placeholder panel. Default true. */
+  /** Show the model name as readable text on the typographic panel. Default true. */
   showName?: boolean;
   class?: string;
 }
@@ -38,26 +39,16 @@ const {
   class: className,
 } = Astro.props;
 
-/** Phosphor vehicle icon per category slug. */
-const CATEGORY_ICONS: Record<string, string> = {
-  hatchback: "ph:car-simple",
-  sedan: "ph:car-profile",
-  suv: "ph:jeep",
-  luxury: "ph:car-profile",
-  wedding: "ph:car-profile",
-  van: "ph:van",
-  coaster: "ph:bus",
-};
-
 const name = `${model.make} ${model.model}`;
-const cover = model.images[0];
-const icon = CATEGORY_ICONS[model.category] ?? "ph:car-profile";
+const photo = model.images[0];
+const representative = photo ? undefined : fleetImage(model.slug);
+const cover = photo ?? representative;
 const label = categoryName ? `${name}, ${categoryName}` : name;
 ---
 
 <figure
   class:list={[
-    "car-visual relative isolate aspect-[16/10] w-full overflow-hidden rounded-card bg-surface-2 [container-type:inline-size]",
+    "car-visual relative isolate aspect-[16/10] w-full overflow-hidden rounded-card bg-surface [container-type:inline-size]",
     className,
   ]}
 >
@@ -73,7 +64,7 @@ const label = categoryName ? `${name}, ${categoryName}` : name;
         loading={priority ? "eager" : "lazy"}
         fetchpriority={priority ? "high" : undefined}
         decoding="async"
-        class="absolute inset-0 size-full object-cover"
+        class="car-visual__img absolute inset-0 size-full object-cover"
       />
     ) : (
       <div
@@ -82,38 +73,43 @@ const label = categoryName ? `${name}, ${categoryName}` : name;
         aria-label={decorative ? undefined : label}
         aria-hidden={decorative ? "true" : undefined}
       >
-        {/* Night sky to floor */}
-        <div class="absolute inset-0 bg-[linear-gradient(172deg,var(--surface-2)_0%,var(--surface)_62%,var(--bg)_100%)]" />
-        {/* Tail-light glow on the floor */}
-        <div class="absolute inset-x-0 bottom-0 h-[62%] bg-[radial-gradient(46%_58%_at_50%_100%,color-mix(in_oklab,var(--accent)_24%,transparent),transparent_72%)]" />
-        {/* Light trails behind the car */}
-        <div class="absolute top-[54%] left-0 h-px w-[46%] bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--accent)_70%,transparent))] opacity-70" />
-        <div class="absolute top-[58%] left-[6%] h-px w-[30%] bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--accent)_45%,transparent))] opacity-60" />
-        <div class="absolute top-[56%] right-0 h-px w-[40%] bg-[linear-gradient(270deg,transparent,color-mix(in_oklab,var(--text)_55%,transparent))] opacity-40" />
-        {/* Floor line */}
-        <div class="absolute inset-x-[6%] top-[66%] h-px bg-[linear-gradient(90deg,transparent,var(--line-strong),transparent)] opacity-35" />
-
-        {/* Vehicle + reflection on the polished floor */}
-        <div class="absolute top-[66%] left-1/2 aspect-square w-[34cqi] -translate-x-1/2 -translate-y-[88%] text-fg/90 transition-transform duration-700 ease-(--ease-out) group-hover:-translate-y-[91%]">
-          <Icon name={icon} size="100%" class="size-full drop-shadow-[0_10px_18px_rgb(0_0_0/0.35)]" />
-        </div>
-        <div class="absolute top-[66%] left-1/2 aspect-square w-[34cqi] -translate-x-1/2 -translate-y-[12%] -scale-y-100 text-fg opacity-[0.1] [mask-image:linear-gradient(to_top,black,transparent_55%)]">
-          <Icon name={icon} size="100%" class="size-full" />
-        </div>
-
-        {categoryName && (
-          <span class="absolute top-[5cqi] left-[5cqi] rounded-badge border border-line bg-bg/40 px-2 py-1 text-[clamp(0.625rem,2.6cqi,0.75rem)] font-bold uppercase tracking-[0.14em] text-muted backdrop-blur-sm">
-            {categoryName}
+        <div class="absolute inset-0 bg-[radial-gradient(70%_90%_at_72%_18%,color-mix(in_oklab,var(--accent)_10%,transparent),transparent_70%),linear-gradient(180deg,var(--surface-2),var(--surface)_70%)]"></div>
+        <div class="car-visual__img absolute inset-0">
+          <span class="absolute right-[-0.04em] bottom-[-0.12em] font-display text-[46cqi] leading-none whitespace-nowrap text-transparent italic [-webkit-text-stroke:1px_var(--line-strong)]" aria-hidden="true">
+            {model.model.slice(0, 1)}
           </span>
-        )}
-
-        {showName && (
-          <span class="absolute bottom-[5cqi] left-[5cqi] right-[5cqi] font-display text-[clamp(0.9375rem,5.4cqi,1.875rem)] leading-[1.02] font-semibold tracking-[-0.035em] text-balance text-fg">
-            <span class="block text-[0.62em] font-medium tracking-[-0.01em] text-muted">{model.make}</span>{" "}
-            {model.model}
-          </span>
-        )}
+        </div>
+        <div class="absolute inset-x-[6cqi] bottom-[6cqi] h-px bg-line"></div>
+        {categoryName && <span class="label absolute top-[6cqi] left-[6cqi] text-accent-fg">{categoryName}</span>}
+        {
+          showName && (
+            <span class="absolute bottom-[9cqi] left-[6cqi] right-[6cqi] flex flex-col gap-1 text-fg">
+              <span class="label text-muted">{model.make}</span>
+              <span class="font-display text-[max(1.75rem,10cqi)] leading-none text-balance">{model.model}</span>
+            </span>
+          )
+        }
       </div>
     )
   }
+  {
+    representative && (
+      <figcaption class="absolute right-0 bottom-0 z-[1] bg-bg/60 px-2 py-1 text-[0.625rem] leading-none tracking-[0.04em] text-fg/80 backdrop-blur-sm">
+        Representative image
+      </figcaption>
+    )
+  }
 </figure>
+
+<style>
+  .car-visual__img {
+    transition: transform 2.2s var(--ease-heavy);
+    will-change: transform;
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .car-visual:hover .car-visual__img,
+    :global(.group:hover) .car-visual .car-visual__img {
+      transform: scale(1.06);
+    }
+  }
+</style>

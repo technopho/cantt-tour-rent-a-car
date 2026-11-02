@@ -8,6 +8,7 @@
  *   </SectionHeading>
  *
  * Eyebrow restraint rule (DESIGN.md): at most ONE eyebrow per three sections on a page.
+ * The heading rises in as masked lines and the intro fades up (data-fx, src/scripts/fx/index.ts).
  * Use a slot named "title" for rich headings (e.g. a highlighted word).
  */
 interface Props {
@@ -42,10 +43,10 @@ const hasActions = Astro.slots.has("actions");
 >
   <div class:list={["flex max-w-3xl flex-col gap-4", align === "center" && "items-center"]}>
     {eyebrow && <p class="eyebrow">{eyebrow}</p>}
-    <Tag id={id} class:list={[sizes[size], "text-fg"]}>
+    <Tag id={id} class:list={[sizes[size], "text-fg"]} data-fx="lines">
       {Astro.slots.has("title") ? <slot name="title" /> : title}
     </Tag>
-    {intro && <p class="text-lede max-w-2xl text-muted">{intro}</p>}
+    {intro && <p class="text-lede max-w-2xl text-muted" data-fx="fade" data-delay="0.15">{intro}</p>}
     <slot />
   </div>
   {

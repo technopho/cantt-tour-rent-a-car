@@ -7,9 +7,11 @@
  */
 import Button from "@/components/Button.astro";
 import FaqList from "@/components/FaqList.astro";
-import Icon from "@/components/Icon.astro";
 import Section from "@/components/Section.astro";
 import SectionHeading from "@/components/SectionHeading.astro";
+import Interlude from "@/components/local/Interlude.astro";
+import Plate from "@/components/local/Plate.astro";
+import { fleetPlate, picker, scenePlate, trails } from "@/components/local/plates";
 import { site } from "@/config/site";
 import PageLayout from "@/layouts/PageLayout.astro";
 import { getCategories } from "@/lib/catalog";
@@ -22,38 +24,39 @@ const partnerMessage = `Assalam o Alaikum! I want to attach my car with ${site.n
 const partnerWhatsapp = whatsappUrl(partnerMessage);
 const partnerEmail = mailtoUrl(site.email, "Attach my car with Cantt Rent a Car");
 
+const pick = picker("/partner-with-us/");
+const hero = pick(scenePlate("garage"), fleetPlate("toyota-land-cruiser")) ?? trails();
+const modelPlates = [pick(scenePlate("wedding"), fleetPlate("toyota-prado")), pick(scenePlate("monthly"), fleetPlate("toyota-fortuner"))];
+const interlude = pick(scenePlate("corporate", "lahore-night"), fleetPlate("mercedes-s-class"));
+// The night road under "Let it earn": dark enough for the brass italic, and a car's working life in one picture.
+const closing = pick(trails(), scenePlate("lahore-night"));
+
 const steps = [
   {
     title: "Send us the car details",
     text: "Make, model, year, mileage, colour and where the car is in Lahore, with a few photos. WhatsApp is quickest.",
-    icon: "ph:chat-circle-text",
   },
   {
     title: "Inspection and paperwork check",
     text: "We inspect the car with you and check the registration, token tax and ownership papers. We tell you honestly whether it suits our customers.",
-    icon: "ph:clipboard-text",
   },
   {
     title: "A written management agreement",
     text: "Term, earning model, who pays for what, how the car is used and how either side can end the agreement, all on paper before the car moves.",
-    icon: "ph:file-text",
   },
   {
     title: "We run the rentals",
     text: "Pricing, bookings, customer checks, deposits, drivers, cleaning and handovers. Your car is rented on the same terms as the rest of our fleet.",
-    icon: "ph:steering-wheel",
   },
   {
     title: "Monthly statement and payout",
     text: "Every month you get a statement of rental days, income, expenses and your share or rent, followed by the payout on the agreed date.",
-    icon: "ph:receipt",
   },
 ];
 
 const models = [
   {
     title: "Profit share",
-    icon: "ph:chart-line-up",
     lead: "Your earnings follow the car's actual rental income.",
     points: [
       "Each month, the car's rental income minus agreed running costs is shared between you and us.",
@@ -63,7 +66,6 @@ const models = [
   },
   {
     title: "Fixed monthly rent",
-    icon: "ph:calendar-check",
     lead: "A set amount every month, whatever the bookings.",
     points: [
       "We pay an agreed rent for the car each month, regardless of how many days it was rented.",
@@ -86,13 +88,13 @@ const responsibilities = [
 ];
 
 const documents = [
-  { text: "Original registration book or smart card", icon: "ph:identification-card" },
-  { text: "Owner's CNIC", note: "and the owner's consent if the car is in a family member's name", icon: "ph:identification-badge" },
-  { text: "Token tax paid up to date", icon: "ph:receipt" },
-  { text: "Insurance policy, if the car is insured", icon: "ph:shield-check" },
-  { text: "Tracker certificate, if a tracker is fitted", icon: "ph:map-pin-line" },
-  { text: "Service history, if you have it", icon: "ph:wrench" },
-  { text: "Bank's permission, if the car is on lease", icon: "ph:bank" },
+  { text: "Original registration book or smart card" },
+  { text: "Owner's CNIC", note: "and the owner's consent if the car is in a family member's name" },
+  { text: "Token tax paid up to date" },
+  { text: "Insurance policy, if the car is insured" },
+  { text: "Tracker certificate, if a tracker is fitted" },
+  { text: "Service history, if you have it" },
+  { text: "Bank's permission, if the car is on lease" },
 ];
 
 const faqs = [
@@ -127,37 +129,38 @@ const faqs = [
   crumbs={[{ label: "Partner with us" }]}
   whatsappMessage={partnerMessage}
   hideFooterCta
+  heroImage={hero.img}
+  heroCaption={hero.caption}
+  heroPosition={hero.position}
 >
   <div slot="actions" class="grid w-full gap-3 sm:flex sm:w-auto sm:flex-wrap" data-fab-hide>
     <Button href={partnerWhatsapp} size="lg" icon="simple-icons:whatsapp" external>{site.cta.whatsapp.label}</Button>
     <Button href={partnerEmail} variant="secondary" size="lg" icon="ph:envelope-simple">Email us</Button>
   </div>
 
-  <div slot="aside" class="rounded-card border border-line bg-surface/85 p-6 shadow-soft backdrop-blur-sm sm:p-7">
-    <p class="text-sm font-medium text-muted">What you get</p>
-    <ul class="mt-5 flex flex-col gap-4 text-[0.9375rem]">
-      <li class="flex gap-3 text-fg"><Icon name="ph:file-text" size={20} class="mt-0.5 text-accent" />A written management agreement</li>
-      <li class="flex gap-3 text-fg"><Icon name="ph:receipt" size={20} class="mt-0.5 text-accent" />A statement every month</li>
-      <li class="flex gap-3 text-fg"><Icon name="ph:camera" size={20} class="mt-0.5 text-accent" />Photos at every handover</li>
-      <li class="flex gap-3 text-fg"><Icon name="ph:identification-card" size={20} class="mt-0.5 text-accent" />Ownership stays with you</li>
+
+  <section class="container-site mt-10 md:mt-16" aria-label="What you get">
+    <p class="label text-muted">What you get</p>
+    <ul class="mt-5 grid grid-cols-1 border-t border-line sm:grid-cols-2 lg:grid-cols-4" data-fx="stagger">
+      <li class="border-b border-line py-6 pr-6 text-display-sm text-fg lg:border-r lg:px-6 lg:first:pl-0 lg:last:border-r-0">A written management agreement</li>
+      <li class="border-b border-line py-6 pr-6 text-display-sm text-fg lg:border-r lg:px-6 lg:first:pl-0 lg:last:border-r-0">A statement every month</li>
+      <li class="border-b border-line py-6 pr-6 text-display-sm text-fg lg:border-r lg:px-6 lg:first:pl-0 lg:last:border-r-0">Photos at every handover</li>
+      <li class="border-b border-line py-6 pr-6 text-display-sm text-fg lg:border-r lg:px-6 lg:first:pl-0 lg:last:border-r-0">Ownership stays with you</li>
     </ul>
-  </div>
+  </section>
 
   <!-- How it works -->
   <Section id="how" labelledby="how-title">
     <SectionHeading id="how-title" eyebrow="How it works" title="From parked to earning, in five steps" />
-    <ol class="partner-steps relative mt-14 flex flex-col">
+    <ol class="partner-steps relative mt-16 flex flex-col border-b border-line">
       {
         steps.map((s, i) => (
-          <li class="relative grid gap-4 border-t border-line py-8 md:grid-cols-[5rem_minmax(0,1fr)_minmax(0,1.3fr)] md:items-start md:gap-10" data-reveal>
-            <p class="font-display text-display-md text-accent-fg tabular-nums" aria-hidden="true">
+          <li class="relative grid gap-4 border-t border-line py-9 md:grid-cols-[4rem_minmax(0,1fr)_minmax(0,1.1fr)] md:items-baseline md:gap-10 lg:py-12">
+            <p class="text-sm text-accent-fg tabular" aria-hidden="true">
               {String(i + 1).padStart(2, "0")}
             </p>
-            <h3 class="flex items-center gap-3 text-display-sm text-fg">
-              <Icon name={s.icon} size={22} class="shrink-0 text-muted" />
-              {s.title}
-            </h3>
-            <p class="leading-relaxed text-muted">{s.text}</p>
+            <h3 class="text-display-md text-fg" data-fx="lines">{s.title}</h3>
+            <p class="max-w-[56ch] leading-[1.75] text-muted" data-fx="fade">{s.text}</p>
           </li>
         ))
       }
@@ -171,29 +174,28 @@ const faqs = [
       title="Two ways to earn"
       intro="Choose the model that fits you. The exact share or rent depends on the car's model, year, condition and demand, and is written into your agreement."
     />
-    <div class="mt-12 grid overflow-hidden rounded-card border border-line md:grid-cols-2">
+    <div class="mt-16 grid gap-16 md:grid-cols-2 md:gap-12 lg:gap-20">
       {
         models.map((m, i) => (
-          <div class:list={["flex flex-col p-7 sm:p-9", i === 1 && "border-t border-line bg-surface/60 md:border-t-0 md:border-l"]}>
-            <span class="grid size-12 place-items-center rounded-full bg-accent-soft text-accent">
-              <Icon name={m.icon} size={24} />
-            </span>
-            <h3 class="mt-6 text-display-md text-fg">{m.title}</h3>
-            <p class="mt-2 font-semibold text-fg">{m.lead}</p>
-            <ul class="mt-6 flex flex-col gap-3">
+          <div class:list={["flex flex-col", i === 1 && "md:mt-24"]}>
+            <Plate plate={modelPlates[i]} ratio="aspect-[4/3]" sizes="(min-width: 48rem) 50vw, 100vw" />
+            <h3 class="text-display-lg mt-8 text-fg" data-fx="lines">{m.title}</h3>
+            <p class="text-lede mt-4 text-fg">{m.lead}</p>
+            <ul class="mt-6 border-t border-line" data-fx="stagger">
               {m.points.map((p) => (
-                <li class="flex gap-3 leading-relaxed text-muted">
-                  <Icon name="ph:check" size={18} class="mt-1 shrink-0 text-accent" />
-                  {p}
-                </li>
+                <li class="border-b border-line py-4 leading-relaxed text-muted">{p}</li>
               ))}
             </ul>
           </div>
         ))
       }
     </div>
-    <p class="mt-6 flex max-w-3xl gap-2.5 text-sm leading-relaxed text-muted">
-      <Icon name="ph:info" size={18} class="mt-0.5 shrink-0 text-accent" />
+  </Section>
+
+  <Interlude plate={interlude} decorative>We inspect first, then put real numbers in <em>writing.</em></Interlude>
+
+  <Section id="promise" aria-label="No promised returns" spacing="sm">
+    <p class="text-lede max-w-3xl text-fg">
       We do not advertise guaranteed returns or percentages. Anyone who promises a fixed profit before seeing your car is guessing. We
       inspect first, then put real numbers in writing.
     </p>
@@ -202,28 +204,28 @@ const faqs = [
   <!-- Responsibilities -->
   <Section id="responsibilities" labelledby="resp-title" divider>
     <div class="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
-      <div>
-        <h2 id="resp-title" class="text-display-lg text-fg">Who looks after what</h2>
-        <p class="text-lede mt-5 text-muted">
+      <div class="lg:sticky lg:top-[calc(var(--header-h)+2rem)] lg:self-start">
+        <h2 id="resp-title" class="text-display-lg text-fg" data-fx="lines">Who looks after what</h2>
+        <p class="text-lede mt-6 text-muted" data-fx="fade">
           The usual split between you and us. Items marked "agreed per car" depend on the car and the earning model, and are settled in
           writing before the car joins the fleet.
         </p>
       </div>
-      <div class="overflow-x-auto rounded-card border border-line" role="region" aria-label="Who looks after what, scrollable table" tabindex="0">
-        <table class="w-full min-w-[32rem] border-collapse text-left text-sm">
+      <div class="overflow-x-auto border-t border-line" role="region" aria-label="Who looks after what, scrollable table" tabindex="0">
+        <table class="w-full min-w-[32rem] border-collapse text-left">
           <caption class="sr-only">Typical responsibilities for an attached car</caption>
           <thead>
-            <tr class="border-b border-line bg-surface">
-              <th scope="col" class="px-5 py-3.5 text-xs font-bold tracking-[0.12em] text-muted uppercase">Item</th>
-              <th scope="col" class="px-5 py-3.5 text-xs font-bold tracking-[0.12em] text-muted uppercase">Usually handled by</th>
+            <tr class="border-b border-line">
+              <th scope="col" class="label py-4 pr-5 text-muted">Item</th>
+              <th scope="col" class="label py-4 pl-5 text-muted">Usually handled by</th>
             </tr>
           </thead>
           <tbody>
             {
               responsibilities.map((r) => (
-                <tr class="border-b border-line last:border-b-0">
-                  <th scope="row" class="px-5 py-4 font-medium text-fg">{r.item}</th>
-                  <td class:list={["px-5 py-4", r.who === "Us" ? "font-semibold text-fg" : "text-muted"]}>{r.who}</td>
+                <tr class="border-b border-line">
+                  <th scope="row" class="py-4 pr-5 font-normal text-fg">{r.item}</th>
+                  <td class:list={["py-4 pl-5", r.who === "Us" ? "text-accent-fg" : "text-muted"]}>{r.who}</td>
                 </tr>
               ))
             }
@@ -235,49 +237,40 @@ const faqs = [
 
   <!-- Documents + cars we look for -->
   <Section id="documents" labelledby="docs-title" divider>
-    <div class="grid gap-14 lg:grid-cols-2 lg:gap-20">
+    <div class="grid gap-16 lg:grid-cols-2 lg:gap-24">
       <div>
-        <h2 id="docs-title" class="text-display-md text-fg">Documents we need</h2>
-        <p class="mt-3 text-muted">Bring the originals to the inspection. We keep copies only for the agreement.</p>
-        <ul class="mt-8 flex flex-col">
+        <h2 id="docs-title" class="text-display-lg text-fg" data-fx="lines">Documents we need</h2>
+        <p class="mt-5 text-muted">Bring the originals to the inspection. We keep copies only for the agreement.</p>
+        <ul class="mt-8 border-t border-line" data-fx="stagger" data-stagger="0.05">
           {
             documents.map((d) => (
-              <li class="flex gap-4 border-t border-line py-4 last:border-b">
-                <span class="grid size-10 shrink-0 place-items-center rounded-full bg-surface-2 text-fg">
-                  <Icon name={d.icon} size={18} />
-                </span>
-                <span class="flex flex-col pt-0.5">
-                  <span class="font-semibold text-fg">{d.text}</span>
-                  {d.note && <span class="mt-0.5 text-sm text-muted">{d.note}</span>}
-                </span>
+              <li class="flex flex-col gap-1 border-b border-line py-4">
+                <span class="text-fg">{d.text}</span>
+                {d.note && <span class="text-sm text-muted">{d.note}</span>}
               </li>
             ))
           }
         </ul>
       </div>
       <div>
-        <h2 class="text-display-md text-fg">Cars we are looking for</h2>
-        <p class="mt-3 text-muted">
+        <h2 class="text-display-lg text-fg" data-fx="lines">Cars we are looking for</h2>
+        <p class="mt-5 max-w-[56ch] leading-relaxed text-muted">
           Clean, well maintained cars of the kinds our customers ask for, with clear papers and no major accident history. Recent model
           years in popular colours rent best, especially white, silver and black for weddings and corporate work.
         </p>
-        <ul class="mt-8 flex flex-wrap gap-2.5">
+        <ul class="mt-8 border-t border-line">
           {
             categories.map((c) => (
-              <li>
-                <a
-                  href={urls.category(c.slug)}
-                  class="inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 px-4 py-2.5 text-sm font-medium text-fg transition-colors hover:border-line-strong hover:bg-surface-2"
-                >
+              <li class="border-b border-line">
+                <a href={urls.category(c.slug)} class="block py-4 text-display-sm text-fg transition-[color,transform] duration-700 ease-(--ease-out) hover:translate-x-2 hover:text-accent-fg" data-cursor="View">
                   {c.name}
-                  <Icon name="ph:arrow-right" size={14} class="text-muted" />
                 </a>
               </li>
             ))
           }
         </ul>
         <p class="mt-6 text-sm text-muted">
-          See the <a href={urls.cars()} class="font-semibold text-accent-fg underline underline-offset-4">current fleet</a> for the models we rent
+          See the <a href={urls.cars()} class="link-draw text-accent-fg">current fleet</a> for the models we rent
           today.
         </p>
       </div>
@@ -285,26 +278,32 @@ const faqs = [
   </Section>
 
   <!-- FAQ -->
-  <Section id="partner-faq" labelledby="partner-faq-title" width="narrow" divider>
-    <SectionHeading id="partner-faq-title" title="Questions car owners ask" />
-    <FaqList faqs={faqs} exclusive id="faq-partner" class="mt-10" />
+  <Section id="partner-faq" labelledby="partner-faq-title" divider>
+    <div class="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
+      <SectionHeading id="partner-faq-title" title="Questions car owners ask" />
+      <FaqList faqs={faqs} exclusive id="faq-partner" />
+    </div>
   </Section>
 
   <!-- Enquiry CTA -->
-  <section aria-labelledby="enquire-title" class="relative isolate overflow-hidden border-t border-line" data-fab-hide>
-    <div
-      class="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[70%] bg-[radial-gradient(60%_80%_at_50%_100%,color-mix(in_oklab,var(--accent)_16%,transparent),transparent_70%)]"
-      aria-hidden="true"
-    >
-    </div>
-    <div class="container-site grid items-end gap-10 py-section lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+  <section aria-labelledby="enquire-title" class="relative isolate flex min-h-[80svh] items-end overflow-hidden border-t border-line" data-fab-hide>
+    {
+      closing && (
+        <div class="absolute inset-0 -z-10" aria-hidden="true">
+          <img src={closing.img.src} srcset={closing.img.srcset || undefined} sizes="100vw" width={closing.img.width} height={closing.img.height} alt="" loading="lazy" decoding="async" class="size-full object-cover" style={closing.position ? `object-position:${closing.position}` : undefined} data-fx="kenburns" />
+          <div class="absolute inset-0 bg-[linear-gradient(180deg,var(--bg)_0%,rgb(7_7_8/0.2)_40%,rgb(7_7_8/0.85)_85%,var(--bg)_100%),linear-gradient(90deg,rgb(7_7_8/0.55)_0%,transparent_60%)]"></div>
+        </div>
+      )
+    }
+    <div class="container-site grid items-end gap-10 pt-section pb-16 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
       <div>
-        <h2 id="enquire-title" class="text-display-lg text-fg">
-          Gari khari hai? <span class="text-accent">Let it earn.</span>
+        <h2 id="enquire-title" class="text-display-xl text-fg" data-fx="lines">
+          Gari khari hai? <em class="text-accent">Let it earn.</em>
         </h2>
-        <p class="text-lede mt-5 max-w-xl text-muted">
+        <p class="text-lede mt-6 max-w-xl text-fg/80">
           Send the make, model, year and a few photos. We reply with a time to inspect the car, and no obligation until you sign.
         </p>
+        {closing?.caption && <p class="mt-6 text-xs text-fg/60">{closing.caption}</p>}
       </div>
       <div class="flex flex-wrap gap-3 lg:justify-end">
         <Button href={partnerWhatsapp} size="lg" icon="simple-icons:whatsapp" external>{site.cta.whatsapp.label}</Button>

@@ -1,10 +1,9 @@
 ---
 /**
- * Key specs as a grid of small cards (dl semantics) plus the feature list.
+ * Key specs on hairlines (dl semantics) plus the feature list. Quiet on purpose: no boxes, no icons.
  *
  *   <SpecGrid model={model} categoryName="Sedans" categoryHref="/cars/sedan/" />
  */
-import Icon from "@/components/Icon.astro";
 import { fuelLabel, modelYears, transmissionLabel } from "@/lib/catalog";
 import type { CatalogModel } from "@/lib/catalog-types";
 import { formatNumber } from "@/lib/format";
@@ -20,40 +19,27 @@ interface Props {
 const { model, categoryName, categoryHref, class: className } = Astro.props;
 const years = modelYears(model);
 
-const CATEGORY_ICONS: Record<string, string> = {
-  hatchback: "ph:car-simple",
-  sedan: "ph:car-profile",
-  suv: "ph:jeep",
-  luxury: "ph:crown-simple",
-  wedding: "ph:sparkle",
-  van: "ph:van",
-  coaster: "ph:bus",
-};
-
 const specs = [
-  { icon: "ph:users", label: "Seats", value: `${model.seats} seats` },
-  model.luggage !== null
-    ? { icon: "ph:suitcase-rolling", label: "Luggage", value: `${model.luggage} large ${model.luggage === 1 ? "bag" : "bags"}` }
-    : null,
-  { icon: "ph:gear-six", label: "Gearbox", value: transmissionLabel(model.transmission) },
-  { icon: model.fuel === "electric" ? "ph:lightning" : model.fuel === "hybrid" ? "ph:leaf" : "ph:gas-pump", label: "Fuel", value: fuelLabel(model.fuel) },
-  model.engineCc ? { icon: "ph:engine", label: "Engine", value: `${formatNumber(model.engineCc)} cc` } : null,
-  years ? { icon: "ph:calendar-blank", label: "Model years", value: years } : null,
-  { icon: CATEGORY_ICONS[model.category] ?? "ph:car-profile", label: "Type", value: singularName(categoryName), href: categoryHref },
-  { icon: "ph:steering-wheel", label: "Available", value: availabilityLabel(model) },
-].filter((s): s is { icon: string; label: string; value: string; href?: string } => s !== null);
+  { label: "Seats", value: `${model.seats} seats` },
+  model.luggage !== null ? { label: "Luggage", value: `${model.luggage} large ${model.luggage === 1 ? "bag" : "bags"}` } : null,
+  { label: "Gearbox", value: transmissionLabel(model.transmission) },
+  { label: "Fuel", value: fuelLabel(model.fuel) },
+  model.engineCc ? { label: "Engine", value: `${formatNumber(model.engineCc)} cc` } : null,
+  years ? { label: "Model years", value: years } : null,
+  { label: "Type", value: singularName(categoryName), href: categoryHref },
+  { label: "Available", value: availabilityLabel(model) },
+].filter((s): s is { label: string; value: string; href?: string } => s !== null);
 ---
 
 <div class={className}>
-  <dl class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+  <dl class="grid grid-cols-2 gap-x-8 border-t border-line sm:grid-cols-3 xl:grid-cols-4">
     {
       specs.map((s) => (
-        <div class="relative flex flex-col gap-2 rounded-card border border-line bg-surface p-4 md:p-5" data-reveal="fade">
-          <Icon name={s.icon} size={22} class="text-accent" />
-          <dt class="mt-1 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-muted">{s.label}</dt>
-          <dd class="font-display text-[1.0625rem] leading-snug font-semibold tracking-[-0.02em] text-fg">
+        <div class="border-b border-line py-4">
+          <dt class="label text-muted">{s.label}</dt>
+          <dd class="mt-2 text-[1.0625rem] text-fg">
             {s.href ? (
-              <a href={s.href} class="underline decoration-line underline-offset-4 transition-colors hover:text-accent-fg hover:decoration-current">
+              <a href={s.href} class="underline decoration-line-strong underline-offset-4 transition-colors duration-500 hover:text-accent-fg">
                 {s.value}
               </a>
             ) : (
@@ -67,14 +53,11 @@ const specs = [
 
   {
     model.features.length > 0 && (
-      <div class="mt-8">
-        <h3 class="font-sans text-sm font-bold uppercase tracking-[0.14em] text-muted">Features</h3>
-        <ul class="mt-4 flex flex-wrap gap-2">
+      <div class="mt-10">
+        <h3 class="label text-muted">Features</h3>
+        <ul class="mt-4 grid gap-x-8 border-t border-line text-[0.9375rem] text-fg/90 sm:grid-cols-2">
           {model.features.map((f) => (
-            <li class="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-2 text-sm text-fg">
-              <Icon name="ph:check" size={15} class="text-accent" />
-              {f}
-            </li>
+            <li class="border-b border-line py-3">{f}</li>
           ))}
         </ul>
       </div>

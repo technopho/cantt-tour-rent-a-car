@@ -1,21 +1,20 @@
 ---
 /**
  * Quote section for area, route and hub pages: heading + the TripComposer island (prefilled)
- * + WhatsApp / call alternatives. Carries data-fab-hide because it already offers WhatsApp.
- * The island hydrates only when visible (client:visible), so it costs nothing above the fold.
+ * + WhatsApp / call alternatives, over a dim image when one is given. Carries data-fab-hide because it
+ * already offers WhatsApp. The island hydrates only when visible (client:visible).
  *
  *   <QuoteBand title="Get a quote for DHA Lahore" defaultPickup="DHA Lahore" whatsappMessage="..." />
- *   <QuoteBand title="..." defaultTripType="outstation" defaultDestination="Islamabad" />
+ *   <QuoteBand title="..." defaultTripType="outstation" defaultDestination="Islamabad" plate={plate} />
  */
 import Button from "@/components/Button.astro";
-import Icon from "@/components/Icon.astro";
-import Section from "@/components/Section.astro";
 import TripComposer from "@/components/quote/TripComposer.svelte";
 import { primaryPhone, site } from "@/config/site";
 import { getCategories, getModels } from "@/lib/catalog";
 import type { ServiceType, TripType } from "@/lib/catalog-types";
 import { toComposerModels } from "@/lib/composer";
 import { telUrl, whatsappUrl } from "@/lib/links";
+import type { Plate } from "./plates";
 
 interface Props {
   id?: string;
@@ -29,6 +28,7 @@ interface Props {
   whatsappMessage?: string;
   /** Bullet points next to the composer (what happens after you ask). */
   points?: string[];
+  plate?: Plate;
 }
 
 const {
@@ -46,6 +46,7 @@ const {
     "We reply on WhatsApp with a clear price",
     "Confirm, and the car arrives on time",
   ],
+  plate,
 } = Astro.props;
 
 const [models, categories] = await Promise.all([getModels(), getCategories()]);
@@ -53,18 +54,33 @@ const composerModels = toComposerModels(models, categories);
 const headingId = `${id}-title`;
 ---
 
-<Section id={id} labelledby={headingId} divider data-fab-hide class="scroll-mt-[var(--header-h)]">
-  <div class="grid gap-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-16">
-    <div class="flex flex-col gap-6">
-      <h2 id={headingId} class="text-display-lg text-fg">{title}</h2>
-      {intro && <p class="text-lede max-w-xl text-muted">{intro}</p>}
-      <ol class="flex flex-col gap-3">
+<section id={id} aria-labelledby={headingId} data-fab-hide class="relative isolate scroll-mt-[var(--header-h)] overflow-hidden border-t border-line py-section">
+  {
+    plate && (
+      <div class="absolute inset-0 -z-10" aria-hidden="true">
+        <img src={plate.img.src} srcset={plate.img.srcset || undefined} sizes="100vw" width={plate.img.width} height={plate.img.height} alt="" loading="lazy" decoding="async" class="size-full object-cover opacity-30" style={plate.position ? `object-position:${plate.position}` : undefined} />
+        <div class="absolute inset-0 bg-[linear-gradient(180deg,var(--bg)_0%,rgb(7_7_8/0.55)_40%,var(--bg)_100%)]"></div>
+      </div>
+    )
+  }
+  {
+    plate?.caption && (
+      <p class="absolute right-(--gutter) bottom-4 text-[0.625rem] leading-none tracking-[0.04em] text-fg/55">
+        {plate.caption.startsWith("Photo:")
+          ? plate.caption.replace(/^Photo:/, "Background photo:")
+          : `Background: ${plate.caption.replace(/^Representative image/, "representative image")}`}
+      </p>
+    )
+  }
+  <div class="container-site grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-20">
+    <div class="flex flex-col gap-8">
+      <h2 id={headingId} class="text-display-lg text-fg" data-fx="lines">{title}</h2>
+      {intro && <p class="text-lede max-w-xl text-muted" data-fx="fade">{intro}</p>}
+      <ol class="flex flex-col border-t border-line" data-fx="stagger">
         {
           points.map((p, i) => (
-            <li class="flex items-center gap-3 text-fg">
-              <span class="grid size-8 shrink-0 place-items-center rounded-full border border-line font-display text-sm font-semibold text-accent-fg tabular">
-                {i + 1}
-              </span>
+            <li class="grid grid-cols-[2.5rem_minmax(0,1fr)] border-b border-line py-4 text-fg">
+              <span class="pt-0.5 text-sm text-accent-fg tabular">{String(i + 1).padStart(2, "0")}</span>
               <span>{p}</span>
             </li>
           ))
@@ -76,12 +92,10 @@ const headingId = `${id}-title`;
         </Button>
         <Button href={telUrl()} variant="ghost" icon="ph:phone">
           {site.cta.call.label}
+          <span class="sr-only">{primaryPhone.display}</span>
         </Button>
       </div>
-      <p class="flex items-center gap-2 text-sm text-muted">
-        <Icon name="ph:phone" size={16} class="text-accent" />
-        <span class="tabular">{primaryPhone.display}</span>
-      </p>
+      <a href={telUrl()} class="link-draw self-start text-lede text-fg tabular">{primaryPhone.display}</a>
     </div>
     <div class="min-w-0">
       <TripComposer
@@ -96,4 +110,4 @@ const headingId = `${id}-title`;
       />
     </div>
   </div>
-</Section>
+</section>

@@ -1,0 +1,62 @@
+---
+/**
+ * Facts in large type: number in Bodoni at display size, unit and label in the text face. Numbers count up
+ * from data-fx="counter" and stay plain text without JS.
+ *
+ *   <FactStrip facts={[{ label: "Distance, about", value: "1,000", unit: "km" }]} />
+ */
+export interface Fact {
+  label: string;
+  value: string;
+  unit?: string;
+  note?: string;
+  /** Takes the full row on phones (long values, prices). */
+  wide?: boolean;
+  /** Do not count up (words, prices with a suffix). */
+  still?: boolean;
+  /** A price: set smaller, in the text face (Bodoni only at display sizes). */
+  price?: boolean;
+}
+
+interface Props {
+  facts: Fact[];
+  class?: string;
+}
+
+const { facts, class: className } = Astro.props;
+const cols = facts.length >= 4 ? "lg:grid-cols-4" : facts.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2";
+---
+
+<dl class:list={["grid grid-cols-2 border-t border-line", cols, className]}>
+  {
+    facts.map((f) => (
+      <div class:list={["flex flex-col justify-between gap-6 border-b border-line py-7 pr-4 lg:border-r lg:px-8 lg:py-10 lg:first:pl-0 lg:last:border-r-0", f.wide && "col-span-2 lg:col-span-1"]}>
+        <dt class="label text-muted">{f.label}</dt>
+        <dd class="flex flex-col gap-2">
+          <span class="flex flex-wrap items-baseline gap-x-2">
+            <span class:list={["text-fg lining-nums tabular-nums", f.price ? "fact-price" : "fact-value font-display text-[clamp(3rem,1.8rem_+_3.6vw,5.75rem)]"]} data-fx={f.still || f.price ? undefined : "counter"}>
+              {f.value}
+            </span>
+            {f.unit && <span class="text-base text-muted">{f.unit}</span>}
+          </span>
+          {f.note && <span class="text-sm leading-snug text-muted">{f.note}</span>}
+        </dd>
+      </div>
+    ))
+  }
+</dl>
+
+<style>
+  .fact-price {
+    font-size: clamp(1.75rem, 1.3rem + 1.4vw, 2.75rem);
+    line-height: 1;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  /* Size is the text-[clamp(3rem...)] utility on the element, which tells the global type guard these figures are
+     large enough to stay in Bodoni (with the low optical size it gives Bodoni figures). */
+  .fact-value {
+    line-height: 0.95;
+    letter-spacing: -0.01em;
+  }
+</style>

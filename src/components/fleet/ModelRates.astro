@@ -5,8 +5,6 @@
  *
  *   <ModelRates model={model} />
  */
-import Icon from "@/components/Icon.astro";
-import PriceTag from "@/components/PriceTag.astro";
 import type { CatalogModel } from "@/lib/catalog-types";
 import { formatNumber, formatPKR } from "@/lib/format";
 import { urls } from "@/lib/urls";
@@ -72,57 +70,45 @@ const both = Boolean(wd && sd);
 ---
 
 <div class={className}>
-  <div class:list={["grid gap-4", both ? "md:grid-cols-2" : "max-w-2xl"]}>
+  <div class:list={["grid gap-14", both ? "md:grid-cols-2 md:gap-10" : "max-w-2xl"]}>
     {
       wd && (
-        <section class="flex flex-col rounded-card border border-line bg-surface p-5 md:p-7" aria-labelledby="rates-with-driver">
-          <div class="flex items-center gap-3">
-            <span class="grid size-10 place-items-center rounded-full bg-accent-soft text-accent" aria-hidden="true">
-              <Icon name="ph:steering-wheel" size={20} />
-            </span>
-            <h3 id="rates-with-driver" class="text-display-sm text-fg">
-              With driver
-            </h3>
-          </div>
-          <p class="mt-6">
-            <PriceTag amount={wd.daily} from={false} size="xl" />
+        <section aria-labelledby="rates-with-driver">
+          <h3 id="rates-with-driver" class="label text-accent-fg">With driver</h3>
+          <p class="rates-figure mt-4 text-fg">
+            <data value={wd.daily}>{formatPKR(wd.daily)}</data>
+            <span class="rates-figure__unit">/day</span>
           </p>
-          <p class="mt-1 text-sm text-muted">City day: up to {CITY_DAY_HOURS} hours within Lahore</p>
+          <p class="mt-2 text-sm text-muted">City day: up to {CITY_DAY_HOURS} hours within Lahore</p>
 
           {driverRows.length > 0 && (
-            <dl class="mt-6 divide-y divide-line border-y border-line">
+            <dl class="mt-7 border-t border-line">
               {driverRows.map((r) => (
-                <div class="flex items-baseline justify-between gap-4 py-3">
+                <div class="flex items-baseline justify-between gap-4 border-b border-line py-3">
                   <dt class="text-[0.9375rem] text-fg">
                     {r.label}{" "}
                     {r.note && <span class="block text-xs text-muted">{r.note}</span>}
                   </dt>
-                  <dd class="tabular font-display font-semibold tracking-[-0.02em] text-fg">{r.value}</dd>
+                  <dd class="tabular font-medium text-fg">{r.value}</dd>
                 </div>
               ))}
             </dl>
           )}
 
-          <div class="mt-6 grid gap-5 text-sm sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
+          <div class="mt-7 grid gap-6 text-sm sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
             <div>
-              <h4 class="font-sans text-xs font-bold uppercase tracking-[0.14em] text-muted">Included</h4>
-              <ul class="mt-3 flex flex-col gap-2">
+              <h4 class="label text-muted">Included</h4>
+              <ul class="mt-3 flex flex-col gap-2 text-fg/90">
                 {driverIncluded.map((t) => (
-                  <li class="flex gap-2 text-fg">
-                    <Icon name="ph:check" size={16} class="mt-0.5 text-accent" />
-                    {t}
-                  </li>
+                  <li>{t}</li>
                 ))}
               </ul>
             </div>
             <div>
-              <h4 class="font-sans text-xs font-bold uppercase tracking-[0.14em] text-muted">Not included</h4>
-              <ul class="mt-3 flex flex-col gap-2">
+              <h4 class="label text-muted">Not included</h4>
+              <ul class="mt-3 flex flex-col gap-2 text-muted">
                 {driverExcluded.map((t) => (
-                  <li class="flex gap-2 text-muted">
-                    <Icon name="ph:x" size={16} class="mt-0.5" />
-                    {t}
-                  </li>
+                  <li>{t}</li>
                 ))}
               </ul>
             </div>
@@ -133,70 +119,71 @@ const both = Boolean(wd && sd);
 
     {
       sd && (
-        <section class="flex flex-col rounded-card border border-line bg-surface p-5 md:p-7" aria-labelledby="rates-self-drive">
-          <div class="flex items-center gap-3">
-            <span class="grid size-10 place-items-center rounded-full bg-accent-soft text-accent" aria-hidden="true">
-              <Icon name="ph:key" size={20} />
-            </span>
-            <h3 id="rates-self-drive" class="text-display-sm text-fg">
-              Self drive
-            </h3>
-          </div>
-          <p class="mt-6">
-            <PriceTag amount={sd.daily} from={false} size="xl" />
+        <section aria-labelledby="rates-self-drive">
+          <h3 id="rates-self-drive" class="label text-accent-fg">Self drive</h3>
+          <p class="rates-figure mt-4 text-fg">
+            <data value={sd.daily}>{formatPKR(sd.daily)}</data>
+            <span class="rates-figure__unit">/day</span>
           </p>
-          <p class="mt-1 text-sm text-muted">Per 24 hours, you drive</p>
+          <p class="mt-2 text-sm text-muted">Per 24 hours, you drive</p>
 
           {selfRows.length > 0 && (
-            <dl class="mt-6 divide-y divide-line border-y border-line">
+            <dl class="mt-7 border-t border-line">
               {selfRows.map((r) => (
-                <div class="flex items-baseline justify-between gap-4 py-3">
+                <div class="flex items-baseline justify-between gap-4 border-b border-line py-3">
                   <dt class="text-[0.9375rem] text-fg">
                     {r.label}{" "}
                     {r.note && <span class="block text-xs text-muted">{r.note}</span>}
                   </dt>
-                  <dd class="tabular font-display font-semibold tracking-[-0.02em] text-fg">{r.value}</dd>
+                  <dd class="tabular font-medium text-fg">{r.value}</dd>
                 </div>
               ))}
             </dl>
           )}
 
-          <div class="mt-6 grid gap-5 text-sm sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
+          <div class="mt-7 grid gap-6 text-sm sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
             <div>
-              <h4 class="font-sans text-xs font-bold uppercase tracking-[0.14em] text-muted">Included</h4>
-              <ul class="mt-3 flex flex-col gap-2">
+              <h4 class="label text-muted">Included</h4>
+              <ul class="mt-3 flex flex-col gap-2 text-fg/90">
                 {selfIncluded.map((t) => (
-                  <li class="flex gap-2 text-fg">
-                    <Icon name="ph:check" size={16} class="mt-0.5 text-accent" />
-                    {t}
-                  </li>
+                  <li>{t}</li>
                 ))}
               </ul>
             </div>
             <div>
-              <h4 class="font-sans text-xs font-bold uppercase tracking-[0.14em] text-muted">Not included</h4>
-              <ul class="mt-3 flex flex-col gap-2">
+              <h4 class="label text-muted">Not included</h4>
+              <ul class="mt-3 flex flex-col gap-2 text-muted">
                 {selfExcluded.map((t) => (
-                  <li class="flex gap-2 text-muted">
-                    <Icon name="ph:x" size={16} class="mt-0.5" />
-                    {t}
-                  </li>
+                  <li>{t}</li>
                 ))}
               </ul>
             </div>
           </div>
-          <p class="mt-6 flex gap-2 rounded-badge bg-surface-2 px-3 py-2.5 text-sm text-muted">
-            <Icon name="ph:identification-card" size={18} class="mt-px shrink-0 text-accent" />
-            Bring your CNIC (or passport if visiting from abroad) and a valid driving licence.
-          </p>
+          <p class="mt-6 border-t border-line pt-4 text-sm text-muted">Bring your CNIC (or passport if visiting from abroad) and a valid driving licence.</p>
         </section>
       )
     }
   </div>
 
-  <p class="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
-    <Icon name="ph:info" size={16} class="text-accent" />
+  <p class="mt-8 max-w-3xl text-sm leading-relaxed text-muted">
     Rates come straight from our booking system. The final price for your dates is confirmed on WhatsApp before you book.
-    <a href={urls.rates()} class="font-semibold text-accent-fg underline-offset-4 hover:underline">Compare rates for every car</a>
+    <a href={urls.rates()} class="text-accent-fg underline underline-offset-4">Compare rates for every car</a>
   </p>
 </div>
+
+<style>
+  .rates-figure {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.75rem, 4.2vw, 4rem);
+    line-height: 1;
+    font-variant-numeric: lining-nums tabular-nums;
+    font-variation-settings: "opsz" 18;
+  }
+  .rates-figure__unit {
+    margin-left: 0.3rem;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+  }
+</style>

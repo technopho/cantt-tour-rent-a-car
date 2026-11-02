@@ -1,19 +1,23 @@
 ---
+/**
+ * 404: tail-light trails on a dark road bending away from the visitor, "This road does not go anywhere", and every
+ * link people need to find their way back. The picture shows no car, so it needs no caption. noindex.
+ */
 import Button from "@/components/Button.astro";
 import Container from "@/components/Container.astro";
-import HeroTrails from "@/components/HeroTrails.astro";
-import Icon from "@/components/Icon.astro";
+import { trails } from "@/components/local/plates";
 import { site } from "@/config/site";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { whatsappUrl } from "@/lib/links";
 import { urls } from "@/lib/urls";
 
 const popular = [
-  { label: "The fleet", href: urls.cars(), icon: "ph:car-profile" },
-  ...site.services.slice(0, 5).map((s) => ({ label: s.name, href: urls.service(s.slug), icon: s.icon })),
-  { label: "Outstation routes", href: urls.routes(), icon: "ph:map-trifold" },
-  { label: "Contact us", href: urls.contact(), icon: "ph:chat-circle-dots" },
+  { label: "The fleet", href: urls.cars() },
+  ...site.services.slice(0, 5).map((s) => ({ label: s.name, href: urls.service(s.slug) })),
+  { label: "Outstation routes", href: urls.routes() },
+  { label: "Contact us", href: urls.contact() },
 ];
+const still = trails();
 ---
 
 <BaseLayout
@@ -23,57 +27,71 @@ const popular = [
   overlayHeader
   hideFooterCta
 >
-  <section class="relative isolate overflow-hidden pt-[calc(var(--header-h)+3rem)] pb-20 md:pt-[calc(var(--header-h)+5rem)] md:pb-28">
-    <HeroTrails intensity="bold" placement="top" />
-    <Container class="relative">
-      <p
-        class="font-display text-[clamp(5rem,3rem+12vw,13rem)] leading-none font-bold tracking-[-0.06em] text-transparent [-webkit-text-stroke:1px_var(--line-strong)]"
-        aria-hidden="true"
-      >
-        404
-      </p>
-      <h1 class="mt-4 max-w-3xl text-display-xl text-fg">This road does not go anywhere.</h1>
-      <p class="text-lede mt-5 max-w-xl text-muted">
-        The page may have moved or never existed. Here is where most people are headed.
-      </p>
-      <div class="mt-10 flex flex-wrap gap-3">
-        <Button href={site.cta.quote.href} size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
-        <Button
-          href={whatsappUrl()}
-          variant="secondary"
-          size="lg"
-          icon="simple-icons:whatsapp"
-          iconClass="text-whatsapp"
-          external
-        >
-          {site.cta.whatsapp.label}
-        </Button>
-        <Button href={urls.home()} variant="ghost" size="lg" icon="ph:house">Back to home</Button>
+  <section class="relative isolate flex overflow-hidden pt-[60svh] md:min-h-svh md:items-end md:pt-[calc(var(--header-h)+3rem)]">
+    <div class="absolute inset-x-0 top-0 -z-10 h-[82svh] overflow-hidden bg-bg md:inset-0 md:h-auto" aria-hidden="true">
+      <p class="lost-number absolute inset-x-0 top-[calc(var(--header-h)+1rem)] text-center font-display text-fg/[0.09]" data-fx="fade">404</p>
+      <img src={still.img.src} srcset={still.img.srcset || undefined} sizes="100vw" width={still.img.width} height={still.img.height} alt="" fetchpriority="high" class="lost-still absolute inset-0 size-full object-cover" style={still.position ? `object-position:${still.position}` : undefined} data-fx="kenburns" />
+      <div class="lost-fade absolute inset-0"></div>
+    </div>
+    <Container class="relative pb-12 md:pb-16">
+      <h1 class="text-display-xl max-w-[14ch] text-fg" data-fx="lines">This road does not go <em>anywhere.</em></h1>
+      <div class="mt-6 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+        <p class="text-lede max-w-xl text-fg/80" data-fx="fade" data-delay="0.3">
+          The page may have moved or never existed. Here is where most people are headed.
+        </p>
+        <div class="flex flex-wrap gap-3" data-fx="fade" data-delay="0.45">
+          <Button href={site.cta.quote.href} size="lg" iconRight="ph:arrow-right">{site.cta.quote.label}</Button>
+          <Button href={whatsappUrl()} variant="secondary" size="lg" icon="simple-icons:whatsapp" iconClass="text-whatsapp" external>
+            {site.cta.whatsapp.label}
+          </Button>
+          <Button href={urls.home()} variant="ghost" size="lg" icon="ph:house">Back to home</Button>
+        </div>
       </div>
-
-      <nav aria-labelledby="popular-title" class="mt-16 max-w-3xl">
-        <h2 id="popular-title" class="font-sans text-xs font-bold uppercase tracking-[0.16em] text-muted">Popular pages</h2>
-        <ul class="mt-4 grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-2">
-          {
-            popular.map((link) => (
-              <li class="bg-bg">
-                <a
-                  href={link.href}
-                  class="group flex items-center gap-3 px-5 py-4 text-fg transition-colors hover:bg-surface"
-                >
-                  <Icon name={link.icon} size={20} class="text-accent" />
-                  <span class="font-medium">{link.label}</span>
-                  <Icon
-                    name="ph:arrow-right"
-                    size={16}
-                    class="ml-auto text-muted transition-transform duration-300 group-hover:translate-x-1"
-                  />
-                </a>
-              </li>
-            ))
-          }
-        </ul>
-      </nav>
+      {still.caption && <p class="mt-6 text-xs text-fg/55">{still.caption}</p>}
     </Container>
   </section>
+
+  <nav aria-labelledby="popular-title" class="container-site pt-16 pb-24 md:pt-24">
+    <h2 id="popular-title" class="label text-muted">Popular pages</h2>
+    <ul class="mt-5 grid border-t border-line md:grid-cols-2 md:gap-x-14">
+      {
+        popular.map((link) => (
+          <li class="border-b border-line">
+            <a href={link.href} class="block py-5 text-display-sm text-fg transition-[color,transform] duration-700 ease-(--ease-out) hover:translate-x-2 hover:text-accent-fg">
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
 </BaseLayout>
+
+<style>
+  .lost-number {
+    font-size: clamp(9rem, 38vw, 40rem);
+    line-height: 0.85;
+    letter-spacing: -0.02em;
+    /* A low optical size and a little weight keep the 4's hairlines, which vanish at this faint tint (it read
+       "I0I"). */
+    font-weight: 560;
+    font-variation-settings: "opsz" 11;
+    color: rgb(242 236 224 / 0.11);
+  }
+  /* Phones: the road ends in the dark well above the words. */
+  .lost-fade {
+    background: linear-gradient(180deg, transparent 30%, rgb(7 7 8 / 0.88) 62%, var(--bg) 76%);
+  }
+  @media (width >= 48rem) {
+    .lost-fade {
+      background: linear-gradient(180deg, transparent 45%, rgb(7 7 8 / 0.8) 78%, var(--bg) 100%);
+    }
+  }
+  /* The trails are near black everywhere but the light, so the number shows through behind them. */
+  .lost-still {
+    mix-blend-mode: lighten;
+    /* Fades the top of the frame into the page, so the road seems to come out of the dark under the number. */
+    -webkit-mask-image: linear-gradient(180deg, transparent 8%, #000 46%);
+    mask-image: linear-gradient(180deg, transparent 8%, #000 46%);
+  }
+</style>

@@ -1,0 +1,50 @@
+---
+/**
+ * One image in a frame: clip-path reveal, slow parallax, caption underneath (the plate's captionFor small print:
+ * "Representative image" or a photographer credit). Renders nothing without a plate, so a page reads correctly
+ * while images are missing.
+ *
+ *   <Plate plate={fleetPlate("toyota-prado")} ratio="aspect-[3/2]" sizes="50vw" />
+ */
+import type { Plate as PlateData } from "./plates";
+
+interface Props {
+  plate?: PlateData;
+  /** Aspect class on the frame. */
+  ratio?: string;
+  sizes?: string;
+  parallax?: boolean;
+  class?: string;
+  frameClass?: string;
+  captionClass?: string;
+}
+
+const { plate, ratio = "aspect-[3/2]", sizes = "100vw", parallax = true, class: className, frameClass, captionClass } = Astro.props;
+---
+
+{
+  plate && (
+    <figure class:list={[className]}>
+      <div class:list={["relative overflow-hidden bg-surface", ratio, frameClass]} data-fx="image">
+        <picture class="absolute inset-0 block size-full">
+          {plate.mobile && <source media="(max-width: 40rem)" srcset={plate.mobile.src} width={plate.mobile.width} height={plate.mobile.height} />}
+          <img
+            src={plate.img.src}
+            srcset={plate.img.srcset || undefined}
+            sizes={sizes}
+            width={plate.img.width}
+            height={plate.img.height}
+            alt={plate.img.alt}
+            loading="lazy"
+            decoding="async"
+            class:list={["size-full object-cover", plate.img.credit && "photo-grade"]}
+            style={plate.position ? `object-position:${plate.position}` : undefined}
+            data-fx={parallax ? "parallax" : undefined}
+            data-speed={parallax ? "0.1" : undefined}
+          />
+        </picture>
+      </div>
+      {plate.caption && <figcaption class:list={["mt-3 text-xs leading-snug text-muted", captionClass]}>{plate.caption}</figcaption>}
+    </figure>
+  )
+}

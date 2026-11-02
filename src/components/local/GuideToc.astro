@@ -22,12 +22,12 @@ const { items, class: className } = Astro.props;
 {
   items.length > 1 && (
     <nav aria-label="On this page" class:list={["guide-toc", className]} data-guide-toc>
-      <details class="group rounded-card border border-line bg-surface lg:hidden">
-        <summary class="flex cursor-pointer list-none items-center justify-between px-5 py-4 font-semibold text-fg [&::-webkit-details-marker]:hidden">
-          On this page
+      <details class="group border-y border-line lg:hidden">
+        <summary class="flex cursor-pointer list-none items-center justify-between py-4 text-fg [&::-webkit-details-marker]:hidden">
+          <span class="label">On this page</span>
           <Icon name="ph:caret-down" size={16} class="text-muted transition-transform duration-300 group-open:rotate-180" />
         </summary>
-        <ol class="flex flex-col gap-1 border-t border-line px-5 py-4 text-sm">
+        <ol class="flex flex-col gap-1 border-t border-line py-4 text-sm">
           {items.map((item) => (
             <li>
               <a href={`#${item.slug}`} class="block py-1.5 text-muted transition-colors hover:text-fg">
@@ -39,7 +39,7 @@ const { items, class: className } = Astro.props;
       </details>
 
       <div class="hidden lg:block">
-        <p class="font-sans text-xs font-bold uppercase tracking-[0.16em] text-fg">On this page</p>
+        <p class="label text-muted">On this page</p>
         <ol class="mt-4 flex flex-col border-l border-line text-sm">
           {items.map((item) => (
             <li>
@@ -58,7 +58,6 @@ const { items, class: className } = Astro.props;
   .toc-link.is-current {
     border-color: var(--accent);
     color: var(--text);
-    font-weight: 600;
   }
 </style>
 

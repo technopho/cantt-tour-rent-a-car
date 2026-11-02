@@ -1,0 +1,245 @@
+{
+  "fleet": {
+    "toyota-prado": {
+      "src": "/media/fleet/toyota-prado.webp",
+      "srcset": "/media/fleet/toyota-prado-800.webp 800w, /media/fleet/toyota-prado.webp 1200w",
+      "width": 1200,
+      "height": 800,
+      "alt": "Black Toyota Land Cruiser Prado in a dark studio"
+    },
+    "toyota-land-cruiser": {
+      "src": "/media/fleet/toyota-land-cruiser.webp",
+      "srcset": "/media/fleet/toyota-land-cruiser-800.webp 800w, /media/fleet/toyota-land-cruiser.webp 1200w",
+      "width": 1200,
+      "height": 800,
+      "alt": "Black Toyota Land Cruiser LC300 in a dark studio"
+    },
+    "mercedes-s-class": {
+      "src": "/media/fleet/mercedes-s-class.webp",
+      "srcset": "/media/fleet/mercedes-s-class-800.webp 800w, /media/fleet/mercedes-s-class.webp 1200w",
+      "width": 1200,
+      "height": 800,
+      "alt": "Black Mercedes-Benz S-Class long wheelbase sedan in a dark studio"
+    },
+    "toyota-fortuner": {
+      "src": "/media/fleet/toyota-fortuner.webp",
+      "srcset": "/media/fleet/toyota-fortuner-800.webp 800w, /media/fleet/toyota-fortuner.webp 1200w",
+      "width": 1200,
+      "height": 800,
+      "alt": "White pearl Toyota Fortuner in a dark studio"
+    },
+    "honda-civic": {
+      "src": "/media/fleet/honda-civic.webp",
+      "srcset": "/media/fleet/honda-civic-800.webp 800w, /media/fleet/honda-civic.webp 1200w",
+      "width": 1200,
+      "height": 800,
+      "alt": "Black Honda Civic sedan in a dark studio"
+    },
+    "toyota-corolla": {
+      "src": "/media/fleet/toyota-corolla.webp",
+      "srcset": "/media/fleet/toyota-corolla-800.webp 800w, /media/fleet/toyota-corolla.webp 1200w",
+      "width": 1200,
+      "height": 800,
+      "alt": "Black Toyota Corolla sedan in a dark studio"
+    },
+    "suzuki-alto": {
+      "src": "/media/fleet/suzuki-alto.webp",
+      "srcset": "/media/fleet/suzuki-alto-800.webp 800w, /media/fleet/suzuki-alto.webp 1200w",
+      "width": 1200,
+      "height": 800,
+      "alt": "Pearl white Suzuki Alto hatchback in a dark studio"
+    },
+    "suzuki-cultus": {
+      "src": "/media/fleet/suzuki-cultus.webp",
+      "srcset": "/media/fleet/suzuki-cultus-800.webp 800w, /media/fleet/suzuki-cultus.webp 1200w",
+      "width": 1200,
+      "height": 800,
+      "alt": "Graphite grey Suzuki Cultus hatchback in a dark studio"
+    }
+  },
+  "scenes": {
+    "chauffeur": {
+      "src": "/media/scenes/chauffeur.webp",
+      "srcset": "/media/scenes/chauffeur-800.webp 800w, /media/scenes/chauffeur.webp 1800w",
+      "width": 1800,
+      "height": 1200,
+      "alt": "Chauffeur in a dark suit and black leather gloves holding open the rear door of a black sedan, warm light on the cabin seats, face out of frame"
+    },
+    "wedding": {
+      "src": "/media/scenes/wedding.webp",
+      "srcset": "/media/scenes/wedding-800.webp 800w, /media/scenes/wedding.webp 1800w",
+      "width": 1800,
+      "height": 1200,
+      "alt": "Black luxury sedan dressed with red rose and white jasmine garlands at night, marigold and fairy light wedding decor softly blurred behind"
+    },
+    "airport": {
+      "src": "/media/scenes/airport.webp",
+      "srcset": "/media/scenes/airport-800.webp 800w, /media/scenes/airport.webp 1800w",
+      "width": 1800,
+      "height": 1200,
+      "alt": "Black luxury SUV at an airport kerb on a wet night, a leather travel bag on the pavement, terminal lights and parked aircraft in soft focus"
+    },
+    "corporate": {
+      "src": "/media/scenes/corporate.webp",
+      "srcset": "/media/scenes/corporate-800.webp 800w, /media/scenes/corporate.webp 1800w",
+      "width": 1800,
+      "height": 1200,
+      "alt": "Black executive sedan outside a glass office tower at dusk, rear door open and a suited arm holding a leather document folder, face in shadow"
+    },
+    "selfdrive": {
+      "src": "/media/scenes/selfdrive.webp",
+      "srcset": "/media/scenes/selfdrive-800.webp 800w, /media/scenes/selfdrive.webp 1800w",
+      "width": 1800,
+      "height": 1200,
+      "alt": "A hand holding a black car key fob above a dark leather centre console, amber ambient light strips and the steering wheel softly blurred behind"
+    },
+    "monthly": {
+      "src": "/media/scenes/monthly.webp",
+      "srcset": "/media/scenes/monthly-800.webp 800w, /media/scenes/monthly.webp 1800w",
+      "width": 1800,
+      "height": 1200,
+      "alt": "Black luxury SUV parked on the paved driveway of a modern villa at dusk, warm light in the tall windows, lit garden wall and a palm against the sky"
+    },
+    "lahore-night": {
+      "src": "/media/scenes/lahore-night.webp",
+      "srcset": "/media/scenes/lahore-night-1200.webp 1200w, /media/scenes/lahore-night.webp 2400w",
+      "width": 2400,
+      "height": 1348,
+      "alt": "Arfa Software Technology Park tower in Lahore at night seen from above, long-exposure light trails of traffic streaming along the main road beside it and city lights to the horizon",
+      "credit": {
+        "author": "Wasif Mehmood",
+        "authorUrl": "https://www.pexels.com/@wasifmehmood997/",
+        "source": "https://www.pexels.com/photo/traffic-on-road-by-skyscraper-in-lahore-pakistan-at-night-16021536/",
+        "license": "Pexels License"
+      }
+    },
+    "badshahi": {
+      "src": "/media/scenes/badshahi.webp",
+      "srcset": "/media/scenes/badshahi-1200.webp 1200w, /media/scenes/badshahi.webp 2400w",
+      "width": 2400,
+      "height": 1800,
+      "alt": "Badshahi Mosque in Lahore at sunset seen from a rooftop in the Walled City, white marble domes and red sandstone minarets lit warm under a golden evening sky, floodlit walls in the foreground",
+      "credit": {
+        "author": "Haris khan",
+        "authorUrl": "https://unsplash.com/@hariskhan488",
+        "source": "https://unsplash.com/photos/badshahi-mosque-at-sunset-with-dramatic-sky-XkA0rziC9sc",
+        "license": "Unsplash License"
+      }
+    },
+    "luxury": {
+      "src": "/media/scenes/luxury.webp",
+      "srcset": "/media/scenes/luxury-800.webp 800w, /media/scenes/luxury.webp 1800w",
+      "width": 1800,
+      "height": 1200,
+      "alt": "Diamond stitched cream leather rear seat of a luxury sedan at night, lit by a small brass reading light"
+    },
+    "cabin": {
+      "src": "/media/scenes/cabin.webp",
+      "srcset": "/media/scenes/cabin-800.webp 800w, /media/scenes/cabin.webp 1800w",
+      "width": 1800,
+      "height": 1200,
+      "alt": "Driver's view of a dark luxury car cabin at night, leather steering wheel and amber lit gauges, city lights blurred through the windscreen"
+    },
+    "garage": {
+      "src": "/media/scenes/garage.webp",
+      "srcset": "/media/scenes/garage-800.webp 800w, /media/scenes/garage.webp 1800w",
+      "width": 1800,
+      "height": 1200,
+      "alt": "A car under a black silk cover in an empty private garage at night, brass wall lights reflected in a polished black floor"
+    },
+    "vans": {
+      "src": "/media/scenes/vans.webp",
+      "srcset": "/media/scenes/vans-800.webp 800w, /media/scenes/vans.webp 1800w",
+      "width": 1800,
+      "height": 1200,
+      "alt": "Empty cabin of a luxury passenger van at night, rows of cream quilted leather captain chairs under amber ceiling light strips"
+    },
+    "contact": {
+      "src": "/media/scenes/contact.webp",
+      "srcset": "/media/scenes/contact-800.webp 800w, /media/scenes/contact.webp 1800w",
+      "width": 1800,
+      "height": 1200,
+      "alt": "A single car key in a brass tray on a dark marble desk, a leather notebook and a brass lamp in warm low light"
+    }
+  },
+  "roads": {
+    "hunza": {
+      "src": "/media/roads/hunza.webp",
+      "srcset": "/media/roads/hunza-1200.webp 1200w, /media/roads/hunza.webp 2400w",
+      "width": 2400,
+      "height": 1600,
+      "alt": "The Karakoram Highway at Passu in Hunza, a straight two-lane road between autumn poplars running toward the jagged Passu Cones under a deep blue sky",
+      "credit": {
+        "author": "Muhammad Asif",
+        "authorUrl": "https://unsplash.com/@masifasif",
+        "source": "https://unsplash.com/photos/gray-concrete-road-near-trees-and-mountain-under-blue-sky-during-daytime-WqqZvag0y-M",
+        "license": "Unsplash License"
+      }
+    },
+    "skardu": {
+      "src": "/media/roads/skardu.webp",
+      "srcset": "/media/roads/skardu-1200.webp 1200w, /media/roads/skardu.webp 2400w",
+      "width": 2400,
+      "height": 1800,
+      "alt": "Upper Kachura Lake near Skardu, still dark water mirroring snow-streaked mountains and a line of bare poplars along the far shore",
+      "credit": {
+        "author": "merry Raza",
+        "authorUrl": "https://unsplash.com/@merryraxa",
+        "source": "https://unsplash.com/photos/lake-near-snow-covered-mountain-during-daytime-hGyinYGQ8_o",
+        "license": "Unsplash License"
+      }
+    },
+    "murree": {
+      "src": "/media/roads/murree.webp",
+      "srcset": "/media/roads/murree-1200.webp 1200w, /media/roads/murree.webp 2400w",
+      "width": 2400,
+      "height": 1600,
+      "alt": "The Islamabad to Murree Expressway near Phulgran curving uphill through pine-covered hills under a grey overcast sky, chevron signs and striped barriers on the bend",
+      "credit": {
+        "author": "Shujaat Muzaffar",
+        "authorUrl": "https://unsplash.com/@frizcon",
+        "source": "https://unsplash.com/photos/gray-concrete-road-with-no-cars-during-daytime-v7_ECFlBqNQ",
+        "license": "Unsplash License"
+      }
+    },
+    "naran": {
+      "src": "/media/roads/naran.webp",
+      "srcset": "/media/roads/naran-1200.webp 1200w, /media/roads/naran.webp 2400w",
+      "width": 2400,
+      "height": 1332,
+      "alt": "Lake Saiful Muluk above Naran, rippled water in the foreground and snow-covered peaks rising on both sides of the valley",
+      "credit": {
+        "author": "Syed Muhammad Baqir Zaidi",
+        "authorUrl": "https://unsplash.com/@zaidi_14",
+        "source": "https://unsplash.com/photos/a-large-body-of-water-surrounded-by-mountains-itx6ykSsFIY",
+        "license": "Unsplash License"
+      }
+    },
+    "swat": {
+      "src": "/media/roads/swat.webp",
+      "srcset": "/media/roads/swat-1200.webp 1200w, /media/roads/swat.webp 2400w",
+      "width": 2400,
+      "height": 1600,
+      "alt": "An empty two-lane mountain road in Swat curving into a dense forest of tall conifers in cool, low light",
+      "credit": {
+        "author": "Nayyer Younas",
+        "authorUrl": "https://unsplash.com/@nayyer33",
+        "source": "https://unsplash.com/photos/an-empty-road-in-the-middle-of-a-forest-tHxvH2gve2w",
+        "license": "Unsplash License"
+      }
+    },
+    "motorway": {
+      "src": "/media/roads/motorway.webp",
+      "srcset": "/media/roads/motorway-1200.webp 1200w, /media/roads/motorway.webp 2400w",
+      "width": 2400,
+      "height": 1600,
+      "alt": "The Hazara Motorway near Abbottabad under a stormy teal sky, a road sign giving distances to Gilgit, Mansehra and Abbottabad beside cut red-earth hills, a few cars in the distance",
+      "credit": {
+        "author": "Aqib Shahid",
+        "authorUrl": "https://www.pexels.com/@aqib-shahid-1528024/",
+        "source": "https://www.pexels.com/photo/gray-concrete-road-between-brown-and-green-mountains-under-blue-sky-12993961/",
+        "license": "Pexels License"
+      }
+    }
+  }
+}

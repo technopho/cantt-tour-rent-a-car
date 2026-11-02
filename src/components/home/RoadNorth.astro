@@ -1,0 +1,370 @@
+---
+/**
+ * The Road North (DESIGN.md experience 6): a pinned flight over a particle terrain, from Lahore to
+ * Skardu. Every stop is a real link in the HTML, positioned over the canvas by src/scripts/terrain3d.ts.
+ * Without WebGL, or without JS, the same list reads as a plain list of routes with their distances.
+ * Distances and drive hours come from the frontmatter of src/content/routes/*.md.
+ */
+import { getCollection } from "astro:content";
+import { formatKm } from "@/lib/format";
+import { urls } from "@/lib/urls";
+import { driveTimeLabel, type HomeRoute } from "./home-data";
+
+interface Props {
+  /** Every route served, so the other destinations stay linked from the home page. */
+  routes: HomeRoute[];
+}
+
+const { routes } = Astro.props;
+const entries = await getCollection("routes");
+const bySlug = new Map(entries.map((entry) => [entry.data.slug, entry.data]));
+
+/** Coordinates only place the labels on the terrain: they are not shown. */
+const NORTH = [
+  { id: "islamabad", name: "Islamabad", slug: "lahore-to-islamabad", lat: 33.68, lon: 73.05 },
+  { id: "murree", name: "Murree", slug: "lahore-to-murree", lat: 33.9, lon: 73.39 },
+  { id: "naran", name: "Naran", slug: "lahore-to-naran-kaghan", lat: 34.91, lon: 73.65 },
+  { id: "hunza", name: "Hunza", slug: "lahore-to-hunza", lat: 36.32, lon: 74.66 },
+  { id: "skardu", name: "Skardu", slug: "lahore-to-skardu", lat: 35.3, lon: 75.63 },
+];
+
+const stops = NORTH.flatMap((stop) => {
+  const data = bySlug.get(stop.slug);
+  return data ? [{ ...stop, km: data.distanceKm, hours: data.driveHours }] : [];
+});
+const northSlugs = new Set(NORTH.map((stop) => stop.slug));
+const others = routes.filter((route) => !northSlugs.has(route.slug));
+---
+
+<section class="road" id="routes" data-road aria-labelledby="road-title">
+  <div class="road-track" data-road-track>
+  <div class="road-stage" data-road-stage>
+    <canvas class="road-canvas" data-road-canvas aria-hidden="true"></canvas>
+
+    <div class="road-head" data-road-title>
+      <h2 id="road-title" class="road-title">The road <em>north</em></h2>
+    </div>
+
+    <ol class="road-stops">
+      <li class="road-stop" data-stop="lahore" data-lat="31.55" data-lon="74.34">
+        <a href={urls.routes()}>
+          <span class="road-name">Lahore</span>
+          <span class="road-meta">Where every drive starts</span>
+        </a>
+      </li>
+      {
+        stops.map((stop) => (
+          <li class="road-stop" data-stop={stop.id} data-lat={stop.lat} data-lon={stop.lon}>
+            <a href={urls.route(stop.slug)}>
+              <span class="road-name">{stop.name}</span>
+              <span class="road-meta">
+                About {formatKm(stop.km)}, around {driveTimeLabel(stop.hours)}
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+  </div>
+
+  <div class="road-more">
+    <ul>
+      {
+        others.map((route) => (
+          <li>
+            <a href={urls.route(route.slug)}>Lahore to {route.city}</a>
+          </li>
+        ))
+      }
+      <li>
+        <a class="road-all" href={urls.routes()}>All routes</a>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<style>
+  .road {
+    position: relative;
+    background: var(--bg);
+    color: var(--text);
+    isolation: isolate;
+  }
+
+  /* ---------- The plain list: no JS, or no WebGL ---------- */
+  .road-stage {
+    padding: clamp(5rem, 10vw, 9rem) max(var(--gutter), 3.2vw) 2rem;
+  }
+  .road-canvas {
+    display: none;
+  }
+  .road-title {
+    margin: 0 0 clamp(2rem, 5vw, 4rem);
+    font-family: "Bodoni Moda Variable", var(--font-display);
+    font-weight: 400;
+    font-size: clamp(3.25rem, 9.2vw, 9.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.01em;
+  }
+  .road-title em {
+    font-style: italic;
+  }
+  .road-stops {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--line);
+  }
+  .road-stop {
+    border-bottom: 1px solid var(--line);
+  }
+  .road-stop a {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem 1.5rem;
+    padding: 1.1rem 0;
+    color: inherit;
+    text-decoration: none;
+  }
+  .road-name {
+    font-family: "Bodoni Moda Variable", var(--font-display);
+    font-size: clamp(1.75rem, 4vw, 3rem);
+    line-height: 1.05;
+    transition: color 0.4s linear;
+  }
+  .road-stop a:hover .road-name,
+  .road-stop a:focus-visible .road-name {
+    color: var(--accent);
+  }
+  .road-meta {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- The flight ---------- */
+  .road[data-mode="webgl"] {
+    display: flow-root;
+  }
+  .road[data-mode="webgl"] .road-track {
+    height: 420lvh;
+  }
+  .road[data-mode="webgl"] .road-stage {
+    position: sticky;
+    top: 0;
+    height: 100lvh;
+    padding: 0;
+    overflow: clip;
+    background:
+      radial-gradient(90% 60% at 50% 30%, #0f0d0a 0%, transparent 100%),
+      var(--bg);
+  }
+  .road[data-mode="webgl"] .road-canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 1.2s linear;
+    pointer-events: none;
+  }
+  .road[data-live] .road-canvas {
+    opacity: 1;
+  }
+  .road[data-mode="webgl"] .road-head {
+    position: absolute;
+    z-index: 2;
+    left: max(var(--gutter), 3.2vw);
+    top: calc(var(--header-h) + 3vh);
+    pointer-events: none;
+  }
+  .road[data-mode="webgl"] .road-title {
+    margin: 0;
+  }
+  .road[data-mode="webgl"] .road-stops {
+    border: 0;
+  }
+  .road[data-mode="webgl"] .road-stop {
+    position: absolute;
+    z-index: 4;
+    top: 0;
+    left: 0;
+    border: 0;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+  /* A hairline up from the point on the ground, the label sits on top of it. */
+  .road[data-mode="webgl"] .road-stop a {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    display: block;
+    width: max-content;
+    max-width: 58vw;
+    padding: 0 0 1.1rem 0.8rem;
+    border-left: 1px solid rgb(236 224 200 / 0.5);
+    pointer-events: none;
+  }
+  .road[data-mode="webgl"] .road-stop[data-flip="true"] a {
+    left: auto;
+    right: 0;
+    padding: 0 0.8rem 1.1rem 0;
+    border-left: 0;
+    border-right: 1px solid rgb(236 224 200 / 0.5);
+    text-align: right;
+  }
+  .road[data-mode="webgl"] .road-stop[data-visible="true"] a {
+    pointer-events: auto;
+  }
+  /* A soft pool of dark behind each label, so a name never sits in the glitter of the particles or across the
+     route line drawn on the ground. */
+  .road[data-mode="webgl"] .road-stop a::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -1.4rem -2.2rem -0.2rem -1.6rem;
+    background: radial-gradient(closest-side, rgb(7 7 8 / 0.82), rgb(7 7 8 / 0.5) 55%, transparent);
+    pointer-events: none;
+  }
+  .road[data-mode="webgl"] .road-stop:focus-within {
+    opacity: 1 !important;
+  }
+  .road[data-mode="webgl"] .road-name {
+    display: block;
+    font-size: clamp(1.75rem, 3.4vw, 3.25rem);
+    text-shadow:
+      0 0 2px rgb(7 7 8 / 0.9),
+      0 0 10px rgb(7 7 8 / 0.9),
+      0 0 28px rgb(7 7 8 / 0.85);
+  }
+  .road[data-mode="webgl"] .road-meta {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--text);
+    text-shadow:
+      0 0 2px rgb(7 7 8 / 1),
+      0 0 12px rgb(7 7 8 / 0.95);
+  }
+
+  /* ---------- The other routes ---------- */
+  .road-more {
+    position: relative;
+    padding: clamp(2rem, 4vw, 3rem) max(var(--gutter), 3.2vw) clamp(4rem, 8vw, 7rem);
+    background: var(--bg);
+  }
+  .road-more ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 2rem;
+    margin: 0;
+    padding: 1.25rem 0 0;
+    list-style: none;
+    border-top: 1px solid var(--line);
+  }
+  .road-more a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.4s linear;
+  }
+  .road-more a:hover,
+  .road-more a:focus-visible,
+  .road-more .road-all {
+    color: var(--accent-fg);
+  }
+
+  @media (max-aspect-ratio: 1/1) {
+    .road[data-mode="webgl"] .road-track {
+      height: 360lvh;
+    }
+    .road[data-mode="webgl"] .road-head {
+      top: calc(var(--header-h) + 1.25rem);
+    }
+  }
+</style>
+
+<script>
+  import { getTier } from "@/scripts/tier";
+  import { loadGsap } from "@/scripts/motion";
+
+  const road = document.querySelector<HTMLElement>("[data-road]");
+  const stageEl = road?.querySelector<HTMLElement>("[data-road-stage]");
+  const canvas = road?.querySelector<HTMLCanvasElement>("[data-road-canvas]");
+
+  if (road && stageEl && canvas) {
+    const tier = getTier();
+    if (tier !== "fallback") {
+      road.dataset.mode = "webgl";
+      // The stage sits inside a tall track, which is the scroll distance of the flight.
+      const track = road.querySelector<HTMLElement>("[data-road-track]") ?? road;
+
+      const shared = { p: 0 };
+      let dispose: (() => void) | null = null;
+
+      const toList = () => {
+        road.removeAttribute("data-mode");
+        road.removeAttribute("data-live");
+        dispose?.();
+        dispose = null;
+        loadGsap().then(({ ScrollTrigger }) => ScrollTrigger.refresh());
+      };
+
+      loadGsap().then(({ gsap, ScrollTrigger }) => {
+        const timeline = gsap.timeline({
+          defaults: { ease: "none" },
+          scrollTrigger: {
+            trigger: track,
+            start: "top top",
+            end: () => `+=${Math.max(1, track.offsetHeight - stageEl.offsetHeight)}`,
+            scrub: 1,
+            invalidateOnRefresh: true,
+          },
+        });
+        timeline.to(shared, { p: 1, duration: 1 }, 0);
+        // The title opens the flight and closes it, the land has the screen in between.
+        const title = road.querySelector("[data-road-title]");
+        if (title) {
+          timeline.to(title, { autoAlpha: 0, duration: 0.05 }, 0.1);
+          timeline.to(title, { autoAlpha: 1, duration: 0.05 }, 0.9);
+        }
+        ScrollTrigger.refresh();
+      });
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          observer.disconnect();
+          import("@/scripts/terrain3d")
+            .then(({ mountTerrain }) => {
+              const stops = [...road.querySelectorAll<HTMLElement>("[data-stop]")].map((element) => ({
+                id: element.dataset.stop ?? "",
+                lat: Number(element.dataset.lat),
+                lon: Number(element.dataset.lon),
+                element,
+              }));
+              dispose = mountTerrain({ stageEl, canvas, stops, tier, shared, onFail: toList });
+              requestAnimationFrame(() => {
+                road.dataset.live = "true";
+              });
+            })
+            .catch(toList);
+        },
+        { rootMargin: "120% 0px" },
+      );
+      observer.observe(road);
+      window.addEventListener("pagehide", () => {
+        dispose?.();
+        dispose = null;
+      });
+    }
+  }
+</script>

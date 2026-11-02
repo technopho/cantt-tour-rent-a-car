@@ -41,13 +41,13 @@ const paragraphs = (text: string) => text.split(/\n\s*\n/).map((p) => p.trim()).
     <div id={id} class:list={["border-t border-line", className]}>
       {faqs.map((faq, i) => (
         <details name={group} open={openFirst && i === 0} class="faq-item group border-b border-line">
-          <summary class="flex cursor-pointer list-none items-start justify-between gap-6 py-5 text-left text-[1.0625rem] font-semibold text-fg transition-colors hover:text-accent-fg [&::-webkit-details-marker]:hidden">
+          <summary class="flex cursor-pointer list-none items-start justify-between gap-6 py-6 text-left text-[1.0625rem] font-medium text-fg transition-colors duration-500 hover:text-accent-fg md:text-[1.25rem] [&::-webkit-details-marker]:hidden">
             <span>{faq.q}</span>
             <span
-              class="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border border-line text-muted transition-[transform,background-color,color,border-color] duration-300 ease-(--ease-out) group-open:rotate-45 group-open:border-transparent group-open:bg-accent-soft group-open:text-accent-fg"
+              class="mt-0.5 grid size-7 shrink-0 place-items-center text-accent transition-transform duration-700 ease-(--ease-out) group-open:rotate-45"
               aria-hidden="true"
             >
-              <Icon name="ph:plus" size={14} />
+              <Icon name="ph:plus" size={18} />
             </span>
           </summary>
           <div class="flex max-w-3xl flex-col gap-3 pr-12 pb-6 leading-relaxed text-muted">
@@ -73,8 +73,8 @@ const paragraphs = (text: string) => text.split(/\n\s*\n/).map((p) => p.trim()).
         block-size: 0;
         overflow-y: clip;
         transition:
-          block-size 0.35s var(--ease-out),
-          content-visibility 0.35s allow-discrete;
+          block-size 0.7s var(--ease-out),
+          content-visibility 0.7s allow-discrete;
       }
       .faq-item[open]::details-content {
         block-size: auto;

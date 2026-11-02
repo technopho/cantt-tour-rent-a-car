@@ -1,9 +1,9 @@
 ---
 /**
- * "What is included / not included" panel next to the documents checklist.
- * Two columns from 1024px (included panel wider), stacked below.
+ * What the price covers, what it does not, and the documents to bring. Hairline lists, no boxes. On phones the
+ * lists fold under their headings (PhoneFold), so the page is not screens of list text.
  */
-import Icon from "@/components/Icon.astro";
+import PhoneFold from "@/components/PhoneFold.astro";
 import type { DocumentItem } from "./service-data";
 
 interface Props {
@@ -17,66 +17,44 @@ interface Props {
 const { inclusions, exclusions, documents, headingId, title } = Astro.props;
 ---
 
-<div class="grid gap-12 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-16">
-  <div>
-    <h2 id={headingId} class="text-display-lg text-fg">{title}</h2>
-    <div class="mt-10 grid overflow-hidden rounded-card border border-line md:grid-cols-2">
-      <div class="p-6 sm:p-7">
-        <h3 class="flex items-center gap-2.5 font-sans text-base font-bold tracking-normal text-fg">
-          <span class="grid size-7 place-items-center rounded-full bg-accent-soft text-accent-fg">
-            <Icon name="ph:check" size={14} />
-          </span>
-          Included
-        </h3>
-        <ul class="mt-5 flex flex-col gap-3.5 text-[0.9375rem] leading-relaxed text-muted">
-          {
-            inclusions.map((item) => (
-              <li class="flex gap-3">
-                <Icon name="ph:check" size={18} class="mt-0.5 text-accent" />
-                <span class="text-fg/90">{item}</span>
-              </li>
-            ))
-          }
-        </ul>
-      </div>
-      <div class="border-t border-line bg-surface/60 p-6 sm:p-7 md:border-t-0 md:border-l">
-        <h3 class="flex items-center gap-2.5 font-sans text-base font-bold tracking-normal text-fg">
-          <span class="grid size-7 place-items-center rounded-full border border-line text-muted">
-            <Icon name="ph:minus" size={14} />
-          </span>
-          Not included
-        </h3>
-        <ul class="mt-5 flex flex-col gap-3.5 text-[0.9375rem] leading-relaxed text-muted">
-          {
-            exclusions.map((item) => (
-              <li class="flex gap-3">
-                <Icon name="ph:minus" size={18} class="mt-0.5 opacity-70" />
-                <span>{item}</span>
-              </li>
-            ))
-          }
-        </ul>
-      </div>
+<div class="grid gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
+  <h2 id={headingId} class="text-display-lg max-w-[14ch] text-fg lg:sticky lg:top-[calc(var(--header-h)+2rem)] lg:self-start" data-fx="lines">{title}</h2>
+  <PhoneFold summary={`Included (${inclusions.length}) and not included (${exclusions.length})`}>
+  <div class="grid gap-12 sm:grid-cols-2 sm:gap-10">
+    <div>
+      <h3 class="label text-accent-fg">Included</h3>
+      <ul class="mt-5 border-t border-line text-[0.9375rem] leading-relaxed text-fg/90">
+        {inclusions.map((item) => <li class="border-b border-line py-3.5">{item}</li>)}
+      </ul>
+    </div>
+    <div>
+      <h3 class="label text-muted">Not included</h3>
+      <ul class="mt-5 border-t border-line text-[0.9375rem] leading-relaxed text-muted">
+        {exclusions.map((item) => <li class="border-b border-line py-3.5">{item}</li>)}
+      </ul>
     </div>
   </div>
+  </PhoneFold>
+</div>
 
-  <div class="lg:pt-2">
-    <h2 class="text-display-md text-fg">{documents.title}</h2>
-    <p class="mt-3 text-muted">{documents.intro}</p>
-    <ol class="mt-8 flex flex-col">
-      {
-        documents.items.map((doc) => (
-          <li class="flex gap-4 border-t border-line py-4 last:border-b">
-            <span class="grid size-10 shrink-0 place-items-center rounded-full bg-surface-2 text-fg">
-              <Icon name={doc.icon} size={18} class={doc.icon.startsWith("simple-icons:") ? "text-whatsapp" : undefined} />
-            </span>
-            <span class="flex flex-col pt-0.5">
-              <span class="font-semibold text-fg">{doc.text}</span>
-              {doc.note && <span class="mt-0.5 text-sm text-muted">{doc.note}</span>}
-            </span>
-          </li>
-        ))
-      }
-    </ol>
+<div class="mt-20 grid gap-10 lg:mt-28 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
+  <div>
+    <h2 class="text-display-md max-w-[14ch] text-fg" data-fx="lines">{documents.title}</h2>
+    <p class="mt-4 max-w-md text-muted">{documents.intro}</p>
   </div>
+  <PhoneFold summary={`The ${documents.items.length} documents to bring`}>
+  <ol class="border-t border-line">
+    {
+      documents.items.map((doc, i) => (
+        <li class="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-3 border-b border-line py-4">
+          <span class="text-sm text-accent-fg tabular-nums" aria-hidden="true">{i + 1}</span>
+          <span class="flex flex-col">
+            <span class="font-medium text-fg">{doc.text}</span>
+            {doc.note && <span class="mt-0.5 text-sm text-muted">{doc.note}</span>}
+          </span>
+        </li>
+      ))
+    }
+  </ol>
+  </PhoneFold>
 </div>

@@ -2,43 +2,26 @@
  * Build-time icon rendering from Iconify JSON (Phosphor "ph:*" and brand marks "simple-icons:*").
  * Icons become inline SVG in the prerendered HTML: zero client JS, zero icon requests.
  *
- * Server/build only (reads JSON with node:fs). For a Svelte island, render the SVG string in the
+ * Server/build only (the icon sets are large JSON files). For a Svelte island, render the SVG string in the
  * .astro parent with `iconSvg("ph:check")` and pass it as a prop ({@html svg}).
  *
  * Phosphor rule (DESIGN.md): use the "regular" weight only, i.e. names without a -bold/-fill/-light suffix.
  */
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import { join } from "node:path";
 import { getIconData, iconToHTML, iconToSVG, replaceIDs } from "@iconify/utils";
+import phIcons from "@iconify-json/ph/icons.json";
+import simpleIcons from "@iconify-json/simple-icons/icons.json";
 
 type IconifyJSON = Parameters<typeof getIconData>[0];
 
+// Static imports, not node:fs: `astro dev` renders pages inside workerd, which has no real filesystem.
 const SETS = {
-  ph: "@iconify-json/ph/icons.json",
-  "simple-icons": "@iconify-json/simple-icons/icons.json",
+  ph: phIcons as IconifyJSON,
+  "simple-icons": simpleIcons as IconifyJSON,
 } as const;
 
 export type IconPrefix = keyof typeof SETS;
 /** "ph:car-profile" | "simple-icons:whatsapp" | ... */
 export type IconName = `${IconPrefix}:${string}`;
-
-const cache = new Map<IconPrefix, IconifyJSON>();
-
-function readSet(prefix: IconPrefix): IconifyJSON {
-  const cached = cache.get(prefix);
-  if (cached) return cached;
-  const specifier = SETS[prefix];
-  let file: string;
-  try {
-    file = createRequire(import.meta.url).resolve(specifier);
-  } catch {
-    file = join(process.cwd(), "node_modules", specifier);
-  }
-  const data = JSON.parse(readFileSync(file, "utf8")) as IconifyJSON;
-  cache.set(prefix, data);
-  return data;
-}
 
 export interface RenderedIcon {
   /** Inner SVG markup (paths). */
@@ -56,8 +39,8 @@ export function getIcon(name: string): RenderedIcon {
   if (!iconName || !(prefix in SETS)) {
     throw new Error(`[icons] Unknown icon "${name}". Use "ph:<name>" or "simple-icons:<name>".`);
   }
-  const data = getIconData(readSet(prefix as IconPrefix), iconName);
-  if (!data) throw new Error(`[icons] Icon "${name}" not found in ${SETS[prefix as IconPrefix]}.`);
+  const data = getIconData(SETS[prefix as IconPrefix], iconName);
+  if (!data) throw new Error(`[icons] Icon "${name}" not found in the "${prefix}" set.`);
   const svg = iconToSVG(data, { height: "auto" });
   // Only icons with internal ids (gradients/masks) need unique ids; keeps output deterministic otherwise.
   const body = /\sid="/.test(svg.body) ? replaceIDs(svg.body) : svg.body;
