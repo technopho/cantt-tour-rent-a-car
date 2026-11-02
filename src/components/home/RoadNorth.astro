@@ -340,24 +340,45 @@ const others = routes.filter((route) => !northSlugs.has(route.slug));
         ScrollTrigger.refresh();
       });
 
+      // A canvas whose context was lost (GPU reset, or disposed on pagehide) can never draw again, so every
+      // mount after the first gets a fresh one. Repeated failures in one visit settle on the list.
+      let current = canvas;
+      let mounts = 0;
+      let failures = 0;
+      const mount = () => {
+        if (dispose || road.dataset.mode !== "webgl") return;
+        if (mounts++ > 0) {
+          const fresh = current.cloneNode() as HTMLCanvasElement;
+          current.replaceWith(fresh);
+          current = fresh;
+        }
+        import("@/scripts/terrain3d")
+          .then(({ mountTerrain }) => {
+            const stops = [...road.querySelectorAll<HTMLElement>("[data-stop]")].map((element) => ({
+              id: element.dataset.stop ?? "",
+              lat: Number(element.dataset.lat),
+              lon: Number(element.dataset.lon),
+              element,
+            }));
+            dispose = mountTerrain({ stageEl, canvas: current, stops, tier, shared, onFail: retry });
+            requestAnimationFrame(() => {
+              road.dataset.live = "true";
+            });
+          })
+          .catch(retry);
+      };
+      function retry() {
+        dispose?.();
+        dispose = null;
+        if (++failures > 2) toList();
+        else setTimeout(mount, 400);
+      }
+
       const observer = new IntersectionObserver(
         (entries) => {
           if (!entries.some((entry) => entry.isIntersecting)) return;
           observer.disconnect();
-          import("@/scripts/terrain3d")
-            .then(({ mountTerrain }) => {
-              const stops = [...road.querySelectorAll<HTMLElement>("[data-stop]")].map((element) => ({
-                id: element.dataset.stop ?? "",
-                lat: Number(element.dataset.lat),
-                lon: Number(element.dataset.lon),
-                element,
-              }));
-              dispose = mountTerrain({ stageEl, canvas, stops, tier, shared, onFail: toList });
-              requestAnimationFrame(() => {
-                road.dataset.live = "true";
-              });
-            })
-            .catch(toList);
+          mount();
         },
         { rootMargin: "120% 0px" },
       );
@@ -365,6 +386,10 @@ const others = routes.filter((route) => !northSlugs.has(route.slug));
       window.addEventListener("pagehide", () => {
         dispose?.();
         dispose = null;
+      });
+      // Back or Forward restores the page from memory with the terrain already disposed: build it again.
+      window.addEventListener("pageshow", (event) => {
+        if (event.persisted && mounts > 0) mount();
       });
     }
   }

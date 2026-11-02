@@ -18,15 +18,19 @@ interface NavigatorWithHints extends Navigator {
 
 const mq = (query: string) => window.matchMedia(query).matches;
 
-function hasWebGL2(): boolean {
-  try {
-    const canvas = document.createElement("canvas");
-    const gl = canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true });
-    gl?.getExtension("WEBGL_lose_context")?.loseContext();
-    return Boolean(gl);
-  } catch {
-    return false;
-  }
+/** "fast" on a real GPU, "slow" when only a software renderer is on offer (or the GPU is briefly busy), else none. */
+function webGL2(): "fast" | "slow" | null {
+  const probe = (strict: boolean) => {
+    try {
+      const gl = document.createElement("canvas").getContext("webgl2", { failIfMajorPerformanceCaveat: strict });
+      gl?.getExtension("WEBGL_lose_context")?.loseContext();
+      return Boolean(gl);
+    } catch {
+      return false;
+    }
+  };
+  if (probe(true)) return "fast";
+  return probe(false) ? "slow" : null;
 }
 
 let cached: Tier | null = null;
@@ -40,7 +44,10 @@ export function getTier(): Tier {
   if (nav.connection?.saveData || mq("(prefers-reduced-data: reduce)")) return (cached = "fallback");
   if (mq("(prefers-reduced-motion: reduce)")) return (cached = "fallback");
   if (typeof nav.deviceMemory === "number" && nav.deviceMemory < 3) return (cached = "fallback");
-  if (!hasWebGL2()) return (cached = "fallback");
+  const gl = webGL2();
+  if (!gl) return (cached = "fallback");
+  // The strict check fails now and then on a healthy machine, so a "slow" answer still flies, at low quality.
+  if (gl === "slow") return (cached = "low");
 
   const desktop = mq("(hover: hover) and (pointer: fine)") && mq("(min-width: 64rem)");
   const strong = (nav.hardwareConcurrency ?? 4) >= 4 && (nav.deviceMemory ?? 8) >= 4;
