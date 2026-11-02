@@ -36,7 +36,7 @@ const northSlugs = new Set(NORTH.map((stop) => stop.slug));
 const others = routes.filter((route) => !northSlugs.has(route.slug));
 ---
 
-<section class="road" id="routes" data-road aria-labelledby="road-title">
+<section data-theme="dark" class="road" id="routes" data-road aria-labelledby="road-title">
   <div class="road-track" data-road-track>
   <div class="road-stage" data-road-stage>
     <canvas class="road-canvas" data-road-canvas aria-hidden="true"></canvas>

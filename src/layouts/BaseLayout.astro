@@ -66,7 +66,7 @@ const priceRange = priceRangeLabel(await getPriceRange());
 ---
 
 <!doctype html>
-<html lang="en-PK" dir="ltr" data-smooth-scroll={smoothScroll ? "on" : "off"} data-preload={preloadMedia ? "media" : undefined}>
+<html lang="en-PK" dir="ltr" data-theme="dark" data-smooth-scroll={smoothScroll ? "on" : "off"} data-preload={preloadMedia ? "media" : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -94,6 +94,14 @@ const priceRange = priceRangeLabel(await getPriceRange());
 
     <script is:inline>
       document.documentElement.classList.add("js");
+      // Saved theme (header toggle), applied before first paint so a light-theme visitor never sees a dark flash.
+      try {
+        if (localStorage.getItem("cantt-theme") === "light") {
+          document.documentElement.dataset.theme = "light";
+          document.querySelector('meta[name="color-scheme"]')?.setAttribute("content", "light");
+          document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#f4efe5");
+        }
+      } catch {}
     </script>
 
     <JsonLd data={[autoRentalBusiness({ priceRange }), websiteSchema()]} />

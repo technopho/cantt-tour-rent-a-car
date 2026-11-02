@@ -32,7 +32,7 @@ const spec = (m: CatalogModel) =>
   `${m.seats} seats, ${transmissionLabel(m.transmission).toLowerCase()}, ${fuelLabel(m.fuel).toLowerCase()}. From ${formatRate(m.rates.fromPrice)}`;
 ---
 
-<section id="collection" class:list={["coll", gallery.length === 0 && "coll--empty"]} aria-labelledby="collection-title" data-coll>
+<section data-theme="dark" id="collection" class:list={["coll", gallery.length === 0 && "coll--empty"]} aria-labelledby="collection-title" data-coll>
   <div class="coll-stage" data-coll-stage>
     <div class="coll-scroll" data-coll-scroll>
       <div class="coll-track" data-coll-track>

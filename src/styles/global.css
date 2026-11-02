@@ -102,8 +102,14 @@
  *  --accent-fg    brass for SMALL text (links, eyebrows, prices). AA on bg, surface, surface-2.
  *  --accent-fill  background of filled buttons, with --accent-ink text.
  *  --ember        tail-lights only (3D, trails, small glows). Never on a button.
+ *
+ * Two themes. Dark is the default and the brand. Light ("ivory") is chosen with the header toggle and
+ * set on <html data-theme> before first paint (BaseLayout). Picture-led blocks (heroes, plates, the home
+ * opening, the header bar, the footer) carry data-theme="dark" so they stay dark in both themes: ivory
+ * type on a photograph needs a dark scrim either way.
  * ---------------------------------------------------------------------------------------- */
-:root {
+:root,
+[data-theme="dark"] {
   color-scheme: dark;
 
   --bg: #070708;
@@ -130,10 +136,47 @@
   --film-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='1.6 0 0 0 -0.3 1.6 0 0 0 -0.3 1.6 0 0 0 -0.3 0 0 0 0 1'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   --header-bg: rgb(7 7 8 / 0.62);
   --theme-color: #070708;
+  --scrollbar: rgb(236 224 200 / 0.22);
 
   /* The one easing of the site: slow and heavy. */
   --ease-heavy: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-door: cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* Light: warm ivory paper, ink text, a deeper brass so small text and rules keep their contrast (AA). */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f4efe5;
+  --surface: #ece5d7;
+  --surface-2: #e3dbca;
+  --line: rgb(43 34 20 / 0.14);
+  --line-strong: rgb(43 34 20 / 0.56); /* form controls: 3:1 against surface */
+  --text: #16130f;
+  --muted: #5d5547;
+  --accent: #9a7536;
+  --accent-ink: #0b0a08;
+
+  --accent-fg: #7a5a21;
+  --accent-fill: #c9a66b;
+  --accent-fill-hover: #b8935a;
+  --accent-soft: rgb(154 117 54 / 0.12);
+  --whatsapp: #7a5a21;
+
+  --shadow-tint: 32 18% 30%;
+  --grain-opacity: 0.05;
+  --header-bg: rgb(244 239 229 / 0.7);
+  --theme-color: #f4efe5;
+  --scrollbar: rgb(43 34 20 / 0.28);
+}
+
+/* A dark block inside the light theme: its own type colour, and a background on sections so it reads
+   as one piece. Overlays (divs over pictures) keep their transparency. */
+[data-theme="dark"] {
+  color: var(--text);
+}
+:where(section, footer, article, aside)[data-theme="dark"] {
+  background-color: var(--bg);
 }
 
 /* Static theme values. */
@@ -292,7 +335,7 @@
     text-rendering: optimizeLegibility;
     scroll-padding-top: calc(var(--header-h) + 1rem);
     hanging-punctuation: first last;
-    scrollbar-color: rgb(236 224 200 / 0.22) transparent;
+    scrollbar-color: var(--scrollbar) transparent;
   }
 
   body {
@@ -881,7 +924,7 @@ html:has(dialog[open]) :is(.fx-cursor-dot, .fx-cursor-ring),
   position: fixed;
   inset: 0;
   z-index: 9998;
-  background: var(--bg);
+  background: #070708; /* obsidian in both themes: it hands over to the (dark) preloader */
   box-shadow:
     inset 0 1px 0 var(--accent),
     0 -1px 22px rgb(201 166 107 / 0.28);

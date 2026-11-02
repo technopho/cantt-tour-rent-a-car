@@ -22,7 +22,7 @@ const hasLine = Astro.slots.has("default");
 
 {
   (plate || hasLine) && (
-    <figure class:list={["interlude relative isolate flex items-end overflow-hidden bg-surface", height === "tall" ? "min-h-[78svh] md:min-h-[92svh]" : "min-h-[60svh] md:min-h-[72svh]", className]}>
+    <figure data-theme="dark" class:list={["interlude relative isolate flex items-end overflow-hidden bg-surface", height === "tall" ? "min-h-[78svh] md:min-h-[92svh]" : "min-h-[60svh] md:min-h-[72svh]", className]}>
       {plate && (
         <div class="absolute inset-0 -z-10" data-fx="image">
           <picture class="absolute inset-0 block size-full">

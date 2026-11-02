@@ -18,7 +18,7 @@ interface Props {
 const { models, image } = Astro.props;
 ---
 
-<section id="plan" class="plan" aria-labelledby="plan-title">
+<section data-theme="dark" id="plan" class="plan" aria-labelledby="plan-title">
   <div class="plan-media" data-fx="image" aria-hidden={image ? undefined : "true"}>
     {
       image && (

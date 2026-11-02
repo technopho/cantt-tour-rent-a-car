@@ -27,7 +27,7 @@ const moodCaption = mood && captionFor(mood);
 
 <div data-header-sentinel class="pointer-events-none absolute inset-x-0 top-0 h-6" aria-hidden="true"></div>
 
-<header class="site-header group/header fixed inset-x-0 top-0 z-50" data-site-header data-scrolled="false" data-hidden="false">
+<header data-theme="dark" class="site-header group/header fixed inset-x-0 top-0 z-50" data-site-header data-scrolled="false" data-hidden="false">
   <div class="site-header__scrim pointer-events-none absolute inset-x-0 top-0 h-[150%]" aria-hidden="true"></div>
   <div
     class="site-header__glass absolute inset-0 border-b border-line bg-(--header-bg) opacity-0 backdrop-blur-xl backdrop-saturate-125 not-supports-[backdrop-filter:blur(1px)]:bg-bg group-data-[scrolled=true]/header:opacity-100"
@@ -58,6 +58,17 @@ const moodCaption = mood && captionFor(mood);
     </nav>
 
     <div class="ml-auto flex items-center gap-1.5 sm:gap-2.5">
+      <!-- Theme toggle: dark (default) or light. Shows a sun in dark, a moon in light. Saved per visitor. -->
+      <button
+        type="button"
+        class="theme-toggle inline-flex size-11 shrink-0 items-center justify-center text-fg/80 transition-colors duration-500 hover:text-accent"
+        aria-pressed="false"
+        data-theme-toggle
+      >
+        <span class="sr-only">Light theme</span>
+        <Icon name="ph:sun" size={20} class="theme-toggle__sun" />
+        <Icon name="ph:moon" size={20} class="theme-toggle__moon" />
+      </button>
       <Button
         href={telUrl()}
         variant="ghost"
@@ -98,7 +109,7 @@ const moodCaption = mood && captionFor(mood);
   </Container>
 </header>
 
-<dialog id="site-menu" class="menu-sheet m-0 h-dvh max-h-none w-full max-w-none overflow-hidden bg-bg p-0 text-fg" aria-labelledby="site-menu-title" data-scroll-lock closedby="any">
+<dialog data-theme="dark" id="site-menu" class="menu-sheet m-0 h-dvh max-h-none w-full max-w-none overflow-hidden bg-bg p-0 text-fg" aria-labelledby="site-menu-title" data-scroll-lock closedby="any">
   <div class="relative isolate flex h-full flex-col">
     {/* Mood image: the right column on desktop, a dim backdrop behind the links on phones. */}
     <div class="menu-mood absolute inset-y-0 right-0 -z-10 w-full overflow-hidden lg:w-[42%]" aria-hidden="true">
@@ -175,6 +186,27 @@ const moodCaption = mood && captionFor(mood);
 </dialog>
 
 <script>
+  // Theme toggle. The saved choice is applied before first paint by BaseLayout; this keeps the button in
+  // step and stores a new choice.
+  const themeButton = document.querySelector<HTMLButtonElement>("[data-theme-toggle]");
+  if (themeButton) {
+    const root = document.documentElement;
+    const sync = () => themeButton.setAttribute("aria-pressed", String(root.dataset.theme === "light"));
+    sync();
+    themeButton.addEventListener("click", () => {
+      const light = root.dataset.theme !== "light";
+      root.dataset.theme = light ? "light" : "dark";
+      try {
+        localStorage.setItem("cantt-theme", light ? "light" : "dark");
+      } catch {
+        // Private mode or blocked storage: the switch still works for this page.
+      }
+      document.querySelector('meta[name="color-scheme"]')?.setAttribute("content", light ? "light" : "dark");
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", light ? "#f4efe5" : "#070708");
+      sync();
+    });
+  }
+
   const header = document.querySelector<HTMLElement>("[data-site-header]");
   const sentinel = document.querySelector("[data-header-sentinel]");
   if (header && sentinel && "IntersectionObserver" in window) {
@@ -235,6 +267,11 @@ const moodCaption = mood && captionFor(mood);
 <style>
   .site-header {
     transition: transform 0.9s var(--ease-heavy);
+  }
+  /* The toggle shows where it will take you: a sun in the dark theme, a moon in the light one. */
+  :global(:root[data-theme="light"]) .theme-toggle :global(.theme-toggle__sun),
+  :global(:root:not([data-theme="light"])) .theme-toggle :global(.theme-toggle__moon) {
+    display: none;
   }
   /* Keyboard users never lose it: focus inside the header holds it in place. */
   .site-header[data-hidden="true"]:not(:focus-within) {

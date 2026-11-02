@@ -134,7 +134,7 @@ const prices = ([
     Hero: the car full bleed. Desktop sets the title over the picture; a phone gets the picture as a full-width
     block under the header and the title beneath it, so the car is seen whole instead of behind the text.
   -->
-  <section class:list={["model-hero relative isolate overflow-hidden", !heroImg && "model-hero--plain"]}>
+  <section data-theme="dark" class:list={["model-hero relative isolate overflow-hidden", !heroImg && "model-hero--plain"]}>
     {
       heroImg ? (
         <div class="model-hero__media overflow-hidden bg-surface">

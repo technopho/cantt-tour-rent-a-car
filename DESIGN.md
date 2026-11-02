@@ -10,7 +10,7 @@ Owner's brief (2026-11-02): "We are a luxury rent car service. The website shoul
 
 - **Name:** Cantt Rent a Car. Never rename it. "Cantt" = Lahore Cantonment: order, punctuality, discretion.
 - **Mood:** polished paint in low light. Brass, ivory, obsidian, ember tail-lights. Quiet confidence. Nothing shouts, nothing bounces.
-- **Theme:** one mode, dark. The light theme is removed. `color-scheme: dark` everywhere.
+- **Theme:** dark by default (the brand). Visitors can switch to a light "ivory" theme with the sun/moon toggle in the header; the choice is saved in `localStorage` (`cantt-theme`) and applied before first paint. Light tokens live under `:root[data-theme="light"]` in `global.css`. Picture-led blocks (page heroes, the home opening and its image sections, plates, interludes, the header bar, the menu and the footer) carry `data-theme="dark"` and stay dark in both themes, because ivory type over a photograph needs a dark scrim either way. A new image-led section must do the same.
 
 ## Tokens (token NAMES stay the same as before so existing utilities keep working; values change)
 

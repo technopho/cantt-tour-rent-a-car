@@ -85,7 +85,7 @@ const extraRates = detailed
       {visual?.representative && <p class="sr-only">{REPRESENTATIVE}</p>}
     </article>
   ) : (
-    <article class:list={["plate group relative", className]} data-cursor="View" data-category={model.category}>
+    <article data-theme="dark" class:list={["plate group relative", className]} data-cursor="View" data-category={model.category}>
       <figure class="plate__frame relative overflow-hidden bg-surface" data-fx="image">
         <img
           src={visual!.img.src}

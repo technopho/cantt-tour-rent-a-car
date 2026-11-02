@@ -27,7 +27,7 @@ const inColumns = new Set(columns.map((c) => c.href));
 const others = site.services.filter((s) => !inColumns.has(urls.service(s.slug)));
 ---
 
-<section id="occasions" class="occ-section" aria-labelledby="occasions-title" data-occ-section>
+<section data-theme="dark" id="occasions" class="occ-section" aria-labelledby="occasions-title" data-occ-section>
   <Container class="occ-head">
     <h2 id="occasions-title" class="occ-heading">
       <span class="label occ-kicker">Car rental services in Lahore</span>{" "}

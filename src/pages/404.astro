@@ -27,7 +27,7 @@ const still = trails();
   overlayHeader
   hideFooterCta
 >
-  <section class="relative isolate flex overflow-hidden pt-[60svh] md:min-h-svh md:items-end md:pt-[calc(var(--header-h)+3rem)]">
+  <section data-theme="dark" class="relative isolate flex overflow-hidden pt-[60svh] md:min-h-svh md:items-end md:pt-[calc(var(--header-h)+3rem)]">
     <div class="absolute inset-x-0 top-0 -z-10 h-[82svh] overflow-hidden bg-bg md:inset-0 md:h-auto" aria-hidden="true">
       <p class="lost-number absolute inset-x-0 top-[calc(var(--header-h)+1rem)] text-center font-display text-fg/[0.09]" data-fx="fade">404</p>
       <img src={still.img.src} srcset={still.img.srcset || undefined} sizes="100vw" width={still.img.width} height={still.img.height} alt="" fetchpriority="high" class="lost-still absolute inset-0 size-full object-cover" style={still.position ? `object-position:${still.position}` : undefined} data-fx="kenburns" />
