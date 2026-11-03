@@ -18,7 +18,6 @@ import {
   DoubleSide,
   AddEquation,
   OneFactor,
-  ZeroFactor,
   Mesh,
   PerspectiveCamera,
   Points,
@@ -128,6 +127,14 @@ function rawHeight(x: number, z: number): number {
 /* Shaders                                                                                      */
 /* ------------------------------------------------------------------------------------------ */
 
+/* The canvas is transparent and premultiplied: light must carry alpha at least as high as its brightest
+   channel, or Safari and some GPUs drop it entirely (Chrome happened to show it anyway). */
+const EMIT = /* glsl */ `
+vec4 emit(vec3 c) {
+  c = max(c, 0.0);
+  return vec4(c, max(max(c.r, c.g), c.b));
+}`;
+
 const pointVert = /* glsl */ `
 attribute float aHeight;
 attribute float aSeed;
@@ -162,13 +169,13 @@ void main() {
   vColor = h < 0.25 ? mix(DEEP, BRASS, h / 0.25) : mix(BRASS, IVORY, smoothstep(0.25, 0.65, h));
 }`;
 
-const pointFrag = /* glsl */ `
+const pointFrag = /* glsl */ `${EMIT}
 varying float vLight;
 varying vec3 vColor;
 void main() {
   float r = length(gl_PointCoord - 0.5) * 2.0;
   float a = smoothstep(1.0, 0.25, r);
-  gl_FragColor = vec4(vColor * a * vLight, 0.0);
+  gl_FragColor = emit(vColor * a * vLight);
 }`;
 
 const lineVert = /* glsl */ `
@@ -207,7 +214,7 @@ void main() {
   gl_Position = c;
 }`;
 
-const lineFrag = /* glsl */ `
+const lineFrag = /* glsl */ `${EMIT}
 uniform float uDraw;
 uniform float uHead;
 uniform vec3 uColor;
@@ -228,7 +235,7 @@ void main() {
   float head = smoothstep(uDraw - 0.05, uDraw, vAlong) * uHead;
   float tip = 1.0 - smoothstep(uDraw - 0.004, uDraw, vAlong) * 0.85;
   float gain = uGain * (0.75 + head * 1.6) * tip;
-  gl_FragColor = vec4((uColor * core + uGlow * glow) * gain, 0.0);
+  gl_FragColor = emit((uColor * core + uGlow * glow) * gain);
 }`;
 
 const markerVert = /* glsl */ `
@@ -243,14 +250,14 @@ void main() {
   gl_PointSize = clamp(uScale * 2.2 / max(-mv.z, 1.0), 10.0, 42.0);
 }`;
 
-const markerFrag = /* glsl */ `
+const markerFrag = /* glsl */ `${EMIT}
 varying float vOn;
 void main() {
   float r = length(gl_PointCoord - 0.5) * 2.0;
   float dot_ = smoothstep(0.22, 0.14, r);
   float halo = pow(max(1.0 - r, 0.0), 2.2) * 0.65;
   vec3 color = vec3(1.0, 0.86, 0.6);
-  gl_FragColor = vec4((color * halo + vec3(1.0, 0.97, 0.9) * dot_) * vOn, 0.0);
+  gl_FragColor = emit((color * halo + vec3(1.0, 0.97, 0.9) * dot_) * vOn);
 }`;
 
 const ADDITIVE = {
@@ -261,7 +268,7 @@ const ADDITIVE = {
   blendEquation: AddEquation,
   blendSrc: OneFactor,
   blendDst: OneFactor,
-  blendSrcAlpha: ZeroFactor,
+  blendSrcAlpha: OneFactor,
   blendDstAlpha: OneFactor,
 } as const;
 
